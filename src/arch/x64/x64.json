@@ -1,0 +1,24 @@
+{
+    "llvm-target": "x86_64-unknown-none-elf",
+    "data-layout": "e-m:e-i64:64-f80:128-n8:16:32:64-S128",
+    "linker-flavor": "ld.lld",
+    "linker": "rust-lld",
+    "pre-link-args": {
+        "ld.lld": [
+            "--script=src/arch/x64/x64.ld"
+        ]
+    },
+    "target-endian": "little",
+    "target-pointer-width": "64",
+    "target-c-int-width": "32",
+    "arch": "x86_64",
+    "relocation-model": "static",
+    "os": "none",
+    "code-model": "large",
+    "features": "-mmx,-sse,+soft-float",
+    "panic-strategy": "abort",
+    "executables": true,
+    "disable-redzone": true,
+    "emit-debug-gdb-scripts": false,
+    "eliminate-frame-pointer": false
+}
