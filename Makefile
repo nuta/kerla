@@ -17,24 +17,37 @@ ifeq ($(V),)
 .SILENT:
 endif
 
+target_json := src/arch/$(ARCH)/$(ARCH).json
+kernel_elf := penguin-kernel.$(ARCH).elf
+
 PROGRESS   := printf "  \\033[1;96m%8s\\033[0m  \\033[1;m%s\\033[0m\\n"
 PYTHON3    ?= python3
 CARGO      ?= cargo
 
 CARGOFLAGS += -Z build-std=core,alloc -Z build-std-features=compiler-builtins-mem
-
-target_json := src/arch/$(ARCH)/$(ARCH).json
-kernel_image := penguin-kernel.$(ARCH).elf
-
-include src/arch/$(ARCH)/Makefile
+CARGOFLAGS += --target $(target_json)
+TESTCARGOFLAGS += -Z unstable-options
+TESTCARGOFLAGS += --config "target.$(ARCH).runner = '$(PYTHON3) tools/run-qemu.py --arch $(ARCH)'"
 
 #
 #  Build Commands
 #
 .PHONY: build
 build:
-	$(CARGO) build $(CARGOFLAGS) --target $(target_json)
-	cp target/$(ARCH)/$(BUILD)/penguin-kernel $(kernel_image)
+	$(CARGO) build $(CARGOFLAGS)
+	cp target/$(ARCH)/$(BUILD)/penguin-kernel $(kernel_elf)
+
+.PHONY: run
+run: build
+	$(PYTHON3) tools/run-qemu.py --arch $(ARCH) $(kernel_elf)
+
+.PHONY: test
+test:
+	$(CARGO) test $(CARGOFLAGS) $(TESTCARGOFLAGS)
+
+.PHONY: testw
+testw:
+	$(CARGO) watch -s "$(MAKE) test"
 
 .PHONY: lint
 lint:

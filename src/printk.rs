@@ -1,12 +1,6 @@
 use crate::arch::x64::printchar;
 
-pub struct Printer();
-
-impl Printer {
-    pub const fn new() -> Printer {
-        Printer()
-    }
-}
+pub struct Printer;
 
 impl core::fmt::Write for Printer {
     fn write_char(&mut self, c: char) -> core::fmt::Result {
@@ -28,7 +22,7 @@ macro_rules! print {
     ($($arg:tt)*) => {{
         #![allow(unused_import)]
         use core::fmt::Write;
-        write!($crate::printk::Printer::new(), "{}", format_args!($($arg)*)).ok();
+        write!($crate::printk::Printer, "{}", format_args!($($arg)*)).ok();
     }};
 }
 

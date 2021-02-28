@@ -19,6 +19,14 @@ unsafe fn asm_out8(port: u16, value: u8) {
     );
 }
 
+unsafe fn asm_out16(port: u16, value: u16) {
+    asm!(
+            "out dx, ax",
+            in("dx") port,
+            in("ax") value,
+    );
+}
+
 unsafe fn asm_in8(port: u16) -> u8 {
     let mut value;
     asm!(
@@ -40,6 +48,19 @@ pub fn printchar(ch: char) {
         if ch == '\n' {
             serial_write('\r');
         }
+    }
+}
+
+#[repr(u32)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ExitStatus {
+    Success = 0x10,
+    Failure = 0x11,
+}
+
+pub fn semihosting_halt(status: ExitStatus) {
+    unsafe {
+        asm_out16(0x501, status as u16);
     }
 }
 

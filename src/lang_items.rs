@@ -1,8 +1,7 @@
-use core::panic::PanicInfo;
-
 /// This function is called on panic.
 #[panic_handler]
-fn panic(info: &PanicInfo) -> ! {
+#[cfg(not(test))]
+fn panic(info: &core::panic::PanicInfo) -> ! {
     println!("{}", info);
     loop {}
 }
