@@ -1,4 +1,4 @@
-use crate::arch::x64::printchar;
+use crate::arch::printchar;
 
 pub struct Printer;
 

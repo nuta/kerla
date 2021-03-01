@@ -1,4 +1,4 @@
-use crate::arch::x64::*;
+use crate::arch::*;
 use core::panic::PanicInfo;
 
 pub trait Testable {

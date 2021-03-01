@@ -1,1 +1,3 @@
-pub mod x64;
+mod x64;
+
+pub use x64::*;
