@@ -1,7 +1,4 @@
-[package]
-name = "penguin-kernel"
-version = "0.0.0"
-authors = ["Seiya Nuta <nuta@seiya.me>"]
-edition = "2018"
-
-[dependencies]
+[workspace]
+members = [
+    "kernel",
+]

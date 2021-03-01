@@ -17,24 +17,25 @@ ifeq ($(V),)
 .SILENT:
 endif
 
-target_json := src/arch/$(ARCH)/$(ARCH).json
+topdir      := $(PWD)
+target_json := kernel/arch/$(ARCH)/$(ARCH).json
 kernel_elf := penguin-kernel.$(ARCH).elf
 
 PROGRESS   := printf "  \\033[1;96m%8s\\033[0m  \\033[1;m%s\\033[0m\\n"
 PYTHON3    ?= python3
-CARGO      ?= cargo
+CARGO      ?= cargo +nightly
 
 CARGOFLAGS += -Z build-std=core,alloc -Z build-std-features=compiler-builtins-mem
 CARGOFLAGS += --target $(target_json)
 TESTCARGOFLAGS += -Z unstable-options
-TESTCARGOFLAGS += --config "target.$(ARCH).runner = '$(PYTHON3) tools/run-qemu.py --arch $(ARCH)'"
+TESTCARGOFLAGS += --config "target.$(ARCH).runner = '$(PYTHON3) $(topdir)/tools/run-qemu.py --arch $(ARCH)'"
 
 #
 #  Build Commands
 #
 .PHONY: build
 build:
-	$(CARGO) build $(CARGOFLAGS)
+	$(CARGO) build $(CARGOFLAGS) --manifest-path kernel/Cargo.toml
 	cp target/$(ARCH)/$(BUILD)/penguin-kernel $(kernel_elf)
 
 .PHONY: run
