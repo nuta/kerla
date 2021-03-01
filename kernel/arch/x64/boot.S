@@ -17,7 +17,7 @@ boot:
     cld
 
     // Set the boot (later reused for the cpu-local idle thread) stack.
-    lea esp, [__boot_stack_base + 0x1000]
+    lea esp, [__boot_stack]
 
     // Save the 64-bit physical address of struct multiboot_info.
     xor eax, eax
@@ -110,12 +110,9 @@ mpboot32:
     mov ss, ax
 
     // Set the boot (later reused for the cpu-local idle thread) stack:
-    mov eax, [0xfee00020] // Get the Local APIC ID.
-    shr eax, 24
-    shl eax, 12      // EAX = (cpuid * PAGE_SIZE) + PAGE_SIZE
-    add eax, 0x1000
-    lea esp, [__boot_stack_base]
-    add esp, eax
+    // TODO: Set the stack
+    int 3
+
     lea eax, [enable_long_mode]
     jmp eax
 mpboot_end:

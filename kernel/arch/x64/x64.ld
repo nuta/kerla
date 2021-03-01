@@ -17,7 +17,7 @@ SECTIONS {
     __mp_boot_gdtr = .;
 
     .boot : {
-        __kernel_image = .; /* paddr_t */
+        __kernel_image = .; /* physical address */
         KEEP(*(.boot));
     } > boot_ram
 
@@ -42,7 +42,7 @@ SECTIONS {
         *(.bss.*);
         __bss_end = .;
 
-        /* The kernel page table (paddr_t). */
+        /* The kernel page table (physical addresses). */
         . = ALIGN(4096);
         __kernel_pml4 = . - LMA_OFFSET;
         . += 0x1000;
@@ -52,13 +52,12 @@ SECTIONS {
         . += 4 * 512 * 8; /* (# of PDPT entries) * (# of entries in PD) *
                              (size of entry) */
 
-        /* CPU variables and boot stacks (paddr_t). */
-        . = ALIGN(4096);
-        __boot_stack_base = . - LMA_OFFSET;
-        . += 0x1000 * 16; /* PAGE_SIZE * CPU_NUM_MAX */
+        /* The initial stack for BSP. */
+        . += 4096;
+        __boot_stack = . - LMA_OFFSET; /* physical address */
 
         . = ALIGN(4096);
-        __kernel_image_end = . - LMA_OFFSET; /* paddr_t */
+        __kernel_image_end = . - LMA_OFFSET; /* physical address */
     } > ram AT > lma_ram
 
     /DISCARD/ :{
