@@ -1,3 +1,5 @@
+#![cfg(test)]
+
 use crate::arch::*;
 use core::panic::PanicInfo;
 
@@ -16,7 +18,6 @@ where
     }
 }
 
-#[cfg(test)]
 pub fn run_tests(tests: &[&dyn Testable]) {
     println!("Running {} tests\n", tests.len());
     for test in tests {

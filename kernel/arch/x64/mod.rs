@@ -51,6 +51,7 @@ pub fn printchar(ch: char) {
     }
 }
 
+#[cfg(test)]
 #[repr(u32)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ExitStatus {
@@ -58,6 +59,7 @@ pub enum ExitStatus {
     Failure = 0x11,
 }
 
+#[cfg(test)]
 pub fn semihosting_halt(status: ExitStatus) {
     unsafe {
         asm_out16(0x501, status as u16);

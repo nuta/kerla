@@ -1,5 +1,6 @@
 #![cfg_attr(test, allow(unreachable_code))]
 
+#[cfg(test)]
 use crate::test_runner::end_tests;
 
 pub fn boot_kernel() {
