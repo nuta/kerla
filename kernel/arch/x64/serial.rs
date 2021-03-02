@@ -30,5 +30,4 @@ pub unsafe fn init() {
     asm::out8(IOPORT_SERIAL + DLH, ((divisor >> 8) & 0xff) as u8);
     asm::out8(IOPORT_SERIAL + LCR, 0x03); // 8n1.
     asm::out8(IOPORT_SERIAL + FCR, 0x01); // Enable FIFO.
-    asm::out8(IOPORT_SERIAL + IER, 0x01); // Enable interrupts.
 }
