@@ -1,3 +1,5 @@
+// FIXME: Replace with x86
+
 pub unsafe fn out8(port: u16, value: u8) {
     asm!(
         "out dx, al",
