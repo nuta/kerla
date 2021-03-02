@@ -1,8 +1,8 @@
 # Default values for build system.
 export V         ?=
 export GUI       ?=
+export RELEASE   ?=
 export ARCH      ?= x64
-export BUILD     ?= debug
 export VERSION   ?= v0.8.0
 
 # The default build target.
@@ -19,6 +19,7 @@ ifeq ($(V),)
 endif
 
 topdir      := $(PWD)
+build_mode  := $(if $(RELEASE),release,debug)
 target_json := kernel/arch/$(ARCH)/$(ARCH).json
 kernel_elf := penguin-kernel.$(ARCH).elf
 stripped_kernel_elf := penguin-kernel.$(ARCH).stripped.elf
@@ -32,6 +33,7 @@ STRIP      ?= rust-strip
 
 CARGOFLAGS += -Z build-std=core,alloc -Z build-std-features=compiler-builtins-mem
 CARGOFLAGS += --target $(target_json)
+CARGOFLAGS += $(if $(RELEASE),--release,)
 TESTCARGOFLAGS += -Z unstable-options
 TESTCARGOFLAGS += --config "target.$(ARCH).runner = '$(PYTHON3) $(topdir)/tools/run-qemu.py --arch $(ARCH)'"
 
@@ -41,7 +43,7 @@ TESTCARGOFLAGS += --config "target.$(ARCH).runner = '$(PYTHON3) $(topdir)/tools/
 .PHONY: build
 build:
 	$(CARGO) build $(CARGOFLAGS) --manifest-path kernel/Cargo.toml
-	cp target/$(ARCH)/$(BUILD)/penguin-kernel $(kernel_elf)
+	cp target/$(ARCH)/$(build_mode)/penguin-kernel $(kernel_elf)
 	$(PROGRESS) "STRIP" $(stripped_kernel_elf)
 	$(STRIP) $(kernel_elf) -o $(stripped_kernel_elf)
 
