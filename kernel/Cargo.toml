@@ -9,3 +9,5 @@ name = "penguin-kernel"
 path = "main.rs"
 
 [dependencies]
+spin = "0.7.1"
+x86 = "0.36.0"

@@ -172,7 +172,7 @@ setup_bsp:
     rep stosb
 
     pop  rdi // Restore the address of multiboot_info
-    lea  rax, [rip + init]
+    lea  rax, [rip + bsp_init]
     call rax
 
     // In case init() returns.

@@ -1,5 +1,6 @@
 #![cfg_attr(test, allow(unreachable_code))]
 
+use crate::arch::idle;
 #[cfg(test)]
 use crate::test_runner::end_tests;
 
@@ -11,4 +12,7 @@ pub fn boot_kernel() {
     }
 
     println!("Hello World from Penguin Kernel XD");
+    loop {
+        idle();
+    }
 }
