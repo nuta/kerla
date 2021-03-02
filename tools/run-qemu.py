@@ -17,7 +17,7 @@ ARCHS = {
         "bin": "qemu-system-x86_64",
         "args": COMMON_ARGS + [
             "-m", "512",
-            "-cpu", "IvyBridge,rdtscp",
+            "-cpu", "Icelake-Server",
             "-device", "isa-debug-exit,iobase=0x501,iosize=2",
             "-d", "guest_errors,unimp",
         ]
