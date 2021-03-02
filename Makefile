@@ -1,5 +1,6 @@
 # Default values for build system.
 export V         ?=
+export GUI       ?=
 export ARCH      ?= x64
 export BUILD     ?= debug
 export VERSION   ?= v0.8.0
@@ -40,7 +41,10 @@ build:
 
 .PHONY: run
 run: build
-	$(PYTHON3) tools/run-qemu.py --arch $(ARCH) $(kernel_elf)
+	$(PYTHON3) tools/run-qemu.py              \
+		--arch $(ARCH)                    \
+		$(if $(GUI),--gui,)               \
+		$(kernel_elf)
 
 .PHONY: test
 test:
