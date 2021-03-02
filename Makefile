@@ -21,10 +21,14 @@ endif
 topdir      := $(PWD)
 target_json := kernel/arch/$(ARCH)/$(ARCH).json
 kernel_elf := penguin-kernel.$(ARCH).elf
+stripped_kernel_elf := penguin-kernel.$(ARCH).stripped.elf
 
 PROGRESS   := printf "  \\033[1;96m%8s\\033[0m  \\033[1;m%s\\033[0m\\n"
 PYTHON3    ?= python3
 CARGO      ?= cargo +nightly
+BOCHS      ?= bochs
+NM         ?= rust-nm
+STRIP      ?= rust-strip
 
 CARGOFLAGS += -Z build-std=core,alloc -Z build-std-features=compiler-builtins-mem
 CARGOFLAGS += --target $(target_json)
@@ -38,6 +42,16 @@ TESTCARGOFLAGS += --config "target.$(ARCH).runner = '$(PYTHON3) $(topdir)/tools/
 build:
 	$(CARGO) build $(CARGOFLAGS) --manifest-path kernel/Cargo.toml
 	cp target/$(ARCH)/$(BUILD)/penguin-kernel $(kernel_elf)
+	$(PROGRESS) "STRIP" $(stripped_kernel_elf)
+	$(STRIP) $(kernel_elf) -o $(stripped_kernel_elf)
+
+.PHONY: iso
+iso: build
+	$(PROGRESS) MKISO penguin.iso
+	mkdir -p isofiles/boot/grub
+	cp boot/grub.cfg isofiles/boot/grub/grub.cfg
+	cp $(stripped_kernel_elf) isofiles/penguin.elf
+	grub-mkrescue -o penguin.iso isofiles
 
 .PHONY: run
 run: build
@@ -45,6 +59,12 @@ run: build
 		--arch $(ARCH)                    \
 		$(if $(GUI),--gui,)               \
 		$(kernel_elf)
+
+.PHONY: bochs
+bochs: iso
+	$(PROGRESS) "GEN" $(kernel_elf:.elf=.symbols)
+	$(NM) --demangle $(kernel_elf) | awk '{ print $$1, $$3 }' > $(kernel_elf:.elf=.symbols)
+	$(BOCHS) -qf boot/bochsrc
 
 .PHONY: test
 test:
@@ -61,4 +81,4 @@ lint:
 .PHONY: clean
 clean:
 	$(CARGO) clean
-	rm -f *.elf
+	rm -rf *.elf *.iso *.symbols isofiles

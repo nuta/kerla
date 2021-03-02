@@ -1,3 +1,7 @@
 /target
+/isofiles
 /.vscode
 *.elf
+*.iso
+*.symbols
+*.log
