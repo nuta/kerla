@@ -6,8 +6,8 @@
 // The multiboot header.
 .align 8
 .long 0x1badb002
-.long 0x00000040 // memory map
-.long -(0x1badb002 + 0x00000040) // checksum
+.long 0x00000000
+.long -(0x1badb002 + 0x00000000)
 
 // The entry point jumped from the bootloader.
 .code32
