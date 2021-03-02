@@ -81,42 +81,6 @@ write_pd_entry:
 
     jmp enable_long_mode
 
-// AP boot code. mpboot will be relocated to __mp_boot_trampoine because this
-// code is not addressable in real mode.
-.code16
-.global mpboot, mpboot_end
-mpboot:
-    cli
-    mov ax, 0
-    mov ds, ax
-    mov es, ax
-
-    // Load GDT and enable Protected Mode.
-    lgdt [__mp_boot_gdtr]
-    mov  eax, cr0
-    or   eax, 1
-    mov  cr0, eax
-
-    // jmp 24:mpboot32
-    .byte 0xea
-    .word mpboot32 - mpboot + __mp_boot_trampoine
-    .byte 0x18, 0x00
-
-.code32
-mpboot32:
-    mov ax, 16
-    mov ds, ax
-    mov es, ax
-    mov ss, ax
-
-    // Set the boot (later reused for the cpu-local idle thread) stack:
-    // TODO: Set the stack
-    int 3
-
-    lea eax, [enable_long_mode]
-    jmp eax
-mpboot_end:
-
 //
 //  Common boot code for both BSP and APs.
 //
@@ -193,10 +157,10 @@ long_mode:
     shr eax, 24
     test eax, eax
     jz  setup_bsp
+
 setup_ap:
-    lea  rax, [rip + mpinit]
-    call rax
-    jmp  halt
+    // TODO: SMP
+    ud2
 
 setup_bsp:
     // Clear .bss section
