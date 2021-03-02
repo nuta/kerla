@@ -46,8 +46,9 @@ SECTIONS {
         . += 4 * 512 * 8; /* (# of PDPT entries) * (# of entries in PD) *
                              (size of entry) */
 
-        /* The initial stack for BSP. */
-        . += 4096;
+        /* The initial stack for BSP. We need reserve a large space since Rust
+           tend to consume too much memory especially in the debug buid :/  */
+        . += 0x10000;
         __boot_stack = . - LMA_OFFSET; /* physical address */
 
         . = ALIGN(4096);
