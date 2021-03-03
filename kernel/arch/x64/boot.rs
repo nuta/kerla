@@ -1,4 +1,4 @@
-use super::{apic, gdt, idt, ioapic, printchar, serial, syscall, tss};
+use super::{address::PAddr, apic, gdt, idt, ioapic, multiboot, printchar, serial, syscall, tss};
 use crate::boot::boot_kernel;
 use x86::{
     controlregs::{self, Cr4, Xcr0},
@@ -41,10 +41,12 @@ unsafe fn common_setup() {
 /// Initializes the CPU. This function is called exactly once in the Bootstrap
 /// Processor (BSP).
 #[no_mangle]
-unsafe extern "C" fn bsp_init() -> ! {
+unsafe extern "C" fn bsp_init(multiboot_magic: u32, multiboot_info: u64) -> ! {
     // Initialize the serial driver first to enable print macros.
     serial::init();
     printchar('\n');
+
+    let boot_info = multiboot::parse(multiboot_magic, PAddr::new(multiboot_info));
 
     // Disables PIC -- we use IO APIC instead.
     outb(0xa1, 0xff);

@@ -4,6 +4,8 @@ use crate::arch::idle;
 #[cfg(test)]
 use crate::test_runner::end_tests;
 
+pub struct BootInfo {}
+
 pub fn boot_kernel() {
     #[cfg(test)]
     {

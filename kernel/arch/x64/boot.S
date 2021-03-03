@@ -44,10 +44,12 @@ boot:
     // Set the boot (later reused for the cpu-local idle thread) stack.
     lea esp, [__boot_stack]
 
-    // Save the 64-bit physical address of struct multiboot_info.
-    xor eax, eax
-    push eax // Upper 32-bits.
+    // Save the multiboot magic and 64-bit physical address of multiboot info onto the stack.
+    push 0      // Upper 32-bits.
+    push eax
+    push 0      // Upper 32-bits.
     push ebx
+
 
     // Prepare for RETF.
     mov eax, 24
@@ -196,7 +198,8 @@ setup_bsp:
     cld
     rep stosb
 
-    pop  rdi // Restore the address of multiboot_info
+    pop  rsi // the address of multiboot info
+    pop  rdi // multiboot magic
     lea  rax, [rip + bsp_init]
     call rax
 
