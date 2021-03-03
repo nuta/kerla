@@ -200,6 +200,10 @@ setup_bsp:
 
     pop  rsi // the address of multiboot info
     pop  rdi // multiboot magic
+
+    // Clear the frame pointer to stop backtracing here.
+    xor ebx, ebx
+
     lea  rax, [rip + bsp_init]
     call rax
 
