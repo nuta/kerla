@@ -23,6 +23,7 @@ build_mode  := $(if $(RELEASE),release,debug)
 target_json := kernel/arch/$(ARCH)/$(ARCH).json
 kernel_elf := penguin-kernel.$(ARCH).elf
 stripped_kernel_elf := penguin-kernel.$(ARCH).stripped.elf
+kernel_symbols := $(kernel_elf:.elf=.symbols)
 
 PROGRESS   := printf "  \\033[1;96m%8s\\033[0m  \\033[1;m%s\\033[0m\\n"
 PYTHON3    ?= python3
@@ -46,6 +47,13 @@ export CARGO_FROM_MAKE=1
 build:
 	$(CARGO) build $(CARGOFLAGS) --manifest-path kernel/Cargo.toml
 	cp target/$(ARCH)/$(build_mode)/penguin-kernel $(kernel_elf)
+
+	$(PROGRESS) "NM" $(kernel_symbols)
+	$(NM) $(kernel_elf) | rustfilt | awk '{ $$2=""; print $$0 }' > $(kernel_symbols)
+
+	$(PROGRESS) "SYMBOLS" $(kernel_elf)
+	$(PYTHON3) tools/embed-symbol-table.py $(kernel_symbols) $(kernel_elf)
+
 	$(PROGRESS) "STRIP" $(stripped_kernel_elf)
 	$(STRIP) $(kernel_elf) -o $(stripped_kernel_elf)
 
@@ -66,8 +74,6 @@ run: build
 
 .PHONY: bochs
 bochs: iso
-	$(PROGRESS) "GEN" $(kernel_elf:.elf=.symbols)
-	$(NM) --demangle $(kernel_elf) | awk '{ print $$1, $$3 }' > $(kernel_elf:.elf=.symbols)
 	$(BOCHS) -qf boot/bochsrc
 
 .PHONY: test

@@ -1,5 +1,7 @@
-use crate::arch::printchar;
-
+use crate::arch::{printchar, Backtrace, VAddr};
+use core::mem::size_of;
+use core::slice;
+use core::str;
 pub struct Printer;
 
 impl core::fmt::Write for Printer {
@@ -31,4 +33,95 @@ macro_rules! print {
 macro_rules! println {
     ($fmt:expr) => { $crate::print!(concat!($fmt, "\n")); };
     ($fmt:expr, $($arg:tt)*) => { $crate::print!(concat!($fmt, "\n"), $($arg)*); };
+}
+
+/// A symbol.
+#[repr(C, packed)]
+struct SymbolEntry {
+    addr: u64,
+    name: [u8; 56],
+}
+
+#[repr(C, packed)]
+struct SymbolTable {
+    magic: u32,
+    num_symbols: i32,
+    padding: u64,
+}
+
+extern "C" {
+    static __symbol_table: SymbolTable;
+}
+
+global_asm!(
+    r#"
+    .rodata
+    .align 8
+    .global __symbol_table
+    __symbol_table:
+       .ascii "__SYMBOL_TABLE_START__"
+       .space 64 * 1024
+       .ascii "__SYMBOL_TABLE_END__"
+"#
+);
+
+struct Symbol {
+    name: &'static str,
+    addr: VAddr,
+}
+
+fn resolve_symbol(vaddr: VAddr) -> Option<Symbol> {
+    assert!(unsafe { __symbol_table.magic } == 0xbeefbeef);
+
+    let num_symbols = unsafe { __symbol_table.num_symbols };
+    let symbols = unsafe {
+        slice::from_raw_parts(
+            ((&__symbol_table as *const _ as usize) + size_of::<SymbolTable>())
+                as *const SymbolEntry,
+            __symbol_table.num_symbols as usize,
+        )
+    };
+
+    // Do a binary search.
+    let mut l = -1;
+    let mut r = num_symbols;
+    while (r - l > 1) {
+        let mid = (l + r) / 2;
+        if (vaddr.value() >= symbols[mid as usize].addr as usize) {
+            l = mid;
+        } else {
+            r = mid;
+        }
+    }
+
+    if l >= 0 {
+        let symbol = &symbols[l as usize];
+        Some(Symbol {
+            name: unsafe { str::from_utf8_unchecked(&symbol.name) },
+            addr: VAddr::new(symbol.addr),
+        })
+    } else {
+        None
+    }
+}
+
+/// Prints a backtrace.
+pub fn backtrace() {
+    Backtrace::current_frame().traverse(|i, vaddr| {
+        if let Some(symbol) = resolve_symbol(vaddr) {
+            println!(
+                "    {index}: {vaddr} {symbol_name}()+0x{offset:x}",
+                index = i,
+                vaddr = vaddr,
+                symbol_name = symbol.name,
+                offset = vaddr.value() - symbol.addr.value(),
+            );
+        } else {
+            println!(
+                "    {index}: {vaddr} (symbol unknown)",
+                index = i,
+                vaddr = vaddr,
+            );
+        }
+    });
 }

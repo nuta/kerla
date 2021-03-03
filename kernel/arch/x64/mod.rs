@@ -4,6 +4,7 @@ global_asm!(include_str!("trap.S"));
 mod address;
 mod apic;
 mod asm;
+mod backtrace;
 mod boot;
 mod gdt;
 mod idle;
@@ -17,6 +18,8 @@ mod serial;
 mod syscall;
 mod tss;
 
+pub use address::{PAddr, VAddr};
+pub use backtrace::Backtrace;
 pub use idle::{halt, idle};
 #[cfg(test)]
 pub use semihosting::{semihosting_halt, ExitStatus};

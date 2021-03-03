@@ -21,7 +21,7 @@ Rwrite Linux Kenrel in Rust *just for fun*!
 ```
 $ rustup override set nightly
 $ rustup component add llvm-tools-preview
-$ cargo install cargo-binutils cargo-watch
+$ cargo install cargo-binutils cargo-watch rustfilt
 ```
 
 ## License
