@@ -37,6 +37,8 @@ CARGOFLAGS += $(if $(RELEASE),--release,)
 TESTCARGOFLAGS += -Z unstable-options
 TESTCARGOFLAGS += --config "target.$(ARCH).runner = '$(PYTHON3) $(topdir)/tools/run-qemu.py --arch $(ARCH)'"
 
+export CARGO_FROM_MAKE=1
+
 #
 #  Build Commands
 #
