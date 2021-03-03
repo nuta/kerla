@@ -3,8 +3,33 @@
 
 .code32
 
-// The multiboot header.
+// Multiboot2 header
+// https://www.gnu.org/software/grub/manual/multiboot2/multiboot.html
 .align 8
+multiboot2_header:
+  .long 0xe85250d6                                      // magic
+  .long 0                                               // arch = i386
+  .long multiboot2_header_end - multiboot2_header       // length
+  .long -(0xe85250d6 + 0 + (multiboot2_header_end - multiboot2_header)) // chechsum
+
+// tag: information request
+info_request:
+  .short 1
+  .short 0
+  .long  info_request_end - info_request
+  .long  6 // memory map
+info_request_end:
+
+ // tag: terminator
+  .short 0
+  .short 0
+  .long  8
+multiboot2_header_end:
+
+// The (old) multiboot header for QEMU -kernel.
+// https://www.gnu.org/software/grub/manual/multiboot/multiboot.html
+.align 8
+multiboot_header:
 .long 0x1badb002
 .long 0x00000000
 .long -(0x1badb002 + 0x00000000)
