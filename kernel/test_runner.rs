@@ -2,6 +2,7 @@
 
 use crate::arch::*;
 use core::panic::PanicInfo;
+use core::sync::atomic::{AtomicBool, Ordering};
 
 pub trait Testable {
     fn run(&self) -> ();
@@ -31,9 +32,17 @@ pub fn end_tests() -> ! {
     loop {}
 }
 
+static ALREADY_PANICED: AtomicBool = AtomicBool::new(false);
+
 #[cfg(test)]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
+    if ALREADY_PANICED.load(Ordering::SeqCst) {
+        loop {}
+    }
+
+    ALREADY_PANICED.store(true, Ordering::SeqCst);
+
     println!("\x1b[1;91mfail\x1b[0m\n{}", info);
     semihosting_halt(ExitStatus::Failure);
     loop {}
