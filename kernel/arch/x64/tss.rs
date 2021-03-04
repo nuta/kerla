@@ -19,21 +19,22 @@ pub struct Tss {
     iomap_last_byte: u8,
 }
 
-// TODO: CPU-local
-pub static mut TSS: Tss = Tss {
-    reserved0: 0,
-    rsp0: 0,
-    rsp1: 0,
-    rsp2: 0,
-    reserved1: 0,
-    ist: [0; 7],
-    reserved2: 0,
-    reserved3: 0,
-    iomap_offset: 104, // offsetof(Tss, iomap)
-    iomap: [0; 8191],
-    // According to Intel SDM, all bits of the last byte must be set to 1.
-    iomap_last_byte: 0xff,
-};
+cpu_local! {
+    pub static ref TSS: Tss = Tss {
+        reserved0: 0,
+        rsp0: 0,
+        rsp1: 0,
+        rsp2: 0,
+        reserved1: 0,
+        ist: [0; 7],
+        reserved2: 0,
+        reserved3: 0,
+        iomap_offset: 104, // offsetof(Tss, iomap)
+        iomap: [0; 8191],
+        // According to Intel SDM, all bits of the last byte must be set to 1.
+        iomap_last_byte: 0xff,
+    };
+}
 
 pub unsafe fn init() {
     load_tr(SegmentSelector::from_raw(TSS_SEG));
