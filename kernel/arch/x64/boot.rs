@@ -1,6 +1,11 @@
-use super::{address::PAddr, apic, gdt, idt, ioapic, multiboot, printchar, serial, syscall, tss};
+use super::{
+    address::{PAddr, VAddr},
+    apic, gdt, idt, ioapic, multiboot, printchar, serial, syscall, tss,
+};
 use crate::boot::boot_kernel;
+use core::ptr;
 use x86::{
+    bits64::segmentation::wrgsbase,
     controlregs::{self, Cr4, Xcr0},
     cpuid::CpuId,
     io::outb,
@@ -12,8 +17,21 @@ fn check_cpuid_feature(name: &str, supported: bool) {
     }
 }
 
+unsafe fn init_cpu_local(cpu_Local_area: VAddr) {
+    extern "C" {
+        static __cpu_local: u8;
+        static __cpu_local_size: u8;
+    }
+
+    let template = VAddr::new(&__cpu_local as *const _ as u64);
+    let len = &__cpu_local_size as *const _ as usize;
+    ptr::copy_nonoverlapping::<u8>(template.as_ptr(), cpu_Local_area.as_mut_ptr(), len);
+
+    wrgsbase(cpu_Local_area.value() as u64);
+}
+
 /// Enables some CPU features.
-unsafe fn common_setup() {
+unsafe fn common_setup(cpu_local_area: VAddr) {
     let feats = CpuId::new().get_feature_info().unwrap();
     let ex_feats = CpuId::new().get_extended_feature_info().unwrap();
     check_cpuid_feature("XSAVE", feats.has_xsave());
@@ -30,6 +48,8 @@ unsafe fn common_setup() {
     xcr0 |= Xcr0::XCR0_SSE_STATE | Xcr0::XCR0_AVX_STATE;
     controlregs::xcr0_write(xcr0);
 
+    init_cpu_local(cpu_local_area);
+
     apic::init();
     ioapic::init();
     gdt::init();
@@ -42,6 +62,10 @@ unsafe fn common_setup() {
 /// Processor (BSP).
 #[no_mangle]
 unsafe extern "C" fn bsp_init(multiboot_magic: u32, multiboot_info: u64) -> ! {
+    extern "C" {
+        static __bsp_cpu_local: u8;
+    }
+
     // Initialize the serial driver first to enable print macros.
     serial::init();
     printchar('\n');
@@ -62,7 +86,7 @@ unsafe extern "C" fn bsp_init(multiboot_magic: u32, multiboot_info: u64) -> ! {
     outb(0xa1, 0xff);
     outb(0x21, 0xff);
 
-    common_setup();
+    common_setup(VAddr::new(&__bsp_cpu_local as *const _ as u64));
     boot_kernel();
     unreachable!();
 }

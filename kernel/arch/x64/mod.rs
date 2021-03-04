@@ -1,6 +1,8 @@
 global_asm!(include_str!("boot.S"));
 global_asm!(include_str!("trap.S"));
 
+#[macro_use]
+mod cpu_local;
 mod address;
 mod apic;
 mod asm;

@@ -23,11 +23,20 @@ SECTIONS {
     .rodata : ALIGN(8) {
         *(.rodata);
         *(.rodata.*);
+
+        __cpu_local = .;
+        *(.cpu_local);
+        __cpu_local_end = .;
+        __cpu_local_size = __cpu_local_end - __cpu_local;
     } > ram AT > lma_ram
 
     .data : ALIGN(8) {
         *(.data);
         *(.data.*);
+
+        __bsp_cpu_local = .;
+        . += __cpu_local_size;
+        __bsp_cpu_local_end = .;
     } > ram AT > lma_ram
 
     .bss : ALIGN(8) {
