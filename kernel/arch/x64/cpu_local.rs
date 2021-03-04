@@ -1,22 +1,28 @@
 macro_rules! __cpu_local_impl {
     ($N:ident, $T:ty, $E:expr) => {
         pub struct $N {
+            #[allow(unused)]
             initial_value: $T,
         }
 
         impl $N {
+            #[allow(unused)]
             pub fn get(&self) -> &$T {
                 self.as_mut()
             }
 
+            #[allow(unused)]
             pub fn set(&self, value: $T) {
                 *self.as_mut() = value;
             }
 
+            #[allow(unused)]
+            #[allow(clippy::mut_from_ref)]
             pub fn as_mut(&self) -> &mut $T {
                 unsafe { &mut *self.vaddr().as_mut_ptr() }
             }
 
+            #[allow(unused)]
             pub fn vaddr(&self) -> $crate::arch::x64::VAddr {
                 extern "C" {
                     static __cpu_local: u8;

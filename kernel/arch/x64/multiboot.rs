@@ -33,7 +33,7 @@ struct MemoryMapEntry {
     entry_type: u32,
 }
 
-unsafe fn parse_multiboot2_info(info: *const u8) -> BootInfo {
+unsafe fn parse_multiboot2_info(_info: *const u8) -> BootInfo {
     todo!();
 }
 

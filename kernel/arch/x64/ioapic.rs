@@ -65,7 +65,6 @@ impl IoApic {
 }
 
 pub fn enable_irq(irq: u8) {
-    assert!(irq <= 255);
     let ioapic = IO_APIC.lock();
     unsafe {
         let entry = (VECTOR_IRQ_BASE as u64) + (irq as u64);

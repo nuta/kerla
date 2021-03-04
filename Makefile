@@ -87,7 +87,7 @@ testw:
 
 .PHONY: lint
 lint:
-	RUSTFLAGS="-C panic=abort -Z panic_abort_tests" $(CARGO) clippy --fix -Z unstable-options
+	RUSTFLAGS="-C panic=abort -Z panic_abort_tests" $(CARGO) clippy --fix -Z unstable-options --allow-dirty
 
 .PHONY: clean
 clean:

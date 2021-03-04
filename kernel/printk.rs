@@ -85,9 +85,9 @@ fn resolve_symbol(vaddr: VAddr) -> Option<Symbol> {
     // Do a binary search.
     let mut l = -1;
     let mut r = num_symbols;
-    while (r - l > 1) {
+    while r - l > 1 {
         let mid = (l + r) / 2;
-        if (vaddr.value() >= symbols[mid as usize].addr as usize) {
+        if vaddr.value() >= symbols[mid as usize].addr as usize {
             l = mid;
         } else {
             r = mid;

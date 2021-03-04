@@ -17,7 +17,7 @@ fn check_cpuid_feature(name: &str, supported: bool) {
     }
 }
 
-unsafe fn init_cpu_local(cpu_Local_area: VAddr) {
+unsafe fn init_cpu_local(cpu_local_area: VAddr) {
     extern "C" {
         static __cpu_local: u8;
         static __cpu_local_size: u8;
@@ -25,9 +25,9 @@ unsafe fn init_cpu_local(cpu_Local_area: VAddr) {
 
     let template = VAddr::new(&__cpu_local as *const _ as u64);
     let len = &__cpu_local_size as *const _ as usize;
-    ptr::copy_nonoverlapping::<u8>(template.as_ptr(), cpu_Local_area.as_mut_ptr(), len);
+    ptr::copy_nonoverlapping::<u8>(template.as_ptr(), cpu_local_area.as_mut_ptr(), len);
 
-    wrgsbase(cpu_Local_area.value() as u64);
+    wrgsbase(cpu_local_area.value() as u64);
 }
 
 /// Enables some CPU features.
@@ -70,7 +70,7 @@ unsafe extern "C" fn bsp_init(multiboot_magic: u32, multiboot_info: u64) -> ! {
     serial::init();
     printchar('\n');
 
-    let boot_info = multiboot::parse(multiboot_magic, PAddr::new(multiboot_info));
+    let _boot_info = multiboot::parse(multiboot_magic, PAddr::new(multiboot_info));
 
     // Disables PIC -- we use IO APIC instead.
     outb(0xa1, 0xff);
