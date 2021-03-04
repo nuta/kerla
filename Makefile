@@ -32,6 +32,7 @@ BOCHS      ?= bochs
 NM         ?= rust-nm
 STRIP      ?= rust-strip
 
+export RUSTFLAGS= -Z macro-backtrace
 CARGOFLAGS += -Z build-std=core,alloc -Z build-std-features=compiler-builtins-mem
 CARGOFLAGS += --target $(target_json)
 CARGOFLAGS += $(if $(RELEASE),--release,)
