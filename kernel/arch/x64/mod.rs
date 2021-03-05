@@ -5,7 +5,6 @@ global_asm!(include_str!("trap.S"));
 mod cpu_local;
 mod address;
 mod apic;
-mod asm;
 mod backtrace;
 mod boot;
 mod gdt;

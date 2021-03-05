@@ -45,12 +45,6 @@ impl IoApic {
         self.base.add(0x10).as_mut_ptr()
     }
 
-    /// The End-Of-Interrupt register.
-    #[inline(always)]
-    pub unsafe fn eoi_reg(&self) -> *mut u32 {
-        self.base.add(0x40).as_mut_ptr()
-    }
-
     #[inline(always)]
     unsafe fn read(&self, index: u32) -> u32 {
         write_volatile(self.ind_reg(), index);

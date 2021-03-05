@@ -1,5 +1,5 @@
 macro_rules! __cpu_local_impl {
-    ($N:ident, $T:ty, $E:expr) => {
+    ($V:vis, $N:ident, $T:ty, $E:expr) => {
         pub struct $N {
             #[allow(unused)]
             initial_value: $T,
@@ -7,23 +7,23 @@ macro_rules! __cpu_local_impl {
 
         impl $N {
             #[allow(unused)]
-            pub fn get(&self) -> &$T {
+            $V fn get(&self) -> &$T {
                 self.as_mut()
             }
 
             #[allow(unused)]
-            pub fn set(&self, value: $T) {
+            $V fn set(&self, value: $T) {
                 *self.as_mut() = value;
             }
 
             #[allow(unused)]
             #[allow(clippy::mut_from_ref)]
-            pub fn as_mut(&self) -> &mut $T {
+            $V fn as_mut(&self) -> &mut $T {
                 unsafe { &mut *self.vaddr().as_mut_ptr() }
             }
 
             #[allow(unused)]
-            pub fn vaddr(&self) -> $crate::arch::x64::VAddr {
+            $V fn vaddr(&self) -> $crate::arch::x64::VAddr {
                 extern "C" {
                     static __cpu_local: u8;
                 }
@@ -37,6 +37,8 @@ macro_rules! __cpu_local_impl {
             }
         }
 
+        #[link_section = ".cpu_local"]
+        $V static $N: $N = $N { initial_value: $E };
         unsafe impl Sync for $N {}
     };
 }
@@ -61,13 +63,9 @@ macro_rules! __cpu_local_impl {
 /// it points to the initial value area instead!
 macro_rules! cpu_local {
     (static ref $N:ident : $T:ty = $E:expr ;) => {
-        __cpu_local_impl!($N, $T, $E);
-        #[link_section = ".cpu_local"]
-        static $N: $N = $N { initial_value: $E };
+        __cpu_local_impl!(, $N, $T, $E);
     };
     (pub static ref $N:ident : $T:ty = $E:expr ;) => {
-        __cpu_local_impl!($N, $T, $E);
-        #[link_section = ".cpu_local"]
-        pub static $N: $N = $N { initial_value: $E };
+        __cpu_local_impl!(pub, $N, $T, $E);
     };
 }

@@ -1,5 +1,5 @@
 #![cfg(test)]
-use super::asm;
+use x86::io::outw;
 
 #[repr(u32)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -10,6 +10,6 @@ pub enum ExitStatus {
 
 pub fn semihosting_halt(status: ExitStatus) {
     unsafe {
-        asm::out16(0x501, status as u16);
+        outw(0x501, status as u16);
     }
 }

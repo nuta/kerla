@@ -3,6 +3,7 @@
 #[cfg(not(test))]
 fn panic(info: &core::panic::PanicInfo) -> ! {
     println!("{}", info);
+    crate::printk::backtrace();
     loop {
         crate::arch::halt();
     }

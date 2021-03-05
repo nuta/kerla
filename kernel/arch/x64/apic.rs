@@ -4,7 +4,6 @@ use core::ptr::{read_volatile, write_volatile};
 use x86::msr::{self, rdmsr, wrmsr};
 
 /// The base index of interrupt vectors.
-const VECTOR_IRQ_BASE: u32 = 32;
 const APIC_BASE_EN: u64 = 1 << 11;
 const SIVR_SOFT_EN: u32 = 1 << 8;
 
@@ -36,7 +35,7 @@ impl LocalApic {
     }
 
     #[inline(always)]
-    unsafe fn mmio_read(&self, reg: LocalApicReg) -> u32 {
+    unsafe fn _mmio_read(&self, reg: LocalApicReg) -> u32 {
         read_volatile(self.base.add(reg as usize).as_ptr())
     }
 

@@ -58,12 +58,6 @@ impl VAddr {
     pub const fn value(self) -> usize {
         self.0 as usize
     }
-
-    #[inline(always)]
-    #[must_use]
-    pub const fn add(self, offset: usize) -> VAddr {
-        VAddr(self.0 + offset as u64)
-    }
 }
 
 impl fmt::Display for VAddr {

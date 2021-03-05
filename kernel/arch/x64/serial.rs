@@ -1,4 +1,4 @@
-use super::asm;
+use x86::io::{inb, outb};
 
 const IOPORT_SERIAL: u16 = 0x3f8;
 const DLL: u16 = 0;
@@ -10,8 +10,8 @@ const LSR: u16 = 5;
 const TX_READY: u8 = 0x20;
 
 unsafe fn serial_write(ch: char) {
-    while (asm::in8(IOPORT_SERIAL + LSR) & TX_READY) == 0 {}
-    asm::out8(IOPORT_SERIAL, ch as u8);
+    while (inb(IOPORT_SERIAL + LSR) & TX_READY) == 0 {}
+    outb(IOPORT_SERIAL, ch as u8);
 }
 
 pub fn printchar(ch: char) {
@@ -25,9 +25,9 @@ pub fn printchar(ch: char) {
 
 pub unsafe fn init() {
     let divisor: u16 = 12; // 115200 / 9600 = 12
-    asm::out8(IOPORT_SERIAL + IER, 0x00); // Disable interrupts.
-    asm::out8(IOPORT_SERIAL + DLL, (divisor & 0xff) as u8);
-    asm::out8(IOPORT_SERIAL + DLH, ((divisor >> 8) & 0xff) as u8);
-    asm::out8(IOPORT_SERIAL + LCR, 0x03); // 8n1.
-    asm::out8(IOPORT_SERIAL + FCR, 0x01); // Enable FIFO.
+    outb(IOPORT_SERIAL + IER, 0x00); // Disable interrupts.
+    outb(IOPORT_SERIAL + DLL, (divisor & 0xff) as u8);
+    outb(IOPORT_SERIAL + DLH, ((divisor >> 8) & 0xff) as u8);
+    outb(IOPORT_SERIAL + LCR, 0x03); // 8n1.
+    outb(IOPORT_SERIAL + FCR, 0x01); // Enable FIFO.
 }
