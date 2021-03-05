@@ -85,6 +85,14 @@ test:
 testw:
 	$(CARGO) watch -s "$(MAKE) test"
 
+.PHONY: check
+check:
+	$(CARGO) check $(CARGOFLAGS)
+
+.PHONY: checkw
+checkw:
+	$(CARGO) watch -s "$(MAKE) check"
+
 .PHONY: lint
 lint:
 	RUSTFLAGS="-C panic=abort -Z panic_abort_tests" $(CARGO) clippy --fix -Z unstable-options --allow-dirty
