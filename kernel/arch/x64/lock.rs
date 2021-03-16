@@ -1,4 +1,6 @@
+use core::mem::ManuallyDrop;
 use core::ops::{Deref, DerefMut};
+use x86::current::rflags::{self, RFlags};
 
 pub struct SpinLock<T: ?Sized> {
     inner: spin::Mutex<T>,
@@ -13,7 +15,8 @@ impl<T> SpinLock<T> {
 
     pub fn lock(&self) -> SpinLockGuard<'_, T> {
         SpinLockGuard {
-            inner: self.inner.lock(),
+            inner: ManuallyDrop::new(self.inner.lock()),
+            rflags: unsafe { rflags::read() },
         }
     }
 }
@@ -22,7 +25,17 @@ unsafe impl<T: ?Sized + Send> Sync for SpinLock<T> {}
 unsafe impl<T: ?Sized + Send> Send for SpinLock<T> {}
 
 pub struct SpinLockGuard<'a, T: ?Sized> {
-    inner: spin::MutexGuard<'a, T>,
+    inner: ManuallyDrop<spin::MutexGuard<'a, T>>,
+    rflags: RFlags,
+}
+
+impl<'a, T: ?Sized> Drop for SpinLockGuard<'a, T> {
+    fn drop(&mut self) {
+        unsafe {
+            ManuallyDrop::drop(&mut self.inner);
+            rflags::set(rflags::read() | (self.rflags & rflags::RFlags::FLAGS_IF));
+        }
+    }
 }
 
 impl<'a, T: ?Sized> Deref for SpinLockGuard<'a, T> {
