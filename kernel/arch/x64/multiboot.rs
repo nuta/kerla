@@ -1,5 +1,8 @@
 use super::address::PAddr;
-use crate::boot::BootInfo;
+use crate::boot::{BootInfo, RamArea};
+use crate::utils::byte_size::ByteSize;
+use arrayvec::ArrayVec;
+use core::cmp::max;
 use core::mem::size_of;
 
 #[repr(u32)]
@@ -33,24 +36,52 @@ struct MemoryMapEntry {
     entry_type: u32,
 }
 
+extern "C" {
+    static __kernel_image_end: u8;
+}
+
 unsafe fn parse_multiboot2_info(_info: *const u8) -> BootInfo {
     todo!();
 }
 
 unsafe fn parse_multiboot_legacy_info(info: &MultibootLegacyInfo) -> BootInfo {
     let mut off = 0;
+    let mut ram_areas = ArrayVec::new();
     while off < info.memory_map_len {
         let entry: &MemoryMapEntry = &*PAddr::new((info.memory_map_addr + off) as usize).as_ptr();
+        let type_name = match entry.entry_type {
+            1 => {
+                let image_end = &__kernel_image_end as *const _ as u64;
+                let end = entry.base + entry.len;
+                let base = max(entry.base, image_end);
+                if image_end <= base && base < end {
+                    ram_areas.push(RamArea {
+                        base: PAddr::new(base as usize),
+                        len: (end - base) as usize,
+                    });
+                }
+
+                "available RAM"
+            }
+            2 => "reserved",
+            3 => "ACPI",
+            4 => "NVS",
+            5 => "defective",
+            _ => "unknown",
+        };
+
         println!(
-            "memory map: base={:016x}, len={:016x} ({} MiB)",
+            "multiboot: {:016x}-{:016x}  {}\t({})",
             entry.base,
-            entry.len,
-            entry.len / 1024 / 1024
+            entry.base + entry.len,
+            ByteSize::new(entry.len as usize),
+            type_name,
         );
+
         off += entry.entry_size + size_of::<u32>() as u32;
     }
 
-    BootInfo {}
+    BootInfo { ram_areas }
 }
 
 /// Parses a multiboot/multiboot2 boot information.

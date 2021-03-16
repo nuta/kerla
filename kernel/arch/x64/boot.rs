@@ -70,7 +70,7 @@ unsafe extern "C" fn bsp_init(multiboot_magic: u32, multiboot_info: u64) -> ! {
     serial::init();
     printchar('\n');
 
-    let _boot_info = multiboot::parse(multiboot_magic, PAddr::new(multiboot_info as usize));
+    let boot_info = multiboot::parse(multiboot_magic, PAddr::new(multiboot_info as usize));
 
     // Disables PIC -- we use IO APIC instead.
     outb(0xa1, 0xff);
@@ -87,6 +87,6 @@ unsafe extern "C" fn bsp_init(multiboot_magic: u32, multiboot_info: u64) -> ! {
     outb(0x21, 0xff);
 
     common_setup(VAddr::new(&__bsp_cpu_local as *const _ as usize));
-    boot_kernel();
+    boot_kernel(&boot_info);
     unreachable!();
 }

@@ -1,12 +1,23 @@
 #![cfg_attr(test, allow(unreachable_code))]
 
-use crate::arch::idle;
+use crate::allocator;
+use crate::arch::{idle, PAddr};
 #[cfg(test)]
 use crate::test_runner::end_tests;
+use arrayvec::ArrayVec;
 
-pub struct BootInfo {}
+pub struct RamArea {
+    pub base: PAddr,
+    pub len: usize,
+}
 
-pub fn boot_kernel() {
+pub struct BootInfo {
+    pub ram_areas: ArrayVec<[RamArea; 8]>,
+}
+
+pub fn boot_kernel(bootinfo: &BootInfo) {
+    allocator::init(&bootinfo.ram_areas);
+
     #[cfg(test)]
     {
         crate::test_main();

@@ -11,3 +11,5 @@ path = "main.rs"
 [dependencies]
 spin = "0.7.1"
 x86 = "0.36.0"
+buddy_system_allocator = "0.7.0"
+arrayvec = { version = "0.5.2", default-features = false }

@@ -32,6 +32,11 @@ impl PAddr {
     pub const fn add(self, offset: usize) -> PAddr {
         PAddr(self.0 + offset as u64)
     }
+
+    #[inline(always)]
+    pub const fn value(self) -> usize {
+        self.0 as usize
+    }
 }
 
 /// Represents a *kernel* virtual memory address.
