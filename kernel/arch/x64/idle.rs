@@ -1,6 +1,5 @@
 pub fn idle() {
     unsafe {
-        println!("idle loop...");
         asm!("sti; hlt");
     }
 }

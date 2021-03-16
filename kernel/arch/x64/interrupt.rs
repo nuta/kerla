@@ -29,14 +29,18 @@ struct InterruptFrame {
 
 #[no_mangle]
 unsafe extern "C" fn x64_handle_interrupt(vec: u8, frame: *const InterruptFrame) {
-    println!(
-        "interrupt({}): rip={:x}, rsp={:x}, err={:x}",
-        vec,
-        (*frame).rip,
-        (*frame).rsp,
-        (*frame).error
-    );
+    // FIXME: Check "Legacy replacement" mapping
+    let is_timer = vec == 34;
 
-    println!("scancode={:x}", x86::io::inb(0x60));
+    if !is_timer {
+        println!(
+            "interrupt({}): rip={:x}, rsp={:x}, err={:x}",
+            vec,
+            (*frame).rip,
+            (*frame).rsp,
+            (*frame).error
+        );
+    }
+
     ack_interrupt();
 }

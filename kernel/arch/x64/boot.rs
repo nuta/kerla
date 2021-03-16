@@ -1,6 +1,6 @@
 use super::{
     address::{PAddr, VAddr},
-    apic, gdt, idt, ioapic, multiboot, printchar, serial, syscall, tss,
+    apic, gdt, idt, ioapic, multiboot, pit, printchar, serial, syscall, tss,
 };
 use crate::boot::boot_kernel;
 use core::ptr;
@@ -55,7 +55,26 @@ unsafe fn common_setup(cpu_local_area: VAddr) {
     gdt::init();
     tss::init();
     idt::init();
+    pit::init();
     syscall::init();
+}
+
+/// Disables PIC. We use APIC instead.
+unsafe fn init_pic() {
+    outb(0xa1, 0xff);
+    outb(0x21, 0xff);
+
+    outb(0x20, 0x11);
+    outb(0xa0, 0x11);
+    outb(0x21, 0x20);
+    outb(0xa1, 0x28);
+    outb(0x21, 0x04);
+    outb(0xa1, 0x02);
+    outb(0x21, 0x01);
+    outb(0xa1, 0x01);
+
+    outb(0xa1, 0xff);
+    outb(0x21, 0xff);
 }
 
 /// Initializes the CPU. This function is called exactly once in the Bootstrap
@@ -71,21 +90,7 @@ unsafe extern "C" fn bsp_init(multiboot_magic: u32, multiboot_info: u64) -> ! {
     printchar('\n');
 
     let boot_info = multiboot::parse(multiboot_magic, PAddr::new(multiboot_info as usize));
-
-    // Disables PIC -- we use IO APIC instead.
-    outb(0xa1, 0xff);
-    outb(0x21, 0xff);
-    outb(0x20, 0x11);
-    outb(0xa0, 0x11);
-    outb(0x21, 0x20);
-    outb(0xa1, 0x28);
-    outb(0x21, 0x04);
-    outb(0xa1, 0x02);
-    outb(0x21, 0x01);
-    outb(0xa1, 0x01);
-    outb(0xa1, 0xff);
-    outb(0x21, 0xff);
-
+    init_pic();
     common_setup(VAddr::new(&__bsp_cpu_local as *const _ as usize));
     boot_kernel(&boot_info);
     unreachable!();

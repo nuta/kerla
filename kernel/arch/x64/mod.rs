@@ -14,6 +14,7 @@ mod interrupt;
 mod ioapic;
 mod lock;
 mod multiboot;
+mod pit;
 mod semihosting;
 mod serial;
 mod syscall;
