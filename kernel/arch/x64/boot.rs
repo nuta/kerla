@@ -23,7 +23,7 @@ unsafe fn init_cpu_local(cpu_local_area: VAddr) {
         static __cpu_local_size: u8;
     }
 
-    let template = VAddr::new(&__cpu_local as *const _ as u64);
+    let template = VAddr::new(&__cpu_local as *const _ as usize);
     let len = &__cpu_local_size as *const _ as usize;
     ptr::copy_nonoverlapping::<u8>(template.as_ptr(), cpu_local_area.as_mut_ptr(), len);
 
@@ -70,7 +70,7 @@ unsafe extern "C" fn bsp_init(multiboot_magic: u32, multiboot_info: u64) -> ! {
     serial::init();
     printchar('\n');
 
-    let _boot_info = multiboot::parse(multiboot_magic, PAddr::new(multiboot_info));
+    let _boot_info = multiboot::parse(multiboot_magic, PAddr::new(multiboot_info as usize));
 
     // Disables PIC -- we use IO APIC instead.
     outb(0xa1, 0xff);
@@ -86,7 +86,7 @@ unsafe extern "C" fn bsp_init(multiboot_magic: u32, multiboot_info: u64) -> ! {
     outb(0xa1, 0xff);
     outb(0x21, 0xff);
 
-    common_setup(VAddr::new(&__bsp_cpu_local as *const _ as u64));
+    common_setup(VAddr::new(&__bsp_cpu_local as *const _ as usize));
     boot_kernel();
     unreachable!();
 }

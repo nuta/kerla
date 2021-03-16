@@ -13,8 +13,8 @@ const KERNEL_STRAIGHT_MAP_PADDR_END: u64 = 0x1_0000_0000;
 pub struct PAddr(u64);
 
 impl PAddr {
-    pub const fn new(addr: u64) -> PAddr {
-        PAddr(addr)
+    pub const fn new(addr: usize) -> PAddr {
+        PAddr(addr as u64)
     }
 
     pub const unsafe fn as_ptr<T>(self) -> *const T {
@@ -40,8 +40,8 @@ impl PAddr {
 pub struct VAddr(u64);
 
 impl VAddr {
-    pub const fn new(addr: u64) -> VAddr {
-        VAddr(addr)
+    pub const fn new(addr: usize) -> VAddr {
+        VAddr(addr as u64)
     }
 
     pub const unsafe fn as_ptr<T>(self) -> *const T {

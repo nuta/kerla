@@ -30,7 +30,7 @@ impl Backtrace {
             }
 
             unsafe {
-                callback(i, VAddr::new((*frame).return_addr));
+                callback(i, VAddr::new((*frame).return_addr as usize));
                 frame = (*frame).next;
             }
         }

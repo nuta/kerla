@@ -40,7 +40,7 @@ unsafe fn parse_multiboot2_info(_info: *const u8) -> BootInfo {
 unsafe fn parse_multiboot_legacy_info(info: &MultibootLegacyInfo) -> BootInfo {
     let mut off = 0;
     while off < info.memory_map_len {
-        let entry: &MemoryMapEntry = &*PAddr::new((info.memory_map_addr + off).into()).as_ptr();
+        let entry: &MemoryMapEntry = &*PAddr::new((info.memory_map_addr + off) as usize).as_ptr();
         println!(
             "memory map: base={:016x}, len={:016x} ({} MiB)",
             entry.base,

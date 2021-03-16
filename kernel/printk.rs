@@ -98,7 +98,7 @@ fn resolve_symbol(vaddr: VAddr) -> Option<Symbol> {
         let symbol = &symbols[l as usize];
         Some(Symbol {
             name: unsafe { str::from_utf8_unchecked(&symbol.name) },
-            addr: VAddr::new(symbol.addr),
+            addr: VAddr::new(symbol.addr as usize),
         })
     } else {
         None
