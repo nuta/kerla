@@ -31,3 +31,26 @@ impl<T> DerefMut for Once<T> {
         self.inner.get_mut().expect("not yet initialized")
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::panic::catch_unwind;
+
+    #[test]
+    fn it_holds_supplied_value() {
+        let once: Once<i32> = Once::new();
+        once.init(|| 123);
+        assert_eq!(*once, 123);
+    }
+
+    #[test]
+    fn it_should_panic_if_already_initialized() {
+        let once: Once<i32> = Once::new();
+        once.init(|| 123);
+        assert!(catch_unwind(move || {
+            once.init(|| 456);
+        })
+        .is_err());
+    }
+}
