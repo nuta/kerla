@@ -20,6 +20,7 @@ info_request:
   .long  6 // memory map
 info_request_end:
 
+.align 8
  // tag: terminator
   .short 0
   .short 0
