@@ -1,6 +1,6 @@
 use super::{
     address::{PAddr, VAddr},
-    apic, gdt, idt, ioapic, multiboot, pit, printchar, serial, syscall, tss,
+    apic, cpu_local, gdt, idt, ioapic, multiboot, pit, printchar, serial, syscall, tss,
 };
 use crate::boot::boot_kernel;
 use core::ptr;
@@ -15,19 +15,6 @@ fn check_cpuid_feature(name: &str, supported: bool) {
     if !supported {
         panic!("{} is not supprted on this machine", name);
     }
-}
-
-unsafe fn init_cpu_local(cpu_local_area: VAddr) {
-    extern "C" {
-        static __cpu_local: u8;
-        static __cpu_local_size: u8;
-    }
-
-    let template = VAddr::new(&__cpu_local as *const _ as usize);
-    let len = &__cpu_local_size as *const _ as usize;
-    ptr::copy_nonoverlapping::<u8>(template.as_ptr(), cpu_local_area.as_mut_ptr(), len);
-
-    wrgsbase(cpu_local_area.value() as u64);
 }
 
 /// Enables some CPU features.
@@ -48,8 +35,7 @@ unsafe fn common_setup(cpu_local_area: VAddr) {
     xcr0 |= Xcr0::XCR0_SSE_STATE | Xcr0::XCR0_AVX_STATE;
     controlregs::xcr0_write(xcr0);
 
-    init_cpu_local(cpu_local_area);
-
+    cpu_local::init(cpu_local_area);
     apic::init();
     ioapic::init();
     gdt::init();

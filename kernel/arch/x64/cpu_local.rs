@@ -1,3 +1,6 @@
+use crate::arch::VAddr;
+use core::ptr;
+use x86::bits64::segmentation::{rdgsbase, wrgsbase};
 macro_rules! __cpu_local_impl {
     ($V:vis, $N:ident, $T:ty, $E:expr) => {
         pub struct $N {
@@ -68,4 +71,16 @@ macro_rules! cpu_local {
     (pub static ref $N:ident : $T:ty = $E:expr ;) => {
         __cpu_local_impl!(pub, $N, $T, $E);
     };
+}
+pub unsafe fn init(cpu_local_area: VAddr) {
+    extern "C" {
+        static __cpu_local: u8;
+        static __cpu_local_size: u8;
+    }
+
+    let template = VAddr::new(&__cpu_local as *const _ as usize);
+    let len = &__cpu_local_size as *const _ as usize;
+    ptr::copy_nonoverlapping::<u8>(template.as_ptr(), cpu_local_area.as_mut_ptr(), len);
+
+    wrgsbase(cpu_local_area.value() as u64);
 }
