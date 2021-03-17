@@ -1,13 +1,13 @@
 use crate::arch::{
     self, disable_interrupt, enable_interrupt, is_interrupt_enabled, SpinLock, VAddr,
 };
-use crate::utils::lazy::Lazy;
-use crate::utils::once::Once;
 use alloc::collections::{BTreeMap, VecDeque};
 use alloc::sync::Arc;
 use arrayvec::ArrayVec;
 use core::mem;
 use core::sync::atomic::{AtomicI32, Ordering};
+use penguin_utils::lazy::Lazy;
+use penguin_utils::once::Once;
 
 cpu_local! {
     static ref CURRENT_THREAD: Lazy<Arc<SpinLock<Thread>>> = Lazy::new();

@@ -21,4 +21,3 @@ mod boot;
 mod lang_items;
 mod test_runner;
 mod thread;
-mod utils;

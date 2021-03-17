@@ -1,9 +1,9 @@
 use super::address::PAddr;
 use crate::boot::{BootInfo, RamArea};
-use crate::utils::byte_size::ByteSize;
 use arrayvec::ArrayVec;
 use core::cmp::max;
 use core::mem::size_of;
+use penguin_utils::byte_size::ByteSize;
 
 #[repr(u32)]
 enum MultibootMagic {

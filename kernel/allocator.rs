@@ -1,6 +1,6 @@
 use crate::boot::RamArea;
-use crate::utils::byte_size::ByteSize;
 use buddy_system_allocator::LockedHeap;
+use penguin_utils::byte_size::ByteSize;
 
 #[global_allocator]
 static ALLOCATOR: LockedHeap = LockedHeap::empty();
