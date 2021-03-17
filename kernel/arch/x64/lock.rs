@@ -3,13 +3,13 @@ use core::ops::{Deref, DerefMut};
 use x86::current::rflags::{self, RFlags};
 
 pub struct SpinLock<T: ?Sized> {
-    inner: spin::Mutex<T>,
+    pub inner: spin::mutex::SpinMutex<T>,
 }
 
 impl<T> SpinLock<T> {
     pub const fn new(value: T) -> SpinLock<T> {
         SpinLock {
-            inner: spin::Mutex::new(value),
+            inner: spin::mutex::SpinMutex::new(value),
         }
     }
 
@@ -19,13 +19,17 @@ impl<T> SpinLock<T> {
             rflags: unsafe { rflags::read() },
         }
     }
+
+    pub unsafe fn force_unlock(&self) {
+        self.inner.force_unlock()
+    }
 }
 
 unsafe impl<T: ?Sized + Send> Sync for SpinLock<T> {}
 unsafe impl<T: ?Sized + Send> Send for SpinLock<T> {}
 
 pub struct SpinLockGuard<'a, T: ?Sized> {
-    inner: ManuallyDrop<spin::MutexGuard<'a, T>>,
+    inner: ManuallyDrop<spin::mutex::SpinMutexGuard<'a, T>>,
     rflags: RFlags,
 }
 
