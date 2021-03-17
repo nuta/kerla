@@ -23,8 +23,9 @@ SECTIONS {
         *(.rodata);
         *(.rodata.*);
 
+        . = ALIGN(4096);
         __cpu_local = .;
-        *(.cpu_local);
+        KEEP(*(.cpu_local));
         __cpu_local_end = .;
         __cpu_local_size = __cpu_local_end - __cpu_local;
     }
