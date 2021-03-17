@@ -41,6 +41,7 @@ macro_rules! __cpu_local_impl {
             }
         }
 
+        #[used]
         #[link_section = ".cpu_local"]
         $V static $N: $N = $N { initial_value: $E };
         unsafe impl Sync for $N {}
