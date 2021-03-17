@@ -3,6 +3,7 @@ use core::ptr;
 use x86::bits64::segmentation::{rdgsbase, wrgsbase};
 macro_rules! __cpu_local_impl {
     ($V:vis, $N:ident, $T:ty, $E:expr) => {
+        #[allow(non_camel_case_types)]
         pub struct $N {
             #[allow(unused)]
             initial_value: $T,
