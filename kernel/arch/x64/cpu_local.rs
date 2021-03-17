@@ -1,6 +1,8 @@
 use crate::arch::VAddr;
+use core::mem::MaybeUninit;
 use core::ptr;
 use x86::bits64::segmentation::{rdgsbase, wrgsbase};
+
 macro_rules! __cpu_local_impl {
     ($V:vis, $N:ident, $T:ty, $E:expr) => {
         #[allow(non_camel_case_types)]
@@ -74,6 +76,24 @@ macro_rules! cpu_local {
         __cpu_local_impl!(pub, $N, $T, $E);
     };
 }
+
+/// The cpu-local structure at the beginning of the GSBASE.
+#[repr(C, packed)]
+pub struct CpuLocalHead {
+    /// The kernel stack in the syscall context.
+    pub rsp0: u64,
+    /// The temporary save space for the user stack in the syscall context.
+    pub rsp3: u64,
+}
+
+#[used]
+#[link_section = ".cpu_local_head"]
+static CPU_LOCAL_HEAD_SPACE: MaybeUninit<CpuLocalHead> = MaybeUninit::uninit();
+
+pub fn cpu_local_head() -> &'static mut CpuLocalHead {
+    unsafe { &mut *(rdgsbase() as *mut CpuLocalHead) }
+}
+
 pub unsafe fn init(cpu_local_area: VAddr) {
     extern "C" {
         static __cpu_local: u8;

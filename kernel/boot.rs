@@ -25,6 +25,8 @@ pub fn boot_kernel(bootinfo: &BootInfo) {
     }
 
     println!("Hello World from Penguin Kernel XD");
+    crate::thread::init();
+
     loop {
         idle();
     }

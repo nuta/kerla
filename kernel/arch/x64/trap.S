@@ -187,17 +187,25 @@ interrupt_common:
 1:
     iretq
 
+.global kthread_entry
+kthread_entry:
+    // Release held locks before enabling interrupts.
+    call after_switch
+
+    sti
+
+    // Clear the frame pointer to stop backtracing here.
+    xor rbp, rbp
+
+    // Pop the entry point and start executing.
+    pop rax
+    call rax
+
+    // Unreachable.
+    ud2
+
 .global userland_entry
 userland_entry:
-    // Set the stack canary in the interrupt stack.
-    mov rbp, rsp
-
-    // Temporarily switch into the syscall stack and set the stack canary.
-    mov rbx, rsp
-    mov rsp, gs:[GS_RSP0]
-    mov rbp, rsp
-    mov rsp, rbx
-
     // Sanitize registers to prevent information leak.
     xor rax, rax
     xor rbx, rbx
@@ -219,19 +227,19 @@ userland_entry:
     swapgs
     iretq
 
-/// void switch_context(uint64_t *prev_rsp, uint64_t *next_rsp);
+/// fn do_switch_thread(prev_rsp: u64, next_rsp: u64);
 ///
 /// Saves the current context into `prev` and restore the context from `next`.
 ///
-/// ``arch'' is a state of registers including:
+/// A *context* is a state of registers including:
 ///
 ///   - Instruction Pointer (implicitly saved and restored by CALL/RET)
 ///   - Stack Pointer (RSP)
 ///   - callee-saved registers (RBP, RBX, R12-R15)
 ///   - RFLAGS
 ///
-.global switch_context
-switch_context:
+.global do_switch_thread
+do_switch_thread:
     /* Save callee-saved registers. */
     push rbp
     push rbx

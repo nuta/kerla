@@ -18,11 +18,15 @@ mod pit;
 mod semihosting;
 mod serial;
 mod syscall;
+mod thread;
 mod tss;
 
 pub use address::{PAddr, VAddr};
 pub use backtrace::Backtrace;
 pub use idle::{halt, idle};
+pub use interrupt::{disable_interrupt, enable_interrupt, is_interrupt_enabled};
+pub use lock::{SpinLock, SpinLockGuard};
 #[cfg(test)]
 pub use semihosting::{semihosting_halt, ExitStatus};
 pub use serial::printchar;
+pub use thread::{switch_thread, Thread};
