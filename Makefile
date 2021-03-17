@@ -58,6 +58,10 @@ build:
 	$(PROGRESS) "STRIP" $(stripped_kernel_elf)
 	$(STRIP) $(kernel_elf) -o $(stripped_kernel_elf)
 
+.PHONY: buildw
+buildw:
+	$(CARGO) watch -s "$(MAKE) build"
+
 .PHONY: iso
 iso: build
 	$(PROGRESS) MKISO penguin.iso
