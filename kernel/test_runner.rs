@@ -47,8 +47,3 @@ fn panic(info: &PanicInfo) -> ! {
     semihosting_halt(ExitStatus::Failure);
     loop {}
 }
-
-#[test_case]
-fn one_plus_two_equals_three() {
-    assert_eq!(1 + 2, 3);
-}

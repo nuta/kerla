@@ -21,3 +21,16 @@ pub fn init() {
         ALLOCATOR.lock().init(start, size);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    #[test_case]
+    fn alloc_crate_test() {
+        use alloc::vec::Vec;
+        let mut v = Vec::with_capacity(1);
+        v.push('a');
+        v.push('b');
+        v.push('c');
+        assert_eq!(v.as_slice(), &['a', 'b', 'c']);
+    }
+}
