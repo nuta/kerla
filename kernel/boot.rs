@@ -1,7 +1,7 @@
 #![cfg_attr(test, allow(unreachable_code))]
 
-use crate::allocator;
 use crate::arch::{idle, PAddr};
+use crate::mm::{global_allocator, page_allocator};
 #[cfg(test)]
 use crate::test_runner::end_tests;
 use arrayvec::ArrayVec;
@@ -16,7 +16,8 @@ pub struct BootInfo {
 }
 
 pub fn boot_kernel(bootinfo: &BootInfo) {
-    allocator::init(&bootinfo.ram_areas);
+    page_allocator::init(&bootinfo.ram_areas);
+    global_allocator::init();
 
     #[cfg(test)]
     {

@@ -16,8 +16,8 @@ extern crate alloc;
 mod printk;
 #[macro_use]
 mod arch;
-mod allocator;
 mod boot;
 mod lang_items;
+mod mm;
 mod test_runner;
 mod thread;

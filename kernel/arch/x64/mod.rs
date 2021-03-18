@@ -21,6 +21,8 @@ mod syscall;
 mod thread;
 mod tss;
 
+pub const PAGE_SIZE: usize = 4096;
+
 pub use address::{PAddr, VAddr};
 pub use backtrace::Backtrace;
 pub use idle::{halt, idle};
