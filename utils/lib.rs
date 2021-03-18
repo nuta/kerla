@@ -5,6 +5,7 @@
 #[macro_use]
 extern crate std;
 
+pub mod alignment;
 pub mod byte_size;
 pub mod lazy;
 pub mod once;
