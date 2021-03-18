@@ -17,6 +17,11 @@ impl PAddr {
         PAddr(addr as u64)
     }
 
+    pub const fn as_vaddr(self) -> VAddr {
+        debug_assert!(self.0 < KERNEL_STRAIGHT_MAP_PADDR_END);
+        VAddr::new((self.0 + KERNEL_BASE_ADDR) as usize)
+    }
+
     pub const unsafe fn as_ptr<T>(self) -> *const T {
         debug_assert!(self.0 < KERNEL_STRAIGHT_MAP_PADDR_END);
         (self.0 + KERNEL_BASE_ADDR) as *const _
