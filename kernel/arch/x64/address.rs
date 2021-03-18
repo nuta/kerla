@@ -18,12 +18,12 @@ impl PAddr {
     }
 
     pub const unsafe fn as_ptr<T>(self) -> *const T {
-        assert!(self.0 < KERNEL_STRAIGHT_MAP_PADDR_END);
+        debug_assert!(self.0 < KERNEL_STRAIGHT_MAP_PADDR_END);
         (self.0 + KERNEL_BASE_ADDR) as *const _
     }
 
     pub const unsafe fn as_mut_ptr<T>(self) -> *mut T {
-        assert!(self.0 < KERNEL_STRAIGHT_MAP_PADDR_END);
+        debug_assert!(self.0 < KERNEL_STRAIGHT_MAP_PADDR_END);
         (self.0 + KERNEL_BASE_ADDR) as *mut _
     }
 
@@ -46,16 +46,17 @@ pub struct VAddr(u64);
 
 impl VAddr {
     pub const fn new(addr: usize) -> VAddr {
+        debug_assert!(addr as u64 >= KERNEL_BASE_ADDR);
         VAddr(addr as u64)
     }
 
     pub const unsafe fn as_ptr<T>(self) -> *const T {
-        assert!(self.0 >= KERNEL_BASE_ADDR);
+        debug_assert!(self.0 >= KERNEL_BASE_ADDR);
         self.0 as *const _
     }
 
     pub const unsafe fn as_mut_ptr<T>(self) -> *mut T {
-        assert!(self.0 >= KERNEL_BASE_ADDR);
+        debug_assert!(self.0 >= KERNEL_BASE_ADDR);
         self.0 as *mut _
     }
 
