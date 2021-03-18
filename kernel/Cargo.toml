@@ -9,7 +9,7 @@ name = "penguin-kernel"
 path = "main.rs"
 
 [dependencies]
-penguin_utils = { path = "../utils" }
+penguin_utils = { path = "../utils", features = ["no_std"] }
 spin = "0.7.1"
 x86 = "0.36.0"
 buddy_system_allocator = "0.7.0"

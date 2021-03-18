@@ -10,5 +10,8 @@ edition = "2018"
 name = "penguin_utils"
 path = "lib.rs"
 
+[features]
+no_std = []
+
 [dependencies]
 spin = "0.7.1"
