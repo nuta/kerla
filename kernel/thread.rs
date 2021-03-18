@@ -1,8 +1,10 @@
-use crate::arch::{
-    self, disable_interrupt, enable_interrupt, is_interrupt_enabled, SpinLock, VAddr,
+use crate::{
+    arch::{self, disable_interrupt, enable_interrupt, is_interrupt_enabled, SpinLock, VAddr},
+    mm::page_allocator::alloc_pages,
 };
 use alloc::collections::{BTreeMap, VecDeque};
 use alloc::sync::Arc;
+use arch::{KERNEL_STACK_SIZE, PAGE_SIZE};
 use arrayvec::ArrayVec;
 use core::mem;
 use core::sync::atomic::{AtomicI32, Ordering};
@@ -44,7 +46,11 @@ pub struct Thread {
 }
 
 impl Thread {
-    pub fn new_kthread(ip: VAddr, sp: VAddr) -> Thread {
+    pub fn new_kthread(ip: VAddr) -> Thread {
+        // FIXME: Return an error instead of panic'ing.
+        let stack_bottom =
+            alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE).expect("failed to allocate kernel stack");
+        let sp = stack_bottom.as_vaddr().add(KERNEL_STACK_SIZE);
         Thread {
             arch: arch::Thread::new_kthread(ip, sp),
             pid: alloc_pid().expect("failed to allocate PID"),
@@ -146,9 +152,6 @@ pub extern "C" fn after_switch() {
     }
 }
 
-static stack_a: [u8; 16 * 1024] = [0; 16 * 1024];
-static stack_b: [u8; 16 * 1024] = [0; 16 * 1024];
-static stack_c: [u8; 16 * 1024] = [0; 16 * 1024];
 static mut count: usize = 0;
 
 fn thread_a() {
@@ -202,18 +205,9 @@ pub fn init() {
     IDLE_THREAD.as_mut().set(idle_thread.clone());
     CURRENT_THREAD.as_mut().set(idle_thread);
 
-    let mut thread_a = Thread::new_kthread(
-        VAddr::new(thread_a as *const u8 as usize),
-        VAddr::new(((&stack_a as *const u8 as usize) + stack_a.len()) as usize),
-    );
-    let mut thread_b = Thread::new_kthread(
-        VAddr::new(thread_b as *const u8 as usize),
-        VAddr::new(((&stack_b as *const u8 as usize) + stack_b.len()) as usize),
-    );
-    let mut thread_c = Thread::new_kthread(
-        VAddr::new(thread_c as *const u8 as usize),
-        VAddr::new(((&stack_c as *const u8 as usize) + stack_c.len()) as usize),
-    );
+    let mut thread_a = Thread::new_kthread(VAddr::new(thread_a as *const u8 as usize));
+    let mut thread_b = Thread::new_kthread(VAddr::new(thread_b as *const u8 as usize));
+    let mut thread_c = Thread::new_kthread(VAddr::new(thread_c as *const u8 as usize));
 
     SCHEDULER.lock().enqueue(Arc::new(SpinLock::new(thread_a)));
     SCHEDULER.lock().enqueue(Arc::new(SpinLock::new(thread_b)));
