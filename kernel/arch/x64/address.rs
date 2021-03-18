@@ -66,6 +66,12 @@ impl VAddr {
     }
 
     #[inline(always)]
+    #[must_use]
+    pub const fn add(self, offset: usize) -> VAddr {
+        VAddr::new(self.0 as usize + offset)
+    }
+
+    #[inline(always)]
     pub const fn value(self) -> usize {
         self.0 as usize
     }
