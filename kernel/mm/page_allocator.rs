@@ -3,9 +3,13 @@ use crate::{
     boot::RamArea,
 };
 use arrayvec::ArrayVec;
-use penguin_utils::{buddy_allocator::BuddyAllocator, byte_size::ByteSize};
+use penguin_utils::byte_size::ByteSize;
 
-static ZONES: SpinLock<ArrayVec<[BuddyAllocator; 8]>> = SpinLock::new(ArrayVec::new());
+use penguin_utils::bump_allocator::BumpAllocator as Allocator;
+// TODO:
+// use penguin_utils::buddy_allocator::BuddyAllocator as Allocator;
+
+static ZONES: SpinLock<ArrayVec<[Allocator; 8]>> = SpinLock::new(ArrayVec::new());
 
 fn num_pages_to_order(num_pages: usize) -> usize {
     // TODO: Use log2 instead
@@ -41,7 +45,7 @@ pub fn init(areas: &[RamArea]) {
             ByteSize::new(area.len)
         );
 
-        zones.push(BuddyAllocator::new(
+        zones.push(Allocator::new(
             unsafe { area.base.as_mut_ptr() },
             area.base.value(),
             area.len,
