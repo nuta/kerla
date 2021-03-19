@@ -24,7 +24,7 @@ mod tss;
 pub const KERNEL_STACK_SIZE: usize = PAGE_SIZE * 16;
 pub const PAGE_SIZE: usize = 4096;
 
-pub use address::{PAddr, VAddr};
+pub use address::{PAddr, UserVAddr, VAddr};
 pub use backtrace::Backtrace;
 pub use idle::{halt, idle};
 pub use interrupt::{disable_interrupt, enable_interrupt, is_interrupt_enabled};

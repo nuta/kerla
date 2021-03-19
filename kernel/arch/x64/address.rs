@@ -88,3 +88,32 @@ impl fmt::Display for VAddr {
         write!(f, "{:016x}", self.value())
     }
 }
+
+/// Represents a user virtual memory address.
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[repr(transparent)]
+pub struct UserVAddr(u64);
+
+impl UserVAddr {
+    pub const fn new(addr: usize) -> UserVAddr {
+        debug_assert!((addr as u64) < KERNEL_BASE_ADDR);
+        UserVAddr(addr as u64)
+    }
+
+    #[inline(always)]
+    #[must_use]
+    pub const fn add(self, offset: usize) -> UserVAddr {
+        UserVAddr::new(self.0 as usize + offset)
+    }
+
+    #[inline(always)]
+    pub const fn value(self) -> usize {
+        self.0 as usize
+    }
+}
+
+impl fmt::Display for UserVAddr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:016x}", self.value())
+    }
+}
