@@ -44,6 +44,12 @@ impl PAddr {
     }
 }
 
+impl fmt::Display for PAddr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:016x}", self.value())
+    }
+}
+
 /// Represents a *kernel* virtual memory address.
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 #[repr(transparent)]
