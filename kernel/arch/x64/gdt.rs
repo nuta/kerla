@@ -5,8 +5,8 @@ use x86::dtables::{lgdt, DescriptorTablePointer};
 
 pub const KERNEL_CS: u16 = 8;
 pub const USER_CS32: u16 = 24;
-pub const USER_CS64: u16 = 32;
-pub const USER_DS: u16 = 40;
+pub const USER_DS: u16 = 32;
+pub const USER_CS64: u16 = 40;
 pub const TSS_SEG: u16 = 48;
 
 cpu_local! {
@@ -15,8 +15,8 @@ cpu_local! {
     0x00af9a000000ffff, // kernel_cs
     0x00af92000000ffff, // kernel_ds
     0x0000000000000000, // user_cs32
-    0x00affa000000ffff, // user_cs64
     0x008ff2000000ffff, // user_ds
+    0x00affa000000ffff, // user_cs64
     0,                  // tss_low
     0,                  // tss_high
 ];
