@@ -5,7 +5,6 @@ use x86::msr::{self, rdmsr, wrmsr};
 // or an interrupt occurs before doing SWAPGS.
 const SYSCALL_RFLAGS_MASK: u64 = 0x200;
 
-#[allow(unused)]
 #[no_mangle]
 extern "C" fn x64_handle_syscall(n: i64, a1: i64, a2: i64, a3: i64, a4: i64, a5: i64) -> i64 {
     0
