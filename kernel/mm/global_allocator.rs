@@ -17,6 +17,7 @@ pub fn init() {
         let size = 1024 * 1024;
         let start = alloc_pages(size / PAGE_SIZE)
             .expect("failed to reserve memory pages for the global alllocator")
+            .as_vaddr()
             .value();
         ALLOCATOR.lock().init(start, size);
     }
