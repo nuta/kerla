@@ -19,7 +19,7 @@ pub unsafe fn init() {
         msr::IA32_STAR,
         ((USER_CS32 as u64) << 48) | ((KERNEL_CS as u64) << 32),
     );
-    wrmsr(msr::IA32_LSTAR, &syscall_entry as *const _ as u64);
+    wrmsr(msr::IA32_LSTAR, syscall_entry as *const u8 as u64);
     wrmsr(msr::IA32_FMASK, SYSCALL_RFLAGS_MASK);
 
     // RIP for compatibility mode. We don't support it for now.
