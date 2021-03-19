@@ -30,6 +30,7 @@ pub use backtrace::Backtrace;
 pub use idle::{halt, idle};
 pub use interrupt::{disable_interrupt, enable_interrupt, is_interrupt_enabled};
 pub use lock::{SpinLock, SpinLockGuard};
+pub use page_table::{PageFaultReason, PageTable};
 #[cfg(test)]
 pub use semihosting::{semihosting_halt, ExitStatus};
 pub use serial::printchar;

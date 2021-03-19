@@ -206,6 +206,9 @@ kthread_entry:
 
 .global userland_entry
 userland_entry:
+    // Release held locks before enabling interrupts.
+    call after_switch
+
     // Sanitize registers to prevent information leak.
     xor rax, rax
     xor rbx, rbx

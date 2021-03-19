@@ -22,6 +22,6 @@ mod elf;
 mod fs;
 mod lang_items;
 mod mm;
+mod process;
 mod result;
 mod test_runner;
-mod thread;

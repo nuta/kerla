@@ -8,6 +8,7 @@ pub const USER_CS32: u16 = 24;
 pub const USER_DS: u16 = 32;
 pub const USER_CS64: u16 = 40;
 pub const TSS_SEG: u16 = 48;
+pub const USER_RPL: u16 = 3;
 
 cpu_local! {
     static ref GDT: [u64; 8] = [

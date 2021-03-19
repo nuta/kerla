@@ -19,6 +19,12 @@ pub struct Tss {
     iomap_last_byte: u8,
 }
 
+impl Tss {
+    pub fn set_rsp0(&mut self, rsp0: u64) {
+        self.rsp0 = rsp0;
+    }
+}
+
 cpu_local! {
     pub static ref TSS: Tss = Tss {
         reserved0: 0,

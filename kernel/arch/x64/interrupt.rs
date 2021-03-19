@@ -1,5 +1,10 @@
-use super::apic::ack_interrupt;
-use x86::current::rflags::{self, RFlags};
+use crate::mm::page_fault::handle_page_fault;
+
+use super::{apic::ack_interrupt, PageFaultReason, UserVAddr};
+use x86::{
+    controlregs::cr2,
+    current::rflags::{self, RFlags},
+};
 
 /// The interrupt stack frame.
 #[derive(Debug, Copy, Clone)]
@@ -45,17 +50,26 @@ unsafe extern "C" fn x64_handle_interrupt(vec: u8, frame: *const InterruptFrame)
             (*frame).error,
             x86::controlregs::cr2()
         );
-        panic!();
     }
-
-    ack_interrupt();
 
     if is_timer {
+        ack_interrupt();
         let value = TICKS.fetch_add(1, Ordering::Relaxed);
         if value % 20 == 0 {
-            crate::thread::switch_thread();
+            crate::process::switch();
         }
+        return;
     }
+
+    if vec == 14 {
+        crate::printk::backtrace();
+        let unaligned_vaddr = UserVAddr::new(unsafe { cr2() as usize });
+        let reason = PageFaultReason::empty();
+        handle_page_fault(unaligned_vaddr, reason);
+        return;
+    }
+
+    todo!();
 }
 
 pub unsafe fn disable_interrupt() {
