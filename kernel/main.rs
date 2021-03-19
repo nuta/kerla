@@ -20,5 +20,6 @@ mod arch;
 mod boot;
 mod lang_items;
 mod mm;
+mod result;
 mod test_runner;
 mod thread;
