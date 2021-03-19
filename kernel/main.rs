@@ -18,6 +18,7 @@ mod printk;
 #[macro_use]
 mod arch;
 mod boot;
+mod fs;
 mod lang_items;
 mod mm;
 mod result;
