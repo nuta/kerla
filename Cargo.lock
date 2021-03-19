@@ -30,11 +30,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "goblin"
+version = "0.3.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "669cdc3826f69a51d3f8fc3f86de81c2378110254f678b8407977736122057a4"
+dependencies = [
+ "plain",
+ "scroll",
+]
+
+[[package]]
 name = "penguin-kernel"
 version = "0.0.0"
 dependencies = [
  "arrayvec",
+ "bitflags",
  "buddy_system_allocator",
+ "goblin",
  "penguin_utils",
  "spin",
  "x86",
@@ -48,6 +60,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "plain"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
+
+[[package]]
 name = "raw-cpuid"
 version = "9.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -55,6 +73,12 @@ checksum = "c27cb5785b85bd05d4eb171556c9a1a514552e26123aeae6bb7d811353148026"
 dependencies = [
  "bitflags",
 ]
+
+[[package]]
+name = "scroll"
+version = "0.10.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fda28d4b4830b807a8b43f7b0e6b5df875311b3e7621d84577188c175b6ec1ec"
 
 [[package]]
 name = "spin"
