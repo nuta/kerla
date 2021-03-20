@@ -75,6 +75,7 @@ run: build
 	$(PYTHON3) tools/run-qemu.py              \
 		--arch $(ARCH)                    \
 		$(if $(GUI),--gui,)               \
+		$(if $(GDB),--gdb,)               \
 		$(kernel_elf)
 
 .PHONY: bochs

@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-#
-#
 import argparse
 import shutil
 from tempfile import NamedTemporaryFile
@@ -24,10 +22,12 @@ ARCHS = {
     }
 }
 
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--arch", choices=["x64"])
     parser.add_argument("--gui", action="store_true")
+    parser.add_argument("--gdb", action="store_true")
     parser.add_argument("kernel_elf", help="The kernel ELF executable.")
     args = parser.parse_args()
 
@@ -50,10 +50,14 @@ def main():
     argv = [qemu["bin"]] + qemu["args"] + ["-kernel", kernel_elf]
     if not args.gui:
         argv += ["-nographic"]
+    if args.gdb:
+        argv += ["-gdb", "tcp::7789", "-S"]
 
     p = subprocess.run(argv, preexec_fn=os.setsid)
     if p.returncode != 33:
-        sys.exit(f"\nrun-qemu.py: qemu exited with failue status (status={p.returncode})")
+        sys.exit(
+            f"\nrun-qemu.py: qemu exited with failue status (status={p.returncode})")
+
 
 if __name__ == "__main__":
     main()
