@@ -1,6 +1,5 @@
 /target
 /isofiles
-/.vscode
 *.elf
 *.iso
 *.symbols
@@ -10,3 +9,8 @@
 # A temporary file created by the linker. Ignore them not to notify cargo-watch.
 *.map*
 *.elf*
+
+/.vscode
+!/.vscode/launch.json
+!/.vscode/tasks.json
+!/.vscode/extensions.json
