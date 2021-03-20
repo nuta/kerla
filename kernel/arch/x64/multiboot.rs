@@ -116,33 +116,30 @@ unsafe fn parse_multiboot2_info(header: &Multiboot2InfoHeader) -> BootInfo {
     while off + size_of::<Multiboot2TagHeader>() < header.total_size as usize {
         let tag_vaddr = header_vaddr.add(off);
         let tag = &*tag_vaddr.as_ptr::<Multiboot2TagHeader>();
-        match tag.tag_type {
-            6 => {
-                // Memory map.
-                let tag = transmute::<&Multiboot2TagHeader, &Multiboot2MemoryMapTag>(tag);
-                let mut entry_off = size_of::<Multiboot2MemoryMapTag>();
-                while entry_off < tag.tag_size as usize {
-                    let entry = &*tag_vaddr
-                        .add(entry_off)
-                        .as_ptr::<Multiboot2MemoryMapEntry>();
+        if tag.tag_type == 6 {
+            // Memory map.
+            let tag = &*(tag as *const Multiboot2TagHeader as *const Multiboot2MemoryMapTag);
+            let mut entry_off = size_of::<Multiboot2MemoryMapTag>();
+            while entry_off < tag.tag_size as usize {
+                let entry = &*tag_vaddr
+                    .add(entry_off)
+                    .as_ptr::<Multiboot2MemoryMapEntry>();
 
-                    process_memory_map_entry(
-                        &mut ram_areas,
-                        entry.entry_type,
-                        entry.base as usize,
-                        entry.len as usize,
-                    );
+                process_memory_map_entry(
+                    &mut ram_areas,
+                    entry.entry_type,
+                    entry.base as usize,
+                    entry.len as usize,
+                );
 
-                    entry_off += tag.entry_size as usize;
-                }
+                entry_off += tag.entry_size as usize;
             }
-            _ => {}
         }
 
         off = align_up(off + tag.size as usize, 8);
     }
 
-    assert!(ram_areas.len() > 0);
+    assert!(!ram_areas.is_empty());
     BootInfo { ram_areas }
 }
 

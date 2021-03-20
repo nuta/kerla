@@ -90,7 +90,7 @@ impl Process {
 
         let elf = Elf::parse(&buf);
         let ip = elf.entry();
-        let sp = UserVAddr::new(0xdead0000_beefbeef);
+        let sp = UserVAddr::new(0xdead_0000_beef_beef);
 
         // Register program headers in the virtual memory space.
         let mut vm = Vm::new();
@@ -217,6 +217,7 @@ pub extern "C" fn after_switch() {
     }
 }
 
+/*
 static mut COUNT: usize = 0;
 
 fn thread_a() {
@@ -263,6 +264,7 @@ fn thread_c() {
         }
     }
 }
+*/
 
 struct DummyFile(&'static [u8]);
 impl FileLike for DummyFile {
@@ -274,7 +276,7 @@ impl FileLike for DummyFile {
 
 pub fn init() {
     SCHEDULER.init(|| SpinLock::new(Scheduler::new()));
-    let idle_thread = Arc::new((Process::new_idle_thread()));
+    let idle_thread = Arc::new(Process::new_idle_thread());
     IDLE_THREAD.as_mut().set(idle_thread.clone());
     CURRENT.as_mut().set(idle_thread);
 
@@ -282,12 +284,14 @@ pub fn init() {
 
     let init_process = Process::new_init_process(Arc::new(file));
 
-    SCHEDULER.lock().enqueue(Arc::new((init_process)));
+    SCHEDULER.lock().enqueue(Arc::new(init_process));
 
+    /*
     let mut thread_a = Process::new_kthread(VAddr::new(thread_a as *const u8 as usize));
     let mut thread_b = Process::new_kthread(VAddr::new(thread_b as *const u8 as usize));
     let mut thread_c = Process::new_kthread(VAddr::new(thread_c as *const u8 as usize));
     SCHEDULER.lock().enqueue(Arc::new((thread_a)));
     SCHEDULER.lock().enqueue(Arc::new((thread_b)));
     SCHEDULER.lock().enqueue(Arc::new((thread_c)));
+    */
 }

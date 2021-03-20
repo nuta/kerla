@@ -13,7 +13,7 @@ impl<'a> Elf<'a> {
     pub fn parse(buf: &'a [u8]) -> Elf<'a> {
         // TODO: Check the size of `buf`
         // TODO: Check magic, e_machine, etc.
-        let header: &Header = unsafe { transmute(buf.as_ptr()) };
+        let header: &Header = unsafe { &*(buf.as_ptr() as *const Header) };
         let program_headers = unsafe {
             from_raw_parts(
                 &buf[header.e_phoff as usize] as *const _ as *const ProgramHeader,

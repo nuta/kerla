@@ -40,12 +40,7 @@ impl FreeList {
     /// Prepends a chunk.
     pub fn push(&mut self, mut new_tail: NonNull<Page>) {
         unsafe {
-            new_tail.as_mut().next = if let Some(head) = self.head {
-                Some(head)
-            } else {
-                None
-            };
-
+            new_tail.as_mut().next = self.head;
             self.head = Some(new_tail);
         }
     }
@@ -240,7 +235,7 @@ impl BuddyAllocator {
     fn paddr_to_page(&self, paddr: usize) -> Option<NonNull<Page>> {
         if self.alloc_area_start <= paddr && paddr < self.alloc_area_end {
             let pfn_offset = (paddr - self.alloc_area_start) / PAGE_SIZE;
-            Some(unsafe { NonNull::new_unchecked(self.pages.as_ptr().offset(pfn_offset as isize)) })
+            Some(unsafe { NonNull::new_unchecked(self.pages.as_ptr().add(pfn_offset)) })
         } else {
             None
         }
@@ -254,7 +249,7 @@ impl BuddyAllocator {
 
 unsafe impl Send for BuddyAllocator {}
 
-#[cfg(test)]
+#[cfg(all(test, not(feature = "no_std")))]
 mod tests {
     use super::*;
     use std::panic::catch_unwind;

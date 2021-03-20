@@ -32,7 +32,7 @@ impl<T> DerefMut for Once<T> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(feature = "no_std")))]
 mod tests {
     use super::*;
     use std::panic::catch_unwind;

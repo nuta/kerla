@@ -25,6 +25,8 @@ pub fn init() {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::vec_init_then_push)]
+
     #[test_case]
     fn alloc_crate_test() {
         use alloc::vec::Vec;

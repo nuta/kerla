@@ -29,6 +29,8 @@ pub fn run_tests(tests: &[&dyn Testable]) {
 
 pub fn end_tests() -> ! {
     semihosting_halt(ExitStatus::Success);
+
+    #[allow(clippy::empty_loop)]
     loop {}
 }
 
