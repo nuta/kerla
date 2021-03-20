@@ -6,6 +6,7 @@ use crate::{
         page_allocator::alloc_pages,
         vm::{Vm, VmAreaType},
     },
+    result::{Errno, ErrorExt, Result},
 };
 use alloc::collections::{BTreeMap, VecDeque};
 use alloc::sync::Arc;
@@ -55,38 +56,36 @@ pub struct Process {
 }
 
 impl Process {
-    pub fn new_kthread(ip: VAddr) -> Process {
-        // FIXME: Return an error instead of panic'ing.
-        let stack_bottom =
-            alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE).expect("failed to allocate kernel stack");
+    pub fn new_kthread(ip: VAddr) -> Result<Arc<Process>> {
+        let stack_bottom = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE)
+            .into_error_with_message(Errno::ENOMEM, "failed to allocate kernel stack")?;
         let sp = stack_bottom.as_vaddr().add(KERNEL_STACK_SIZE);
-        Process {
+        let process = Arc::new(Process {
             inner: SpinLock::new(ProcessInner {
                 arch: arch::Thread::new_kthread(ip, sp),
             }),
             vm: None,
-            pid: alloc_pid().expect("failed to allocate PID"),
-        }
+            pid: alloc_pid().into_error_with_message(Errno::EAGAIN, "failed to allocate PID")?,
+        });
+
+        SCHEDULER.lock().enqueue(process.clone());
+        Ok(process)
     }
 
-    pub fn new_idle_thread() -> Process {
-        Process {
+    pub fn new_idle_thread() -> Result<Arc<Process>> {
+        Ok(Arc::new(Process {
             inner: SpinLock::new(ProcessInner {
                 arch: arch::Thread::new_idle_thread(),
             }),
             vm: None,
             pid: PId::new(0),
-        }
+        }))
     }
 
-    pub fn new_init_process(executable: Arc<dyn FileLike>) -> Process {
-        // FIXME: Return an error instead of panic'ing.
-
+    pub fn new_init_process(executable: Arc<dyn FileLike>) -> Result<Arc<Process>> {
         // Read the ELF header in the executable file.
         let mut buf = vec![0; 1024];
-        executable
-            .read(0, &mut buf)
-            .expect("failed to read executable");
+        executable.read(0, &mut buf)?;
 
         let elf = Elf::parse(&buf);
         let ip = elf.entry();
@@ -107,17 +106,21 @@ impl Process {
             );
         }
 
-        let stack_bottom =
-            alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE).expect("failed to allocate kernel stack");
+        let stack_bottom = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE)
+            .into_error_with_message(Errno::ENOMEM, "failed to allocate kernel stack")?;
+
         let kernel_sp = stack_bottom.as_vaddr().add(KERNEL_STACK_SIZE);
 
-        Process {
+        let process = Arc::new(Process {
             inner: SpinLock::new(ProcessInner {
                 arch: arch::Thread::new_user_thread(ip, sp, kernel_sp),
             }),
             vm: Some(Arc::new(SpinLock::new(vm))),
             pid: PId::new(1),
-        }
+        });
+
+        SCHEDULER.lock().enqueue(process.clone());
+        Ok(process)
     }
 }
 
@@ -217,7 +220,6 @@ pub extern "C" fn after_switch() {
     }
 }
 
-/*
 static mut COUNT: usize = 0;
 
 fn thread_a() {
@@ -264,7 +266,6 @@ fn thread_c() {
         }
     }
 }
-*/
 
 struct DummyFile(&'static [u8]);
 impl FileLike for DummyFile {
@@ -276,22 +277,14 @@ impl FileLike for DummyFile {
 
 pub fn init() {
     SCHEDULER.init(|| SpinLock::new(Scheduler::new()));
-    let idle_thread = Arc::new(Process::new_idle_thread());
+    let idle_thread = Process::new_idle_thread().unwrap();
     IDLE_THREAD.as_mut().set(idle_thread.clone());
     CURRENT.as_mut().set(idle_thread);
 
     let file = DummyFile(include_bytes!("../hello_world.elf"));
+    Process::new_init_process(Arc::new(file)).unwrap();
 
-    let init_process = Process::new_init_process(Arc::new(file));
-
-    SCHEDULER.lock().enqueue(Arc::new(init_process));
-
-    /*
-    let mut thread_a = Process::new_kthread(VAddr::new(thread_a as *const u8 as usize));
-    let mut thread_b = Process::new_kthread(VAddr::new(thread_b as *const u8 as usize));
-    let mut thread_c = Process::new_kthread(VAddr::new(thread_c as *const u8 as usize));
-    SCHEDULER.lock().enqueue(Arc::new((thread_a)));
-    SCHEDULER.lock().enqueue(Arc::new((thread_b)));
-    SCHEDULER.lock().enqueue(Arc::new((thread_c)));
-    */
+    Process::new_kthread(VAddr::new(thread_a as *const u8 as usize)).unwrap();
+    Process::new_kthread(VAddr::new(thread_b as *const u8 as usize)).unwrap();
+    Process::new_kthread(VAddr::new(thread_c as *const u8 as usize)).unwrap();
 }
