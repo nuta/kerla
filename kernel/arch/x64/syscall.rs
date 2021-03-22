@@ -1,5 +1,7 @@
 use core::unimplemented;
 
+use crate::syscall::syscall::SyscallContext;
+
 use super::{
     gdt::{KERNEL_CS, USER_CS32},
     UserVAddr,
@@ -12,34 +14,19 @@ const SYSCALL_RFLAGS_MASK: u64 = 0x200;
 
 #[no_mangle]
 extern "C" fn x64_handle_syscall(
-    a1: i64,
-    a2: i64,
-    a3: i64,
-    a4: i64,
-    a5: i64,
-    a6: i64,
-    n: i64,
-) -> i64 {
+    a1: usize,
+    a2: usize,
+    a3: usize,
+    a4: usize,
+    a5: usize,
+    a6: usize,
+    n: usize,
+) -> isize {
     println!("syscall: n={}", n);
-    match n {
-        1 => {
-            println!("sys_write({}, {:x}, {})", a1, a2, a3);
-            let uaddr = UserVAddr::new(a2 as usize).unwrap();
-            let mut buf = vec![0; a3 as usize];
-            uaddr.read_bytes(&mut buf);
-            println!("write: \x1b[1;93m{}\x1b[0m", unsafe {
-                core::str::from_utf8_unchecked(buf.as_mut_slice())
-            });
-        }
-        60 => {
-            panic!("sys_exit({})", a1);
-        }
-        _ => {
-            unimplemented!();
-        }
-    }
-
-    n
+    let mut context = SyscallContext::new();
+    context
+        .dispatch(a1, a2, a3, a4, a5, a6, n)
+        .unwrap_or_else(|err| -(err.errno() as isize))
 }
 
 extern "C" {

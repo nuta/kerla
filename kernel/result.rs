@@ -37,6 +37,8 @@ pub enum Errno {
     EPIPE = 32,
     EDOM = 33,
     ERANGE = 34,
+
+    ENOSYS = 38,
 }
 
 pub type Result<T> = ::core::result::Result<T, Error>;

@@ -25,4 +25,5 @@ mod lang_items;
 mod mm;
 mod process;
 mod result;
+mod syscall;
 mod test_runner;
