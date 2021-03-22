@@ -26,6 +26,7 @@ pub trait Directory: Send + Sync {
     fn lookup(&self, name: &str) -> Result<DirEntry>;
 }
 
+#[derive(Clone)]
 pub enum INode {
     FileLike(Arc<dyn FileLike>),
     Directory(Arc<dyn Directory>),
