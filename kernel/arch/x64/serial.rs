@@ -23,6 +23,12 @@ pub fn printchar(ch: char) {
     }
 }
 
+pub fn print_str(s: &[u8]) {
+    for ch in s {
+        printchar(*ch as char);
+    }
+}
+
 pub unsafe fn init() {
     let divisor: u16 = 12; // 115200 / 9600 = 12
     outb(IOPORT_SERIAL + IER, 0x00); // Disable interrupts.

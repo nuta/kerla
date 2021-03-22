@@ -1,4 +1,4 @@
-use crate::arch::{printchar, Backtrace, VAddr};
+use crate::arch::{print_str, printchar, Backtrace, VAddr};
 use core::mem::size_of;
 use core::slice;
 use core::str;
@@ -11,9 +11,7 @@ impl core::fmt::Write for Printer {
     }
 
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
-        for ch in s.chars() {
-            printchar(ch);
-        }
+        print_str(s.as_bytes());
         Ok(())
     }
 }
