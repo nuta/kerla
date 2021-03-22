@@ -46,6 +46,7 @@ export CARGO_FROM_MAKE=1
 #
 .PHONY: build
 build:
+	$(MAKE) initramfs
 	$(CARGO) build $(CARGOFLAGS) --manifest-path kernel/Cargo.toml
 	cp target/$(ARCH)/$(build_mode)/penguin-kernel $(kernel_elf)
 
@@ -57,6 +58,9 @@ build:
 
 	$(PROGRESS) "STRIP" $(stripped_kernel_elf)
 	$(STRIP) $(kernel_elf) -o $(stripped_kernel_elf)
+
+.PHONY: initramfs
+initramfs: initramfs.bin
 
 .PHONY: buildw
 buildw:
@@ -84,6 +88,7 @@ bochs: iso
 
 .PHONY: test
 test:
+	$(MAKE) initramfs
 	$(CARGO) test $(CARGOFLAGS) $(TESTCARGOFLAGS)
 
 .PHONY: testw
@@ -105,4 +110,13 @@ lint:
 .PHONY: clean
 clean:
 	$(CARGO) clean
-	rm -rf *.elf *.iso *.symbols isofiles
+	rm -rf *.elf *.iso *.bin *.symbols isofiles
+
+#
+#  Build Rules
+#
+initramfs.bin: $(wildcard packages/*.py) Makefile
+	$(PROGRESS) "BUILD" initramfs.bin
+	$(PYTHON3) packages/__init__.py                       \
+		--build-dir build/initramfs                   \
+		-o initramfs.bin

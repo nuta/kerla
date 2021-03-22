@@ -1,6 +1,9 @@
 /target
+/build
 /isofiles
 *.elf
+*.bin
+*.pyc
 *.iso
 *.symbols
 *.log
