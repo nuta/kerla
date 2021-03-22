@@ -27,6 +27,7 @@ pub fn boot_kernel(bootinfo: &BootInfo) {
     }
 
     println!("Hello World from Penguin Kernel XD");
+    crate::fs::devfs::init();
     crate::fs::initramfs::init();
     crate::process::init();
 
