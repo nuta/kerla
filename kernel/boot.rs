@@ -2,6 +2,7 @@
 
 use crate::arch::{idle, PAddr};
 use crate::mm::{global_allocator, page_allocator};
+
 #[cfg(test)]
 use crate::test_runner::end_tests;
 use arrayvec::ArrayVec;
@@ -26,6 +27,7 @@ pub fn boot_kernel(bootinfo: &BootInfo) {
     }
 
     println!("Hello World from Penguin Kernel XD");
+    crate::fs::initramfs::init();
     crate::process::init();
 
     loop {
