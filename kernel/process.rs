@@ -88,17 +88,15 @@ impl Process {
         executable.read(0, &mut buf)?;
 
         let elf = Elf::parse(&buf);
-        let ip = elf.entry();
-        let sp = UserVAddr::new(0xdead_0000_beef_beef);
+        let ip = elf.entry()?;
+        let sp = UserVAddr::new(0xdead_0000_beef_beef)?;
 
         // Register program headers in the virtual memory space.
         let mut vm = Vm::new();
         for phdr in elf.program_headers() {
-            // TODO: Ignore non-alloc headers.
-            assert!(phdr.p_memsz == phdr.p_filesz); // FIXME:
-            vm.add_vm_area(
-                UserVAddr::new(phdr.p_vaddr as usize),
-                phdr.p_filesz as usize,
+            if phdr.p_type != PT_LOAD {
+                continue;
+            }
                 VmAreaType::File {
                     file: executable.clone(),
                     offset: phdr.p_offset as usize,
