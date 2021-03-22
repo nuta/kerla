@@ -18,10 +18,12 @@ bitflags! {
 }
 
 bitflags! {
-    pub struct PageFaultReason: u64 {
+    pub struct PageFaultReason: u32 {
         const PRESENT = 1 << 0;
-        const WRITE = 1 << 1;
-        const USER = 1 << 2;
+        const CAUSED_BY_WRITE = 1 << 1;
+        const CAUSED_BY_USER = 1 << 2;
+        const RESERVED_WRITE = 1 << 3;
+        const CAUSED_BY_INST_FETCH = 1 << 4;
     }
 }
 
