@@ -5,28 +5,23 @@
 
 .global syscall_entry
 syscall_entry:
+    // "A.2.1 Calling Conventions" in https://uclibc.org/docs/psABI-x86_64.pdf
     //
-    //  Current register values:
-    //
-    //   RDI: syscall
-    //   RSI: arg1
-    //   RDX: arg2
+    //   RAX: syscall number
+    //   RDI: arg1
+    //   RSI: arg2
+    //   RDX: arg3
     //   RCX: user RIP (set by SYSCALL)
-    //   R8:  arg4
-    //   R9:  arg5
-    //   R10: arg3
+    //   R8:  arg5
+    //   R9:  arg6
+    //   R10: arg4
     //   R11: user RFLAGS (set by SYSCALL)
     //   The others: user values (need to be preserved)
-    //
 
     // Interrupts are automatically disabled by MSR_FMASK. If interrupts are
     // enabled, an interrupt may occurs before SWAPGS and as a result, an
     // interrupt handler mistakenly use the user's GS base because the interrupt
     // has occurred in the kernel mode and SWAPGS won't be performed.
-    //
-    // Note that we can't re-enable interrupts until we go back into the user
-    // mode or resume the next thread: the (per-thread) kernel stack is shared
-    // with exception/interrupt handlers!
     swapgs
 
     // Switch to the kernel stack.
@@ -51,7 +46,9 @@ syscall_entry:
     push r15
 
     mov rcx, r10 // arg3
+    push rax     // syscall number
     call x64_handle_syscall
+    add rsp, 8
 
     // Restore registers.
     pop r15
