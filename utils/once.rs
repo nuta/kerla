@@ -1,7 +1,6 @@
 use core::ops::{Deref, DerefMut};
 
-/// A value container which will be initialized extacly once. **The caller must
-/// guarantee that there're no multiple threads that initialze this value simultaneously**.
+/// A value container which will be initialized extacly once.
 pub struct Once<T> {
     inner: spin::Once<T>,
 }
@@ -14,7 +13,6 @@ impl<T> Once<T> {
     }
 
     pub fn init<F: FnOnce() -> T>(&self, f: F) {
-        assert!(!self.inner.is_completed(), "already initialized");
         self.inner.call_once(f);
     }
 }
