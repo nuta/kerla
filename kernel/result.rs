@@ -64,6 +64,10 @@ impl Error {
             message: Some(ErrorMessage::StaticStr(message)),
         }
     }
+
+    pub fn errno(&self) -> Errno {
+        self.errno
+    }
 }
 
 impl fmt::Debug for Error {
