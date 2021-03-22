@@ -24,8 +24,11 @@ mod thread;
 mod tss;
 
 pub const KERNEL_STACK_SIZE: usize = PAGE_SIZE * 16;
+pub const USER_STACK_TOP: UserVAddr =
+    unsafe { UserVAddr::new_unchecked(KERNEL_BASE_ADDR as usize - PAGE_SIZE) };
 pub const PAGE_SIZE: usize = 4096;
 
+use address::KERNEL_BASE_ADDR;
 pub use address::{PAddr, UserVAddr, VAddr};
 pub use backtrace::Backtrace;
 pub use idle::{halt, idle};
