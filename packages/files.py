@@ -2,6 +2,7 @@ from . import Package
 import os
 
 FILES = {}
+FILES["/dev/.keep"] = ""
 FILES["/etc/banner"] = r"""
  _________________________________
 < Rewrite in Rust ALL THE THINGS! >
