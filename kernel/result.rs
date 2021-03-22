@@ -58,7 +58,7 @@ impl Error {
         }
     }
 
-    pub fn with_message(errno: Errno, message: &'static str) -> Error {
+    pub const fn with_message(errno: Errno, message: &'static str) -> Error {
         Error {
             errno,
             message: Some(ErrorMessage::StaticStr(message)),
