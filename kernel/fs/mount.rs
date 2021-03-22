@@ -1,6 +1,6 @@
 use super::{
     file_system::FileSystem,
-    inode::{Directory, INode, INodeNo},
+    inode::{Directory, FileLike, INode, INodeNo},
     path::Path,
 };
 use crate::result::{Errno, Error, Result};
@@ -37,6 +37,22 @@ impl RootFs {
 
     pub fn root_dir(&self) -> Result<Arc<dyn Directory>> {
         self.root.fs.root_dir()
+    }
+
+    /// Resolves a path into an file.
+    pub fn lookup_file(&self, path: &str) -> Result<Arc<dyn FileLike>> {
+        match self.lookup_inode(self.root_dir()?, Path::new(path))? {
+            INode::Directory(_) => Err(Error::new(Errno::EISDIR)),
+            INode::FileLike(file) => Ok(file),
+        }
+    }
+
+    /// Resolves a path into an directory.
+    pub fn lookup_dir(&self, path: &str) -> Result<Arc<dyn Directory>> {
+        match self.lookup_inode(self.root_dir()?, Path::new(path))? {
+            INode::Directory(dir) => Ok(dir),
+            INode::FileLike(_) => Err(Error::new(Errno::EISDIR)),
+        }
     }
 
     /// Resolves a path into an inode.
