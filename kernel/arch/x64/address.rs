@@ -110,6 +110,11 @@ impl fmt::Display for VAddr {
     }
 }
 
+extern "C" {
+    fn copy_from_user(dst: *mut u8, src: *const u8, len: usize);
+    fn copy_to_user(dst: *mut u8, src: *const u8, len: usize);
+}
+
 /// Represents a user virtual memory address.
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 #[repr(transparent)]
@@ -143,6 +148,30 @@ impl UserVAddr {
     #[inline(always)]
     pub const fn value(self) -> usize {
         self.0 as usize
+    }
+
+    pub fn access_ok(self, len: usize) -> Result<()> {
+        match self.value().checked_add(len) {
+            Some(end) if end <= KERNEL_BASE_ADDR as usize => Ok(()),
+            Some(end) => Err(Error::with_message(Errno::EFAULT, "invalid user pointer")),
+            None => Err(Error::with_message(Errno::EFAULT, "overflow in access_ok")),
+        }
+    }
+
+    pub fn read_bytes(self, buf: &mut [u8]) -> Result<()> {
+        self.access_ok(buf.len())?;
+        unsafe {
+            copy_from_user(buf.as_mut_ptr(), self.value() as *const u8, buf.len());
+        }
+        Ok(())
+    }
+
+    pub fn write_bytes(self, buf: &[u8]) -> Result<()> {
+        self.access_ok(buf.len())?;
+        unsafe {
+            copy_to_user(self.value() as *mut u8, buf.as_ptr(), buf.len());
+        }
+        Ok(())
     }
 }
 
