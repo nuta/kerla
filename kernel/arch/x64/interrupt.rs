@@ -1,6 +1,6 @@
-use crate::mm::page_fault::handle_page_fault;
-
 use super::{apic::ack_interrupt, PageFaultReason, UserVAddr};
+use crate::mm::page_fault::handle_page_fault;
+use bitflags::bitflags;
 use x86::{
     controlregs::cr2,
     current::rflags::{self, RFlags},
@@ -36,8 +36,13 @@ struct InterruptFrame {
 use core::sync::atomic::{AtomicUsize, Ordering};
 static TICKS: AtomicUsize = AtomicUsize::new(0);
 
+extern "C" {
+    fn usercopy();
+}
+
 #[no_mangle]
 unsafe extern "C" fn x64_handle_interrupt(vec: u8, frame: *const InterruptFrame) {
+    let frame = &*frame;
     // FIXME: Check "Legacy replacement" mapping
     let is_timer = vec == 34;
 
@@ -45,9 +50,9 @@ unsafe extern "C" fn x64_handle_interrupt(vec: u8, frame: *const InterruptFrame)
         println!(
             "interrupt({}): rip={:x}, rsp={:x}, err={:x}, cr2={:x}",
             vec,
-            (*frame).rip,
-            (*frame).rsp,
-            (*frame).error,
+            frame.rip,
+            frame.rsp,
+            frame.error,
             x86::controlregs::cr2()
         );
     }
@@ -63,8 +68,28 @@ unsafe extern "C" fn x64_handle_interrupt(vec: u8, frame: *const InterruptFrame)
 
     if vec == 14 {
         crate::printk::backtrace();
-        let unaligned_vaddr = UserVAddr::new(unsafe { cr2() as usize });
-        let reason = PageFaultReason::empty();
+        let vaddr = unsafe { cr2() as usize };
+        let reason = PageFaultReason::from_bits_truncate(frame.error as u32);
+
+        // Panic if it's occurred in the kernel space.
+        let occurred_in_user = reason.contains(PageFaultReason::CAUSED_BY_USER)
+            || frame.rip == usercopy as *const u8 as u64;
+        if !occurred_in_user {
+            panic!(
+                "page fault occurred in the kernel: rip={:x}, vaddr={:x}",
+                frame.rip, vaddr
+            );
+        }
+
+        // Abort if the virtual address points to out of the user's address space.
+        let unaligned_vaddr = match UserVAddr::new(vaddr) {
+            Ok(uvaddr) => uvaddr,
+            Err(_) => {
+                // TODO: Kill the current user process.
+                todo!();
+            }
+        };
+
         handle_page_fault(unaligned_vaddr, reason);
         return;
     }
