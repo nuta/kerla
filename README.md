@@ -18,8 +18,10 @@ Rwrite Linux Kenrel in Rust *just for fun*!
 - [ ] File system (ext4?)
 
 ## Prerequisites
+- Docker Engine
+
 ```
-$ brew install qemu gdb
+$ brew install qemu gdb python3
 ```
 
 ```
