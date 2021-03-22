@@ -30,6 +30,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "byteorder"
+version = "1.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "14c189c53d098945499cdfa7ecc63567cf3886b3332b312a5b4585d8d3a6a610"
+
+[[package]]
 name = "goblin"
 version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -40,6 +46,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "hashbrown"
+version = "0.1.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3bae29b6653b3412c2e71e9d486db9f9df5d701941d86683005efb9f2d28e3da"
+dependencies = [
+ "byteorder",
+ "scopeguard",
+]
+
+[[package]]
 name = "penguin-kernel"
 version = "0.0.0"
 dependencies = [
@@ -47,6 +63,7 @@ dependencies = [
  "bitflags",
  "buddy_system_allocator",
  "goblin",
+ "hashbrown",
  "penguin_utils",
  "spin",
  "x86",
@@ -73,6 +90,12 @@ checksum = "c27cb5785b85bd05d4eb171556c9a1a514552e26123aeae6bb7d811353148026"
 dependencies = [
  "bitflags",
 ]
+
+[[package]]
+name = "scopeguard"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "94258f53601af11e6a49f722422f6e3425c52b06245a5cf9bc09908b174f5e27"
 
 [[package]]
 name = "scroll"
