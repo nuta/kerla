@@ -1,3 +1,4 @@
+use crate::result::{Errno, Error, Result};
 use core::fmt;
 use penguin_utils::alignment::align_down;
 
@@ -115,15 +116,28 @@ impl fmt::Display for VAddr {
 pub struct UserVAddr(u64);
 
 impl UserVAddr {
-    pub const fn new(addr: usize) -> UserVAddr {
-        debug_assert!((addr as u64) < KERNEL_BASE_ADDR);
+    pub const fn new(addr: usize) -> Result<UserVAddr> {
+        if (addr as u64) >= KERNEL_BASE_ADDR {
+            return Err(Error::with_message(Errno::EFAULT, "invalid user pointer"));
+        }
+
+        Ok(UserVAddr(addr as u64))
+    }
+
+    pub const unsafe fn new_unchecked(addr: usize) -> UserVAddr {
         UserVAddr(addr as u64)
     }
 
     #[inline(always)]
     #[must_use]
-    pub const fn add(self, offset: usize) -> UserVAddr {
+    pub const fn add(self, offset: usize) -> Result<UserVAddr> {
         UserVAddr::new(self.0 as usize + offset)
+    }
+
+    #[inline(always)]
+    #[must_use]
+    pub const fn sub(self, offset: usize) -> Result<UserVAddr> {
+        UserVAddr::new(self.0 as usize - offset)
     }
 
     #[inline(always)]
