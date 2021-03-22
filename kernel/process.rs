@@ -3,9 +3,12 @@ use crate::{
     elf::Elf,
     fs::initramfs::INITRAM_FS,
     fs::mount::RootFs,
+    fs::opened_file,
     fs::path::Path,
     fs::{
+        devfs::DEV_FS,
         inode::{FileLike, INode},
+        opened_file::*,
         stat::Stat,
     },
     mm::{
@@ -23,6 +26,7 @@ use core::cmp::max;
 use core::mem::{self, size_of, size_of_val};
 use core::sync::atomic::{AtomicI32, Ordering};
 use goblin::elf64::program_header::PT_LOAD;
+use opened_file::OpenedFileTable;
 use penguin_utils::once::Once;
 use penguin_utils::{alignment::align_up, lazy::Lazy};
 
@@ -173,6 +177,7 @@ struct ProcessInner {
 pub struct Process {
     pub pid: PId,
     pub vm: Option<Arc<SpinLock<Vm>>>,
+    pub opened_files: SpinLock<OpenedFileTable>,
     inner: SpinLock<ProcessInner>,
 }
 
@@ -187,6 +192,7 @@ impl Process {
             }),
             vm: None,
             pid: alloc_pid().into_error_with_message(Errno::EAGAIN, "failed to allocate PID")?,
+            opened_files: SpinLock::new(OpenedFileTable::new()),
         });
 
         SCHEDULER.lock().enqueue(process.clone());
@@ -200,10 +206,14 @@ impl Process {
             }),
             vm: None,
             pid: PId::new(0),
+            opened_files: SpinLock::new(OpenedFileTable::new()),
         }))
     }
 
-    pub fn new_init_process(executable: Arc<dyn FileLike>) -> Result<Arc<Process>> {
+    pub fn new_init_process(
+        executable: Arc<dyn FileLike>,
+        root_fs: RootFs,
+    ) -> Result<Arc<Process>> {
         // Read the ELF header in the executable file.
         let mut buf = vec![0; 1024];
         executable.read(0, &mut buf)?;
@@ -282,12 +292,33 @@ impl Process {
 
         let kernel_sp = stack_bottom.as_vaddr().add(KERNEL_STACK_SIZE);
 
+        // Open stdin.
+        let mut opened_files = OpenedFileTable::new();
+        let console = root_fs
+            .lookup_inode(root_fs.root_dir()?, Path::new("/dev/console"))
+            .expect("failed to open /dev/console");
+        opened_files.open_with_fixed_fd(
+            Fd::new(0),
+            Arc::new(OpenedFile::new(console.clone(), OpenMode::O_RDONLY, 0)),
+        );
+        // Open stdout.
+        opened_files.open_with_fixed_fd(
+            Fd::new(1),
+            Arc::new(OpenedFile::new(console.clone(), OpenMode::O_WRONLY, 0)),
+        );
+        // Open stderr.
+        opened_files.open_with_fixed_fd(
+            Fd::new(2),
+            Arc::new(OpenedFile::new(console, OpenMode::O_WRONLY, 0)),
+        );
+
         let process = Arc::new(Process {
             inner: SpinLock::new(ProcessInner {
                 arch: arch::Thread::new_user_thread(ip, user_sp, kernel_sp),
             }),
             vm: Some(Arc::new(SpinLock::new(vm))),
             pid: PId::new(1),
+            opened_files: SpinLock::new(opened_files),
         });
 
         SCHEDULER.lock().enqueue(process.clone());
@@ -463,8 +494,15 @@ pub fn init() {
     IDLE_THREAD.as_mut().set(idle_thread.clone());
     CURRENT.as_mut().set(idle_thread);
 
-    let root_fs = RootFs::new(INITRAM_FS.clone());
+    let mut root_fs = RootFs::new(INITRAM_FS.clone());
     let root_dir = root_fs.root_dir().expect("failed to open the root dir");
+    root_fs
+        .mount(
+            root_fs.lookup_dir("/dev").expect("failed to locate /dev"),
+            DEV_FS.clone(),
+        )
+        .expect("failed to mount devfs");
+
     let inode = root_fs
         .lookup_inode(root_dir, Path::new("/sbin/init"))
         .expect("failed to open /sbin/init");
@@ -472,7 +510,7 @@ pub fn init() {
         INode::FileLike(file) => file,
         _ => panic!("/sbin/init is not a file"),
     };
-    Process::new_init_process(file).unwrap();
+    Process::new_init_process(file, root_fs).unwrap();
 
     Process::new_kthread(VAddr::new(thread_a as *const u8 as usize)).unwrap();
     Process::new_kthread(VAddr::new(thread_b as *const u8 as usize)).unwrap();
