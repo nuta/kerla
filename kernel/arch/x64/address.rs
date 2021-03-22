@@ -1,4 +1,5 @@
 use core::fmt;
+use penguin_utils::alignment::align_down;
 
 /// The base virtual address of straight mapping.
 pub const KERNEL_BASE_ADDR: u64 = 0xffff_8000_0000_0000;
@@ -71,10 +72,29 @@ impl VAddr {
         self.0 as *mut _
     }
 
+    pub fn write_bytes(self, buf: &[u8]) {
+        debug_assert!(self.value().checked_add(buf.len()).is_some());
+        unsafe {
+            self.as_mut_ptr::<u8>().copy_from(buf.as_ptr(), buf.len());
+        }
+    }
+
     #[inline(always)]
     #[must_use]
     pub const fn add(self, offset: usize) -> VAddr {
         VAddr::new(self.0 as usize + offset)
+    }
+
+    #[inline(always)]
+    #[must_use]
+    pub const fn sub(self, offset: usize) -> VAddr {
+        VAddr::new(self.0 as usize - offset)
+    }
+
+    #[inline(always)]
+    #[must_use]
+    pub const fn align_down(self, alignment: usize) -> VAddr {
+        VAddr::new(align_down(self.0 as usize, alignment))
     }
 
     #[inline(always)]
