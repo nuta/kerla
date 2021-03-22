@@ -9,5 +9,6 @@ pub mod alignment;
 pub mod buddy_allocator;
 pub mod bump_allocator;
 pub mod byte_size;
+pub mod bytes_parser;
 pub mod lazy;
 pub mod once;
