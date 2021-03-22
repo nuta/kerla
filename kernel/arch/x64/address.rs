@@ -1,7 +1,7 @@
 use core::fmt;
 
 /// The base virtual address of straight mapping.
-const KERNEL_BASE_ADDR: u64 = 0xffff_8000_0000_0000;
+pub const KERNEL_BASE_ADDR: u64 = 0xffff_8000_0000_0000;
 
 /// The end of straight mapping. Any physical address `P` is mapped into the
 /// kernel's virtual memory address `KERNEL_BASE_ADDR + P`.
