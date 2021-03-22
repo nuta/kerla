@@ -66,7 +66,7 @@ impl RootFs {
         while let Some(name) = components.next() {
             let entry = current_dir.lookup(name)?;
             match (components.peek(), entry.inode) {
-                // Found a matching file.
+                // Found the matching file.
                 (None, inode) => return Ok(inode),
                 (Some(_), INode::Directory(dir)) => match self.lookup_mount_point(&dir)? {
                     Some(mount_point) => {
@@ -80,7 +80,7 @@ impl RootFs {
                     }
                 },
                 // The next level must be an directory since the current component
-                // is not the last one of the path.
+                // is not the last one.
                 (Some(_), INode::FileLike(_)) => {
                     return Err(Error::new(Errno::ENOTDIR));
                 }
