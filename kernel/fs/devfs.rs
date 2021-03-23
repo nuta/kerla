@@ -141,9 +141,7 @@ impl FileLike for ConsoleFile {
     }
 
     fn write(&self, offset: usize, buf: &[u8]) -> Result<usize> {
-        print_str(b"\x1b[1m");
         print_str(buf);
-        print_str(b"\x1b[0m");
         Ok(buf.len())
     }
 }
