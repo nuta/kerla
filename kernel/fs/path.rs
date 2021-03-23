@@ -1,17 +1,22 @@
 use alloc::string::{String, ToString};
+use core::ops::Deref;
 use core::str::FromStr;
 
 #[derive(Debug, Eq, PartialEq, Hash)]
-pub struct Path<'a> {
-    path: &'a str,
+pub struct Path {
+    path: str,
 }
 
-impl<'a> Path<'a> {
-    pub fn new(path: &str) -> Path<'_> {
-        Path { path }
+impl Path {
+    pub fn new(path: &str) -> &Path {
+        unsafe { &*(path as *const str as *const Path) }
     }
 
-    pub fn components(&self) -> Components<'a> {
+    pub fn is_absolute(&self) -> bool {
+        self.path.starts_with('/')
+    }
+
+    pub fn components(&self) -> Components<'_> {
         let path = if self.path.starts_with('/') {
             &self.path[1..]
         } else {
@@ -24,6 +29,12 @@ impl<'a> Path<'a> {
 
 pub struct Components<'a> {
     path: &'a str,
+}
+
+impl<'a> Components<'a> {
+    pub fn as_path(&self) -> &Path {
+        Path::new(self.path)
+    }
 }
 
 impl<'a> Iterator for Components<'a> {
@@ -52,6 +63,25 @@ impl PathBuf {
     pub fn new() -> PathBuf {
         PathBuf {
             path: String::new(),
+        }
+    }
+
+    pub fn as_path(&self) -> &Path {
+        Path::new(&self.path)
+    }
+}
+
+impl Deref for PathBuf {
+    type Target = Path;
+    fn deref(&self) -> &Path {
+        self.as_path()
+    }
+}
+
+impl<'a> From<&Path> for PathBuf {
+    fn from(path: &Path) -> PathBuf {
+        PathBuf {
+            path: path.path.to_string(),
         }
     }
 }
