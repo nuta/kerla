@@ -111,6 +111,19 @@ impl Vm {
         });
     }
 
+    pub fn heap_end(&self) -> UserVAddr {
+        self.heap_vma().end()
+    }
+
+    pub fn expand_heap_to(&mut self, new_heap_end: UserVAddr) -> Result<()> {
+        let current_heap_end = self.heap_vma().end();
+        if new_heap_end < current_heap_end {
+            return Err(Error::new(Errno::EINVAL));
+        }
+
+        self.expand_heap_by(new_heap_end.value() - current_heap_end.value())
+    }
+
     pub fn expand_heap_by(&mut self, increment: usize) -> Result<()> {
         let stack_bottom = self.stack_vma().start();
         let increment = align_up(increment, PAGE_SIZE);
@@ -119,6 +132,7 @@ impl Vm {
             .end()
             .add(increment)
             .map_err(|_| Error::new(Errno::ENOMEM))?;
+
         if new_heap_top >= stack_bottom {
             return Err(Error::new(Errno::ENOMEM));
         }
