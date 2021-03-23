@@ -63,7 +63,6 @@ fn traverse(
         }
 
         unsafe { *entry = table_paddr.value() as u64 | attrs.bits() };
-        println!("table={:?}, table_paddr={}", table, table_paddr);
         table = unsafe { table_paddr.as_mut_ptr::<PageTableEntry>() };
     }
 
@@ -96,7 +95,7 @@ impl PageTable {
         // the area to catch bugs (especially NULL pointer dereferences in the
         // kernel).
         //
-        // TODO: Is it able to unmap in boot.S before running bsp_init?
+        // TODO: Is it able to unmap in boot.S before running bsp_early_init?
         unsafe {
             *pml4.as_mut_ptr::<PageTableEntry>().offset(0) = 0;
         }
