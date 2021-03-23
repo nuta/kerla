@@ -235,4 +235,16 @@ impl Process {
         SCHEDULER.lock().enqueue(process.clone());
         Ok(process)
     }
+
+    pub fn is_idle(&self) -> bool {
+        self.pid == PId::new(0)
+    }
+
+    pub fn inner(&self) -> SpinLockGuard<'_, ProcessInner> {
+        self.inner.lock()
+    }
+
+    pub fn vm(&self) -> SpinLockGuard<'_, Vm> {
+        self.vm.as_ref().expect("not a user process").lock()
+    }
 }
