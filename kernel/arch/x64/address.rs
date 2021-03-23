@@ -134,6 +134,11 @@ impl UserVAddr {
     }
 
     #[inline(always)]
+    pub const fn is_null(self) -> bool {
+        self.0 == 0
+    }
+
+    #[inline(always)]
     #[must_use]
     pub const fn add(self, offset: usize) -> Result<UserVAddr> {
         UserVAddr::new(self.0 as usize + offset)
