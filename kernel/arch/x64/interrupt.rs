@@ -49,7 +49,7 @@ unsafe extern "C" fn x64_handle_interrupt(vec: u8, frame: *const InterruptFrame)
     // FIXME: Check "Legacy replacement" mapping
     let is_timer = vec == 34;
 
-    if !is_timer {
+    if !is_timer && vec != 14 && vec != 36 {
         println!(
             "interrupt({}): rip={:x}, rsp={:x}, err={:x}, cr2={:x}",
             vec,
@@ -75,7 +75,6 @@ unsafe extern "C" fn x64_handle_interrupt(vec: u8, frame: *const InterruptFrame)
     }
 
     if vec == 14 {
-        crate::printk::backtrace();
         let vaddr = unsafe { cr2() as usize };
         let reason = PageFaultReason::from_bits_truncate(frame.error as u32);
 
@@ -84,8 +83,8 @@ unsafe extern "C" fn x64_handle_interrupt(vec: u8, frame: *const InterruptFrame)
             || frame.rip == usercopy as *const u8 as u64;
         if !occurred_in_user {
             panic!(
-                "page fault occurred in the kernel: rip={:x}, vaddr={:x}",
-                frame.rip, vaddr
+                "page fault occurred in the kernel: rip={:x}, rsp={:x}, vaddr={:x}",
+                frame.rip, frame.rsp, vaddr
             );
         }
 
@@ -102,7 +101,9 @@ unsafe extern "C" fn x64_handle_interrupt(vec: u8, frame: *const InterruptFrame)
         return;
     }
 
-    todo!();
+    println!("WARN: unsupported interrupt vector");
+    switch(ProcessState::Sleeping);
+    unreachable!();
 }
 
 pub unsafe fn disable_interrupt() {
