@@ -6,11 +6,12 @@ use super::{
 };
 use super::{cpu_local::cpu_local_head, gdt::USER_RPL};
 use crate::mm::page_allocator::alloc_pages;
-use x86::bits64::segmentation::wrgsbase;
+use x86::{bits64::segmentation::wrgsbase, current::segmentation::wrfsbase};
 
 #[repr(C, packed)]
 pub struct Thread {
     rsp: u64,
+    pub(super) fsbase: u64,
     interrupt_stack: VAddr,
     syscall_stack: VAddr,
 }
@@ -57,6 +58,7 @@ impl Thread {
 
         Thread {
             rsp: rsp as u64,
+            fsbase: 0,
             interrupt_stack,
             syscall_stack,
         }
@@ -95,6 +97,7 @@ impl Thread {
 
         Thread {
             rsp: rsp as u64,
+            fsbase: 0,
             interrupt_stack,
             syscall_stack,
         }
@@ -110,6 +113,7 @@ impl Thread {
 
         Thread {
             rsp: 0,
+            fsbase: 0,
             interrupt_stack,
             syscall_stack,
         }
@@ -128,6 +132,7 @@ pub fn switch_thread(prev: &mut Thread, next: &mut Thread) {
     head.rsp3 = 0xbaad_5a5a_5b5b_baad;
 
     unsafe {
+        wrfsbase(next.fsbase);
         do_switch_thread(&mut prev.rsp as *mut u64, &mut next.rsp as *mut u64);
     }
 }
