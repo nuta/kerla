@@ -2,11 +2,19 @@ use super::{
     file_system::FileSystem,
     inode::{Directory, FileLike, INode, INodeNo},
     path::Path,
+    path::PathBuf,
 };
 use crate::result::{Errno, Error, Result};
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use hashbrown::HashMap;
+
+const DEFAULT_SYMLINK_FOLLOW_MAX: usize = 8;
+
+pub struct LookupResult {
+    dir: Arc<dyn Directory>,
+    inode: INode,
+}
 
 pub struct MountPoint {
     fs: Arc<dyn FileSystem>,
@@ -41,33 +49,80 @@ impl RootFs {
 
     /// Resolves a path into an file.
     pub fn lookup_file(&self, path: &str) -> Result<Arc<dyn FileLike>> {
-        match self.lookup_inode(self.root_dir()?, Path::new(path))? {
+        match self.lookup_inode(self.root_dir()?, Path::new(path), true)? {
             INode::Directory(_) => Err(Error::new(Errno::EISDIR)),
             INode::FileLike(file) => Ok(file),
+            // Symbolic links should be already resolved.
+            INode::Symlink(_) => unreachable!(),
         }
     }
 
     /// Resolves a path into an directory.
     pub fn lookup_dir(&self, path: &str) -> Result<Arc<dyn Directory>> {
-        match self.lookup_inode(self.root_dir()?, Path::new(path))? {
+        match self.lookup_inode(self.root_dir()?, Path::new(path), true)? {
             INode::Directory(dir) => Ok(dir),
             INode::FileLike(_) => Err(Error::new(Errno::EISDIR)),
+            // Symbolic links should be already resolved.
+            INode::Symlink(_) => unreachable!(),
         }
     }
 
-    /// Resolves a path into an inode.
-    pub fn lookup_inode<'a>(
+    /// Resolves a path into an inode. If `follow_symlink` is `true`, symbolic
+    /// linked are resolved and will never return `INode::Symlink`.
+    pub fn lookup_inode(
         &self,
         lookup_from: Arc<dyn Directory>,
-        path: Path<'a>,
+        path: &Path,
+        follow_symlink: bool,
     ) -> Result<INode> {
+        Ok(self
+            .do_lookup_inode(
+                lookup_from,
+                path,
+                follow_symlink,
+                DEFAULT_SYMLINK_FOLLOW_MAX,
+            )?
+            .inode)
+    }
+
+    fn do_lookup_inode(
+        &self,
+        lookup_from: Arc<dyn Directory>,
+        path: &Path,
+        follow_symlink: bool,
+        symlink_follow_limit: usize,
+    ) -> Result<LookupResult> {
         let mut current_dir = lookup_from;
         let mut components = path.components().peekable();
         while let Some(name) = components.next() {
             let entry = current_dir.lookup(name)?;
             match (components.peek(), entry.inode) {
                 // Found the matching file.
-                (None, inode) => return Ok(inode),
+                (None, INode::Symlink(symlink)) if follow_symlink => {
+                    if symlink_follow_limit == 0 {
+                        return Err(Error::new(Errno::ELOOP));
+                    }
+
+                    let linked_to = symlink.linked_to()?;
+                    let follow_from = if linked_to.is_absolute() {
+                        self.root_dir()?
+                    } else {
+                        current_dir
+                    };
+
+                    return self.do_lookup_inode(
+                        follow_from,
+                        &linked_to,
+                        follow_symlink,
+                        symlink_follow_limit - 1,
+                    );
+                }
+                (None, inode) => {
+                    return Ok(LookupResult {
+                        dir: current_dir,
+                        inode,
+                    });
+                }
                 (Some(_), INode::Directory(dir)) => match self.lookup_mount_point(&dir)? {
                     Some(mount_point) => {
                         // The next level directory is a mount point. Go into the root
@@ -79,6 +134,35 @@ impl RootFs {
                         current_dir = dir;
                     }
                 },
+                (Some(_), INode::Symlink((symlink))) => {
+                    // Follow the symlink even if follow_symlinks is false since
+                    // it's not the last one of the path components.
+
+                    if symlink_follow_limit == 0 {
+                        return Err(Error::new(Errno::ELOOP));
+                    }
+
+                    let linked_to = symlink.linked_to()?;
+                    let follow_from = if linked_to.is_absolute() {
+                        self.root_dir()?
+                    } else {
+                        current_dir
+                    };
+
+                    let linked_inode = self
+                        .do_lookup_inode(
+                            follow_from,
+                            &linked_to,
+                            follow_symlink,
+                            symlink_follow_limit - 1,
+                        )?
+                        .inode;
+
+                    current_dir = match linked_inode {
+                        INode::Directory(dir) => dir,
+                        _ => return Err(Error::new(Errno::ENOTDIR)),
+                    }
+                }
                 // The next level must be an directory since the current component
                 // is not the last one.
                 (Some(_), INode::FileLike(_)) => {

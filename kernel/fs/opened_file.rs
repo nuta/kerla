@@ -41,7 +41,7 @@ impl OpenedFile {
     pub fn as_file(&self) -> Result<&Arc<dyn FileLike>> {
         match &self.inode {
             INode::FileLike(file) => Ok(file),
-            INode::Directory(_) => Err(Error::new(Errno::EBADF)),
+            _ => Err(Error::new(Errno::EBADF)),
         }
     }
 

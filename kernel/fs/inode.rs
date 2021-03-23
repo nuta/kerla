@@ -2,6 +2,8 @@ use crate::fs::stat::Stat;
 use crate::result::Result;
 use alloc::sync::Arc;
 
+use super::path::PathBuf;
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub struct INodeNo(usize);
 
@@ -26,8 +28,14 @@ pub trait Directory: Send + Sync {
     fn lookup(&self, name: &str) -> Result<DirEntry>;
 }
 
+pub trait Symlink: Send + Sync {
+    fn stat(&self) -> Result<Stat>;
+    fn linked_to(&self) -> Result<PathBuf>;
+}
+
 #[derive(Clone)]
 pub enum INode {
     FileLike(Arc<dyn FileLike>),
     Directory(Arc<dyn Directory>),
+    Symlink(Arc<dyn Symlink>),
 }
