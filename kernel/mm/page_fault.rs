@@ -9,12 +9,16 @@ use core::cmp::min;
 use core::slice;
 
 pub fn handle_page_fault(unaligned_vaddr: UserVAddr, reason: PageFaultReason) {
-    let vaddr = UserVAddr::new(align_down(unaligned_vaddr.value(), PAGE_SIZE)).unwrap();
+    let aligned_vaddr = UserVAddr::new(align_down(unaligned_vaddr.value(), PAGE_SIZE)).unwrap();
     let current = current_process();
     let mut vm = current.vm.as_ref().unwrap().lock();
 
     // Look for the associated vma area.
-    let vma = match vm.vm_areas().iter().find(|vma| vma.contains(vaddr)) {
+    let vma = match vm
+        .vm_areas()
+        .iter()
+        .find(|vma| vma.contains(unaligned_vaddr))
+    {
         Some(vma) => vma,
         None => {
             // FIXME: Kill the current process
@@ -24,36 +28,46 @@ pub fn handle_page_fault(unaligned_vaddr: UserVAddr, reason: PageFaultReason) {
 
     // Allocate and fill the page.
     let paddr = alloc_pages(1).expect("failed to allocate an anonymous page");
+    unsafe {
+        paddr.as_mut_ptr::<u8>().write_bytes(0, PAGE_SIZE);
+    }
     match vma.area_type() {
-        VmAreaType::Anonymous => unsafe {
-            paddr.as_mut_ptr::<u8>().write_bytes(0, PAGE_SIZE);
-        },
+        VmAreaType::Anonymous => { /* The page is already filled with zeros. Nothing to do. */ }
         VmAreaType::File {
             file,
             offset,
             file_size,
         } => {
             let buf = unsafe { slice::from_raw_parts_mut(paddr.as_mut_ptr(), PAGE_SIZE) };
-            let offset_in_vma = vma.offset_in_vma(vaddr);
-            let zeroed_start = if offset_in_vma < *file_size {
-                let end = min(*file_size - offset_in_vma, PAGE_SIZE);
-                file.read(offset + offset_in_vma, &mut buf[..end])
-                    .expect("failed to read file");
-                end
+            let offset_in_page;
+            let offset_in_file;
+            let copy_len;
+            if aligned_vaddr < vma.start() {
+                offset_in_page = unaligned_vaddr.value() % PAGE_SIZE;
+                offset_in_file = *offset;
+                copy_len = min(*file_size, PAGE_SIZE - offset_in_page);
             } else {
-                0
-            };
+                let offset_in_vma = vma.offset_in_vma(aligned_vaddr);
+                offset_in_page = 0;
+                if offset_in_vma >= *file_size {
+                    offset_in_file = 0;
+                    copy_len = 0;
+                } else {
+                    offset_in_file = offset + offset_in_vma;
+                    copy_len = min(*file_size - offset_in_vma, PAGE_SIZE);
+                }
+            }
 
-            // If p_memsz > p_filesz, the area beyond the file data must be filled
-            // with zeroes.
-            unsafe {
-                buf[zeroed_start..]
-                    .as_mut_ptr()
-                    .write_bytes(0, buf.len() - zeroed_start);
+            if copy_len > 0 {
+                file.read(
+                    offset_in_file,
+                    &mut buf[offset_in_page..(offset_in_page + copy_len)],
+                )
+                .expect("failed to read file");
             }
         }
     }
 
     // Map the page in the page table.
-    vm.page_table_mut().map_user_page(vaddr, paddr);
+    vm.page_table_mut().map_user_page(aligned_vaddr, paddr);
 }
