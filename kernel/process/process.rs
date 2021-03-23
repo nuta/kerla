@@ -196,7 +196,7 @@ impl Process {
         // Open stdin.
         let mut opened_files = OpenedFileTable::new();
         let console = root_fs
-            .lookup_inode(root_fs.root_dir()?, Path::new("/dev/console"))
+            .lookup_inode(root_fs.root_dir()?, Path::new("/dev/console"), true)
             .expect("failed to open /dev/console");
         opened_files.open_with_fixed_fd(
             Fd::new(0),

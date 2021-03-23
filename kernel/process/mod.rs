@@ -71,7 +71,7 @@ pub fn init() {
         .expect("failed to mount devfs");
 
     let inode = root_fs
-        .lookup_inode(root_dir, Path::new("/sbin/init"))
+        .lookup_inode(root_dir, Path::new("/bin/sh"), true)
         .expect("failed to open /sbin/init");
     let file = match inode {
         INode::FileLike(file) => file,
