@@ -1,7 +1,10 @@
 use x86::io::{inb, outb};
 
+use super::ioapic::enable_irq;
+
 const IOPORT_SERIAL: u16 = 0x3f8;
 const DLL: u16 = 0;
+const RBR: u16 = 0;
 const DLH: u16 = 1;
 const IER: u16 = 1;
 const FCR: u16 = 2;
@@ -30,10 +33,16 @@ pub fn print_str(s: &[u8]) {
 }
 
 pub unsafe fn init() {
+pub unsafe fn early_init() {
     let divisor: u16 = 12; // 115200 / 9600 = 12
     outb(IOPORT_SERIAL + IER, 0x00); // Disable interrupts.
     outb(IOPORT_SERIAL + DLL, (divisor & 0xff) as u8);
     outb(IOPORT_SERIAL + DLH, ((divisor >> 8) & 0xff) as u8);
     outb(IOPORT_SERIAL + LCR, 0x03); // 8n1.
     outb(IOPORT_SERIAL + FCR, 0x01); // Enable FIFO.
+    outb(IOPORT_SERIAL + IER, 0x01); // Enable interrupts.
+}
+
+pub fn init() {
+    enable_irq(4);
 }

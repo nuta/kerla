@@ -66,6 +66,11 @@ unsafe extern "C" fn x64_handle_interrupt(vec: u8, frame: *const InterruptFrame)
         return;
     }
 
+    if vec == 36 {
+        ack_interrupt();
+        return;
+    }
+
     if vec == 14 {
         crate::printk::backtrace();
         let vaddr = unsafe { cr2() as usize };

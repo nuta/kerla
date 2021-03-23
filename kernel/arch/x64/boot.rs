@@ -66,13 +66,13 @@ unsafe fn init_pic() {
 /// Initializes the CPU. This function is called exactly once in the Bootstrap
 /// Processor (BSP).
 #[no_mangle]
-unsafe extern "C" fn bsp_init(multiboot_magic: u32, multiboot_info: u64) -> ! {
+unsafe extern "C" fn bsp_early_init(multiboot_magic: u32, multiboot_info: u64) -> ! {
     extern "C" {
         static __bsp_cpu_local: u8;
     }
 
     // Initialize the serial driver first to enable print macros.
-    serial::init();
+    serial::early_init();
     printchar('\n');
 
     let boot_info = multiboot::parse(multiboot_magic, PAddr::new(multiboot_info as usize));
@@ -80,4 +80,9 @@ unsafe extern "C" fn bsp_init(multiboot_magic: u32, multiboot_info: u64) -> ! {
     common_setup(VAddr::new(&__bsp_cpu_local as *const _ as usize));
     boot_kernel(&boot_info);
     unreachable!();
+}
+
+/// Called after the memory allocator is initialized.
+pub fn init() {
+    serial::init();
 }
