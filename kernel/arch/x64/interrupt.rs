@@ -71,6 +71,7 @@ unsafe extern "C" fn x64_handle_interrupt(vec: u8, frame: *const InterruptFrame)
 
     if vec == 36 {
         ack_interrupt();
+        super::serial::irq_handler();
         return;
     }
 

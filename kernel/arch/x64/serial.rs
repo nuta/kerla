@@ -1,5 +1,7 @@
 use x86::io::{inb, outb};
 
+use crate::fs::devfs::{CONSOLE_FILE, DEV_FS};
+
 use super::ioapic::enable_irq;
 
 const IOPORT_SERIAL: u16 = 0x3f8;
@@ -32,7 +34,26 @@ pub fn print_str(s: &[u8]) {
     }
 }
 
-pub unsafe fn init() {
+fn read_char() -> Option<char> {
+    unsafe {
+        if (inb(IOPORT_SERIAL + LSR) & 1) == 0 {
+            return None;
+        }
+
+        Some(inb(IOPORT_SERIAL + RBR) as char)
+    }
+}
+
+pub fn irq_handler() {
+    while let Some(ch) = read_char() {
+        if ch == '\r' {
+            CONSOLE_FILE.input_char('\n');
+        } else {
+            CONSOLE_FILE.input_char(ch);
+        }
+    }
+}
+
 pub unsafe fn early_init() {
     let divisor: u16 = 12; // 115200 / 9600 = 12
     outb(IOPORT_SERIAL + IER, 0x00); // Disable interrupts.

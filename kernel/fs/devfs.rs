@@ -5,15 +5,16 @@ use super::{
     stat::{FileMode, Stat, S_IFDIR},
 };
 use crate::{
-    arch::print_str,
+    arch::{print_str, SpinLock},
+    process::WaitQueue,
     result::{Errno, Error, Result},
 };
-use alloc::sync::Arc;
+use alloc::{collections::VecDeque, sync::Arc};
 use penguin_utils::once::Once;
 
 static ROOT_DIR: Once<Arc<dyn Directory>> = Once::new();
 static NULL_FILE: Once<Arc<dyn FileLike>> = Once::new();
-static CONSOLE_FILE: Once<Arc<dyn FileLike>> = Once::new();
+pub static CONSOLE_FILE: Once<Arc<ConsoleFile>> = Once::new();
 
 pub static DEV_FS: Once<Arc<DevFs>> = Once::new();
 
@@ -23,7 +24,7 @@ impl DevFs {
     pub fn new() -> DevFs {
         ROOT_DIR.init(|| Arc::new(DevRootDir::new()) as Arc<dyn Directory>);
         NULL_FILE.init(|| Arc::new(NullFile::new()) as Arc<dyn FileLike>);
-        CONSOLE_FILE.init(|| Arc::new(ConsoleFile::new()) as Arc<dyn FileLike>);
+        CONSOLE_FILE.init(|| Arc::new(ConsoleFile::new()));
         DevFs {}
     }
 }
@@ -86,11 +87,32 @@ impl FileLike for NullFile {
     }
 }
 
+struct ConsoleInner {
+    // FIXME: We must not use collections which may allocate a memory in the
+    // interrupt context: use something else like ArrayDeque instead.
+    input: VecDeque<char>,
+}
+
 /// The `/dev/console` file.
-struct ConsoleFile {}
+pub struct ConsoleFile {
+    inner: SpinLock<ConsoleInner>,
+    wait_queue: WaitQueue,
+}
+
 impl ConsoleFile {
     pub fn new() -> ConsoleFile {
-        ConsoleFile {}
+        ConsoleFile {
+            wait_queue: WaitQueue::new(),
+            inner: SpinLock::new(ConsoleInner {
+                input: VecDeque::new(),
+            }),
+        }
+    }
+
+    pub fn input_char(&self, ch: char) {
+        self.write(0, &[ch as u8]).ok();
+        self.inner.lock().input.push_back(ch);
+        self.wait_queue.wake_one();
     }
 }
 
@@ -101,7 +123,21 @@ impl FileLike for ConsoleFile {
     }
 
     fn read(&self, offset: usize, buf: &mut [u8]) -> Result<usize> {
-        Ok(0)
+        loop {
+            let mut read_len = 0;
+            let mut inner = self.inner.lock();
+            while let Some(ch) = inner.input.pop_front() {
+                buf[read_len] = ch as u8;
+                read_len += 1;
+            }
+
+            if read_len > 0 {
+                return Ok(read_len);
+            }
+
+            drop(inner);
+            self.wait_queue.sleep();
+        }
     }
 
     fn write(&self, offset: usize, buf: &[u8]) -> Result<usize> {
