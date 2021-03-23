@@ -31,6 +31,19 @@ use opened_file::OpenedFileTable;
 use penguin_utils::once::Once;
 use penguin_utils::{alignment::align_up, lazy::Lazy};
 
+pub enum Auxv {
+    /// End of a vector.
+    Null,
+    /// The address of the ELF program headers.
+    Phdr(UserVAddr),
+    /// The size of a program header.
+    Phent(usize),
+    /// The number of program heaers.
+    Phnum(usize),
+    /// The size of a page.
+    Pagesz(usize),
+}
+
 fn push_bytes_to_stack(sp: &mut VAddr, stack_bottom: VAddr, buf: &[u8]) -> Result<()> {
     if sp.sub(buf.len()) < stack_bottom {
         return Err(Error::with_message(Errno::E2BIG, "too big argvp/envp/auxv"));
@@ -51,14 +64,13 @@ fn push_usize_to_stack(sp: &mut VAddr, stack_bottom: VAddr, value: usize) -> Res
     Ok(())
 }
 
-#[repr(usize)]
-pub enum Auxv {
-    Null,
-}
-
 fn push_auxv_entry_to_stack(sp: &mut VAddr, stack_bottom: VAddr, auxv: &Auxv) -> Result<()> {
     let (auxv_type, value) = match auxv {
         Auxv::Null => (0, 0),
+        Auxv::Phdr(uaddr) => (3, uaddr.value()),
+        Auxv::Phent(value) => (4, *value),
+        Auxv::Phnum(value) => (5, *value),
+        Auxv::Pagesz(value) => (6, *value),
     };
 
     push_usize_to_stack(sp, stack_bottom, value)?;
@@ -79,7 +91,7 @@ pub(super) fn estimate_user_init_stack_size(
 
     let aux_data_len = auxv.iter().fold(0, |l, aux| {
         l + match aux {
-            Auxv::Null => 0,
+            Auxv::Null | Auxv::Phdr(_) | Auxv::Phent(_) | Auxv::Phnum(_) | Auxv::Pagesz(_) => 0,
         }
     });
 

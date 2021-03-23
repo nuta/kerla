@@ -1,7 +1,7 @@
 use super::*;
 use crate::{
     arch::{self, disable_interrupt, enable_interrupt, is_interrupt_enabled, SpinLock, VAddr},
-    elf::Elf,
+    elf::{Elf, ProgramHeader},
     fs::initramfs::INITRAM_FS,
     fs::mount::RootFs,
     fs::opened_file,
@@ -21,7 +21,7 @@ use crate::{
 use alloc::collections::{BTreeMap, VecDeque};
 use alloc::sync::Arc;
 use alloc::vec::Vec;
-use arch::{UserVAddr, KERNEL_STACK_SIZE, PAGE_SIZE, USER_STACK_TOP};
+use arch::{SpinLockGuard, UserVAddr, KERNEL_STACK_SIZE, PAGE_SIZE, USER_STACK_TOP};
 use arrayvec::ArrayVec;
 use core::cmp::max;
 use core::mem::{self, size_of, size_of_val};
@@ -90,9 +90,15 @@ impl Process {
         executable: Arc<dyn FileLike>,
         root_fs: RootFs,
     ) -> Result<Arc<Process>> {
-        // Read the ELF header in the executable file.
-        let mut buf = vec![0; 1024];
-        executable.read(0, &mut buf)?;
+        // Read the E\LF header in the executable file.
+        let file_header_len = PAGE_SIZE;
+        let file_header_top = USER_STACK_TOP;
+        let file_header_pages =
+            alloc_pages(file_header_len / PAGE_SIZE).into_error(Errno::ENOMEM)?;
+        let buf = unsafe {
+            core::slice::from_raw_parts_mut(file_header_pages.as_mut_ptr(), file_header_len)
+        };
+        executable.read(0, buf)?;
 
         let elf = Elf::parse(&buf);
         let ip = elf.entry()?;
@@ -106,11 +112,21 @@ impl Process {
         }
 
         // Set up the user stack.
-        let argv = &[];
+        let argv = &["sh".as_bytes()];
         let envp = &[];
-        let auxv = &[];
+        let auxv = &[
+            Auxv::Phdr(
+                file_header_top
+                    .sub(file_header_len)?
+                    .add(elf.header().e_phoff as usize)?,
+            ),
+            Auxv::Phnum(elf.program_headers().len()),
+            Auxv::Phent(size_of::<ProgramHeader>()),
+            Auxv::Pagesz(PAGE_SIZE),
+        ];
         const USER_STACK_LEN: usize = 128 * 1024; // TODO: Implement rlimit
-        let user_stack_bottom = USER_STACK_TOP.sub(USER_STACK_LEN).unwrap().value();
+        let init_stack_top = file_header_top.sub(file_header_len)?;
+        let user_stack_bottom = init_stack_top.sub(USER_STACK_LEN).unwrap().value();
         let user_heap_bottom = align_up(end_of_image, PAGE_SIZE);
         let init_stack_len = align_up(estimate_user_init_stack_size(argv, envp, auxv), PAGE_SIZE);
         if user_heap_bottom >= user_stack_bottom || init_stack_len >= USER_STACK_LEN {
@@ -119,7 +135,7 @@ impl Process {
 
         let init_stack_pages = alloc_pages(init_stack_len / PAGE_SIZE).into_error(Errno::ENOMEM)?;
         let user_sp = init_user_stack(
-            USER_STACK_TOP,
+            init_stack_top,
             init_stack_pages.as_vaddr().add(init_stack_len),
             init_stack_pages.as_vaddr(),
             argv,
@@ -131,9 +147,18 @@ impl Process {
             UserVAddr::new(user_stack_bottom).unwrap(),
             UserVAddr::new(user_heap_bottom).unwrap(),
         );
+        for i in 0..(file_header_len / PAGE_SIZE) {
+            vm.page_table_mut().map_user_page(
+                file_header_top
+                    .sub(((file_header_len / PAGE_SIZE) - i) * PAGE_SIZE)
+                    .unwrap(),
+                file_header_pages.add(i * PAGE_SIZE),
+            );
+        }
+
         for i in 0..(init_stack_len / PAGE_SIZE) {
             vm.page_table_mut().map_user_page(
-                USER_STACK_TOP
+                init_stack_top
                     .sub(((init_stack_len / PAGE_SIZE) - i) * PAGE_SIZE)
                     .unwrap(),
                 init_stack_pages.add(i * PAGE_SIZE),
