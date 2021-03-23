@@ -17,6 +17,8 @@ use penguin_utils::byte_size::ByteSize;
 use penguin_utils::bytes_parser::BytesParser;
 use penguin_utils::once::Once;
 
+use super::{inode::Symlink, path::PathBuf};
+
 fn parse_str_field(bytes: &[u8]) -> &str {
     unsafe { from_utf8_unchecked(bytes) }
 }
@@ -50,6 +52,7 @@ impl FileLike for InitramFsFile {
 enum InitramFsINode {
     File(Arc<InitramFsFile>),
     Directory(Arc<InitramFsDir>),
+    Symlink(Arc<InitramFsSymlink>),
 }
 struct InitramFsDir {
     stat: Stat,
@@ -66,9 +69,24 @@ impl Directory for InitramFsDir {
         let inode = match initramfs_inode {
             InitramFsINode::File(file) => INode::FileLike(file.clone() as Arc<dyn FileLike>),
             InitramFsINode::Directory(dir) => INode::Directory(dir.clone() as Arc<dyn Directory>),
+            InitramFsINode::Symlink(path) => INode::Symlink(path.clone()),
         };
 
         Ok(DirEntry { inode })
+    }
+}
+
+struct InitramFsSymlink {
+    dst: PathBuf,
+}
+
+impl Symlink for InitramFsSymlink {
+    fn stat(&self) -> Result<Stat> {
+        todo!()
+    }
+
+    fn linked_to(&self) -> Result<PathBuf> {
+        Ok(self.dst.clone())
     }
 }
 
@@ -153,7 +171,15 @@ impl InitramFs {
             }
 
             // Create a file or a directory under its parent.
-            if mode.is_directory() {
+            let data = image.consume_bytes(filesize).unwrap();
+            if mode.is_symbolic_link() {
+                files.insert(
+                    filename.unwrap(),
+                    InitramFsINode::Symlink(Arc::new(InitramFsSymlink {
+                        dst: PathBuf::from(core::str::from_utf8(data).unwrap()),
+                    })),
+                );
+            } else if mode.is_directory() {
                 files.insert(
                     filename.unwrap(),
                     InitramFsINode::Directory(Arc::new(InitramFsDir {
@@ -165,7 +191,6 @@ impl InitramFs {
                     })),
                 );
             } else if mode.is_regular_file() {
-                let data = image.consume_bytes(filesize).unwrap();
                 files.insert(
                     filename.unwrap(),
                     InitramFsINode::File(Arc::new(InitramFsFile {
