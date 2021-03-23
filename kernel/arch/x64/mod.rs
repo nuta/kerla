@@ -6,6 +6,7 @@ global_asm!(include_str!("usercopy.S"));
 mod cpu_local;
 mod address;
 mod apic;
+mod arch_prctl;
 mod backtrace;
 mod boot;
 mod gdt;
@@ -29,6 +30,7 @@ pub const PAGE_SIZE: usize = 4096;
 
 use address::KERNEL_BASE_ADDR;
 pub use address::{PAddr, UserVAddr, VAddr};
+pub use arch_prctl::arch_prctl;
 pub use backtrace::Backtrace;
 pub use boot::init;
 pub use idle::{halt, idle};

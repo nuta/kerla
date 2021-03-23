@@ -1,6 +1,6 @@
 use core::unimplemented;
 
-use crate::syscall::syscall::SyscallContext;
+use crate::syscalls::SyscallDispatcher;
 
 use super::{
     gdt::{KERNEL_CS, USER_CS32},
@@ -22,8 +22,7 @@ extern "C" fn x64_handle_syscall(
     a6: usize,
     n: usize,
 ) -> isize {
-    println!("syscall: n={}", n);
-    let mut context = SyscallContext::new();
+    let mut context = SyscallDispatcher::new();
     context
         .dispatch(a1, a2, a3, a4, a5, a6, n)
         .unwrap_or_else(|err| -(err.errno() as isize))
