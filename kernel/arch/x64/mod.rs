@@ -30,6 +30,7 @@ pub const PAGE_SIZE: usize = 4096;
 use address::KERNEL_BASE_ADDR;
 pub use address::{PAddr, UserVAddr, VAddr};
 pub use backtrace::Backtrace;
+pub use boot::init;
 pub use idle::{halt, idle};
 pub use interrupt::{disable_interrupt, enable_interrupt, is_interrupt_enabled};
 pub use lock::{SpinLock, SpinLockGuard};
