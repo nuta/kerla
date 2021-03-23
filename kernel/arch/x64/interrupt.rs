@@ -1,5 +1,8 @@
 use super::{apic::ack_interrupt, PageFaultReason, UserVAddr};
-use crate::mm::page_fault::handle_page_fault;
+use crate::{
+    mm::page_fault::handle_page_fault,
+    process::{switch, ProcessState},
+};
 use bitflags::bitflags;
 use x86::{
     controlregs::cr2,
@@ -61,7 +64,7 @@ unsafe extern "C" fn x64_handle_interrupt(vec: u8, frame: *const InterruptFrame)
         ack_interrupt();
         let value = TICKS.fetch_add(1, Ordering::Relaxed);
         if value % 20 == 0 {
-            crate::process::switch();
+            crate::process::switch(crate::process::ProcessState::Runnable);
         }
         return;
     }

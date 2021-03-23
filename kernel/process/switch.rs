@@ -38,7 +38,7 @@ cpu_local! {
 
 /// Yields execution to another thread. When the currently running thread is resumed
 // in future, it will be
-pub fn switch() {
+pub fn switch(new_state: ProcessState) {
     // Save the current interrupt enable flag to restore it in the next execution
     // of the currently running thread.
     let interrupt_enabled = is_interrupt_enabled();
@@ -49,13 +49,14 @@ pub fn switch() {
 
         // Push back the currently running thread to the runqueue if it's still
         // ready for running, in other words, it's not blocked.
-        if prev_thread.pid != PId::new(0) {
+        if prev_thread.pid != PId::new(0) && new_state == ProcessState::Runnable {
             scheduler.enqueue((*prev_thread).clone());
         }
 
         // Pick a thread to run next.
         match scheduler.pick_next() {
             Some(next) => next,
+            None if prev_thread.is_idle() => return,
             None => IDLE_THREAD.get().get().clone(),
         }
     };

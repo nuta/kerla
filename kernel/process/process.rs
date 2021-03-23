@@ -46,8 +46,15 @@ fn alloc_pid() -> Option<PId> {
     Some(PId::new(NEXT_PID.fetch_add(1, Ordering::SeqCst)))
 }
 
-pub(super) struct ProcessInner {
-    pub(super) arch: arch::Thread,
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum ProcessState {
+    Runnable,
+    Sleeping,
+}
+
+pub struct ProcessInner {
+    pub arch: arch::Thread,
+    pub state: ProcessState,
 }
 
 pub struct Process {
@@ -65,6 +72,7 @@ impl Process {
         let process = Arc::new(Process {
             inner: SpinLock::new(ProcessInner {
                 arch: arch::Thread::new_kthread(ip, sp),
+                state: ProcessState::Runnable,
             }),
             vm: None,
             pid: alloc_pid().into_error_with_message(Errno::EAGAIN, "failed to allocate PID")?,
@@ -79,6 +87,7 @@ impl Process {
         Ok(Arc::new(Process {
             inner: SpinLock::new(ProcessInner {
                 arch: arch::Thread::new_idle_thread(),
+                state: ProcessState::Runnable,
             }),
             vm: None,
             pid: PId::new(0),
@@ -216,6 +225,7 @@ impl Process {
         let process = Arc::new(Process {
             inner: SpinLock::new(ProcessInner {
                 arch: arch::Thread::new_user_thread(ip, user_sp, kernel_sp),
+                state: ProcessState::Runnable,
             }),
             vm: Some(Arc::new(SpinLock::new(vm))),
             pid: PId::new(1),

@@ -34,11 +34,13 @@ mod init_stack;
 pub mod process;
 pub mod scheduler;
 pub mod switch;
+pub mod wait_queue;
 
 pub use init_stack::*;
 pub use process::*;
 pub use scheduler::*;
 pub use switch::*;
+pub use wait_queue::*;
 
 cpu_local! {
     static ref CURRENT: Lazy<Arc<Process>> = Lazy::new();
