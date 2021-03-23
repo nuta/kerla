@@ -2,7 +2,7 @@ use crate::arch::UserVAddr;
 use crate::result::Result;
 use core::{intrinsics::transmute, slice::from_raw_parts};
 use goblin::elf64::header::Header;
-use goblin::elf64::program_header::ProgramHeader;
+pub use goblin::elf64::program_header::ProgramHeader;
 
 pub struct Elf<'a> {
     header: &'a Header,
@@ -28,6 +28,10 @@ impl<'a> Elf<'a> {
 
     pub fn entry(&self) -> Result<UserVAddr> {
         UserVAddr::new(self.header.e_entry as usize)
+    }
+
+    pub fn header(&self) -> &Header {
+        self.header
     }
 
     pub fn program_headers(&self) -> &[ProgramHeader] {
