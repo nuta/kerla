@@ -1,5 +1,9 @@
 use crate::result::{Errno, Error, Result};
 use core::fmt;
+use core::{
+    mem::{size_of, MaybeUninit},
+    slice,
+};
 use penguin_utils::alignment::align_down;
 
 /// The base virtual address of straight mapping.
@@ -161,6 +165,14 @@ impl UserVAddr {
             Some(end) => Err(Error::with_message(Errno::EFAULT, "invalid user pointer")),
             None => Err(Error::with_message(Errno::EFAULT, "overflow in access_ok")),
         }
+    }
+
+    pub fn read<T>(self) -> Result<T> {
+        let mut buf: MaybeUninit<T> = MaybeUninit::uninit();
+        self.read_bytes(unsafe {
+            slice::from_raw_parts_mut(buf.as_mut_ptr() as *mut u8, size_of::<T>())
+        })?;
+        Ok(unsafe { buf.assume_init() })
     }
 
     pub fn read_bytes(self, buf: &mut [u8]) -> Result<()> {
