@@ -200,9 +200,10 @@ def main():
         build_package(root_dir, pkg)
 
     # Add symlinks.
-    tar_data = bytes()
     for src, dst in all_symlinks.items():
-        pass
+        if src.startswith("/"):
+            src = src[1:]
+        os.symlink(dst, root_dir / src)
 
     print(f"\x1b[34m==>\x1b[0m\x1b[1m Creating {args.outfile}\x1b[0m")
     filelist = list(
