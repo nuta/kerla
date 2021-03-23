@@ -126,7 +126,7 @@ pub(super) fn init_user_stack(
 
     // Write argv strings.
     let mut argv_ptrs = Vec::with_capacity(argv.len());
-    for arg in argv {
+    for arg in argv.iter().rev() {
         push_bytes_to_stack(&mut sp, stack_bottom, &[0]);
         push_bytes_to_stack(&mut sp, stack_bottom, arg);
         argv_ptrs.push(kernel_sp_to_user_sp(sp)?);
