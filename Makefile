@@ -30,9 +30,10 @@ PYTHON3    ?= python3
 CARGO      ?= cargo +nightly
 BOCHS      ?= bochs
 NM         ?= rust-nm
+READELF    ?= readelf
 STRIP      ?= rust-strip
 
-export RUSTFLAGS= -Z macro-backtrace
+export RUSTFLAGS = -Z macro-backtrace -Z emit-stack-sizes
 CARGOFLAGS += -Z build-std=core,alloc -Z build-std-features=compiler-builtins-mem
 CARGOFLAGS += --target $(target_json)
 CARGOFLAGS += $(if $(RELEASE),--release,)
@@ -106,6 +107,10 @@ checkw:
 .PHONY: lint
 lint:
 	RUSTFLAGS="-C panic=abort -Z panic_abort_tests" $(CARGO) clippy --fix -Z unstable-options --allow-dirty
+
+.PHONY: print-stack-sizes
+print-stack-sizes: build
+	$(READELF) --stack-sizes $(kernel_elf) | sort -n | rustfilt
 
 .PHONY: clean
 clean:
