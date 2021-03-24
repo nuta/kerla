@@ -5,6 +5,7 @@ use alloc::sync::Arc;
 use super::path::PathBuf;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+#[repr(transparent)]
 pub struct INodeNo(usize);
 
 impl INodeNo {

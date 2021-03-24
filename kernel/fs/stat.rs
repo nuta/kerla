@@ -2,34 +2,42 @@ use crate::fs::inode::INodeNo;
 
 /// The device file's ID.
 #[derive(Debug, Copy, Clone)]
-pub struct DevId(u32);
+#[repr(transparent)]
+pub struct DevId(usize);
 
 /// The number of hard links.
 #[derive(Debug, Copy, Clone)]
+#[repr(transparent)]
 pub struct NLink(usize);
 
 /// The file size in bytes.
 #[derive(Debug, Copy, Clone)]
+#[repr(transparent)]
 pub struct FileSize(isize);
 
 /// The user ID.
 #[derive(Debug, Copy, Clone)]
+#[repr(transparent)]
 pub struct UId(u32);
 
 /// The Group ID.
 #[derive(Debug, Copy, Clone)]
+#[repr(transparent)]
 pub struct GId(u32);
 
 /// The size in bytes of a block file file system I/O operations.
 #[derive(Debug, Copy, Clone)]
+#[repr(transparent)]
 pub struct BlockSize(isize);
 
 /// The number of blocks.
 #[derive(Debug, Copy, Clone)]
+#[repr(transparent)]
 pub struct BlockCount(isize);
 
 /// The file size in bytes.
 #[derive(Debug, Copy, Clone)]
+#[repr(transparent)]
 pub struct Time(isize);
 
 pub const S_IFMT: u32 = 0o170000;
@@ -38,6 +46,7 @@ pub const S_IFREG: u32 = 0o100000;
 pub const S_IFLNK: u32 = 0o120000;
 
 #[derive(Debug, Copy, Clone)]
+#[repr(transparent)]
 pub struct FileMode(u32);
 
 impl FileMode {
@@ -58,15 +67,16 @@ impl FileMode {
     }
 }
 
-#[derive(Debug, Clone)]
-#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+#[repr(C, packed)]
 pub struct Stat {
     pub dev: DevId,
     pub inode_no: INodeNo,
-    pub mode: FileMode,
     pub nlink: NLink,
+    pub mode: FileMode,
     pub uid: UId,
     pub gid: GId,
+    pub pad0: u32,
     pub rdev: DevId,
     pub usize: FileSize,
     pub blksize: BlockSize,
@@ -85,6 +95,7 @@ impl Stat {
             nlink: NLink(0),
             uid: UId(0),
             gid: GId(0),
+            pad0: 0,
             rdev: DevId(0),
             usize: FileSize(0),
             blksize: BlockSize(0),

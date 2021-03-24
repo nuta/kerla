@@ -34,7 +34,8 @@ impl RootFs {
     }
 
     pub fn lookup_mount_point(&self, dir: &Arc<dyn Directory>) -> Result<Option<&MountPoint>> {
-        Ok(self.mount_points.get(&dir.stat()?.inode_no))
+        let stat = dir.stat()?;
+        Ok(self.mount_points.get(unsafe { &stat.inode_no }))
     }
 
     pub fn root_dir(&self) -> Result<Arc<dyn Directory>> {
