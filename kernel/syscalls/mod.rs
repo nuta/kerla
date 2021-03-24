@@ -7,6 +7,7 @@ pub(self) mod exit;
 pub(self) mod ioctl;
 pub(self) mod read;
 pub(self) mod set_tid_address;
+pub(self) mod stat;
 pub(self) mod write;
 pub(self) mod writev;
 

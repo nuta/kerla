@@ -1,7 +1,6 @@
 use alloc::string::{String, ToString};
 use core::ops::Deref;
 
-
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct Path {
     path: str,
@@ -10,6 +9,10 @@ pub struct Path {
 impl Path {
     pub fn new(path: &str) -> &Path {
         unsafe { &*(path as *const str as *const Path) }
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.path
     }
 
     pub fn is_absolute(&self) -> bool {

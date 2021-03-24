@@ -1,18 +1,21 @@
 use crate::{
     arch::UserVAddr,
-    fs::opened_file::Fd,
+    fs::{opened_file::Fd, path::Path},
     result::{Errno, Error, Result},
 };
 use alloc::vec::Vec;
 
 const SYS_READ: usize = 0;
 const SYS_WRITE: usize = 1;
+const SYS_STAT: usize = 4;
 const SYS_BRK: usize = 12;
 const SYS_IOCTL: usize = 16;
 const SYS_WRITEV: usize = 20;
 const SYS_EXIT: usize = 60;
 const SYS_ARCH_PRCTL: usize = 158;
 const SYS_SET_TID_ADDRESS: usize = 218;
+
+const PATH_MAX: usize = 512;
 
 pub(self) struct UserCStr {
     buf: Vec<u8>,
@@ -54,6 +57,10 @@ impl SyscallDispatcher {
             SYS_READ => self.sys_read(Fd::new(a1 as i32), UserVAddr::new(a2)?, a3),
             SYS_WRITE => self.sys_write(Fd::new(a1 as i32), UserVAddr::new(a2)?, a3),
             SYS_WRITEV => self.sys_writev(Fd::new(a1 as i32), UserVAddr::new(a2)?, a3),
+            SYS_STAT => self.sys_stat(
+                Path::new(UserCStr::new(UserVAddr::new(a1)?, PATH_MAX)?.as_str()?),
+                UserVAddr::new(a2)?,
+            ),
             SYS_ARCH_PRCTL => self.sys_arch_prctl(a1 as i32, UserVAddr::new(a2)?),
             SYS_BRK => self.sys_brk(UserVAddr::new(a1)?),
             SYS_IOCTL => self.sys_ioctl(Fd::new(a1 as i32), a2, a3),
