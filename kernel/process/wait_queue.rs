@@ -1,32 +1,32 @@
 use super::{current_process, switch, Process, ProcessState, SCHEDULER};
 use crate::arch::SpinLock;
-use alloc::collections::VecDeque;
 use alloc::sync::Arc;
+use crossbeam::queue::SegQueue;
 
 pub struct WaitQueue {
-    queue: SpinLock<VecDeque<Arc<Process>>>,
+    queue: SegQueue<Arc<Process>>,
 }
 
 impl WaitQueue {
     pub fn new() -> WaitQueue {
         WaitQueue {
-            queue: SpinLock::new(VecDeque::new()),
+            queue: SegQueue::new(),
         }
     }
 
     pub fn sleep(&self) {
-        self.queue.lock().push_back(current_process().clone());
+        self.queue.push(current_process().clone());
         switch(ProcessState::Sleeping);
     }
 
     pub fn wake_one(&self) {
-        if let Some(process) = self.queue.lock().pop_front() {
+        if let Some(process) = self.queue.pop() {
             SCHEDULER.lock().enqueue(process);
         }
     }
 
-    pub fn wake_all(&mut self) {
-        for process in self.queue.lock().drain(..) {
+    pub fn wake_all(&self) {
+        while let Some(process) = self.queue.pop() {
             SCHEDULER.lock().enqueue(process);
         }
     }

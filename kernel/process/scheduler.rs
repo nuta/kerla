@@ -1,21 +1,22 @@
 use super::*;
+use crossbeam::queue::SegQueue;
 
 pub struct Scheduler {
-    run_queue: VecDeque<Arc<Process>>,
+    run_queue: SegQueue<Arc<Process>>,
 }
 
 impl Scheduler {
     pub fn new() -> Scheduler {
         Scheduler {
-            run_queue: VecDeque::new(),
+            run_queue: SegQueue::new(),
         }
     }
 
-    pub fn enqueue(&mut self, thread: Arc<Process>) {
-        self.run_queue.push_back(thread);
+    pub fn enqueue(&self, thread: Arc<Process>) {
+        self.run_queue.push(thread);
     }
 
-    pub fn pick_next(&mut self) -> Option<Arc<Process>> {
-        self.run_queue.pop_front()
+    pub fn pick_next(&self) -> Option<Arc<Process>> {
+        self.run_queue.pop()
     }
 }
