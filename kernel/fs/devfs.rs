@@ -9,7 +9,8 @@ use crate::{
     process::WaitQueue,
     result::{Errno, Error, Result},
 };
-use alloc::{collections::VecDeque, sync::Arc};
+use alloc::sync::Arc;
+use crossbeam::queue::ArrayQueue;
 use penguin_utils::once::Once;
 
 static ROOT_DIR: Once<Arc<dyn Directory>> = Once::new();
@@ -88,15 +89,9 @@ impl FileLike for NullFile {
     }
 }
 
-struct ConsoleInner {
-    // FIXME: We must not use collections which may allocate a memory in the
-    // interrupt context: use something else like ArrayDeque instead.
-    input: VecDeque<char>,
-}
-
 /// The `/dev/console` file.
 pub struct ConsoleFile {
-    inner: SpinLock<ConsoleInner>,
+    input: ArrayQueue<u8>,
     wait_queue: WaitQueue,
 }
 
@@ -104,15 +99,13 @@ impl ConsoleFile {
     pub fn new() -> ConsoleFile {
         ConsoleFile {
             wait_queue: WaitQueue::new(),
-            inner: SpinLock::new(ConsoleInner {
-                input: VecDeque::new(),
-            }),
+            input: ArrayQueue::new(64),
         }
     }
 
     pub fn input_char(&self, ch: char) {
         self.write(0, &[ch as u8]).ok();
-        self.inner.lock().input.push_back(ch);
+        self.input.push(ch as u8);
         self.wait_queue.wake_one();
     }
 }
@@ -126,8 +119,7 @@ impl FileLike for ConsoleFile {
     fn read(&self, offset: usize, buf: &mut [u8]) -> Result<usize> {
         loop {
             let mut read_len = 0;
-            let mut inner = self.inner.lock();
-            while let Some(ch) = inner.input.pop_front() {
+            while let Some(ch) = self.input.pop() {
                 buf[read_len] = ch as u8;
                 read_len += 1;
             }
@@ -136,7 +128,6 @@ impl FileLike for ConsoleFile {
                 return Ok(read_len);
             }
 
-            drop(inner);
             self.wait_queue.sleep();
         }
     }
