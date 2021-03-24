@@ -33,6 +33,19 @@ macro_rules! println {
     ($fmt:expr, $($arg:tt)*) => { $crate::print!(concat!($fmt, "\n"), $($arg)*); };
 }
 
+/// Prints a warning message only in the debug build.
+#[macro_export]
+macro_rules! debug_warn {
+    ($fmt:expr) => {
+        #[cfg(debug_assertions)]
+        $crate::println!(concat!("\x1b[1;33mWARN: ", $fmt, "\x1b[0m"));
+    };
+    ($fmt:expr, $($arg:tt)*) => {
+        #[cfg(debug_assertions)]
+        $crate::println!(concat!("\x1b[1;33mWARN: ", $fmt, "\x1b[0m"), $($arg)*);
+    };
+}
+
 pub struct PrintkLogger;
 impl log::Log for PrintkLogger {
     fn enabled(&self, metadata: &log::Metadata) -> bool {
