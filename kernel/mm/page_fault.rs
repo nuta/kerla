@@ -1,6 +1,9 @@
 use penguin_utils::alignment::align_down;
 
-use super::{page_allocator::alloc_pages, vm::VmAreaType};
+use super::{
+    page_allocator::{alloc_pages, AllocPageFlags},
+    vm::VmAreaType,
+};
 use crate::{
     arch::{PageFaultReason, UserVAddr, VAddr, PAGE_SIZE},
     process::current_process,
@@ -27,7 +30,7 @@ pub fn handle_page_fault(unaligned_vaddr: UserVAddr, reason: PageFaultReason) {
     };
 
     // Allocate and fill the page.
-    let paddr = alloc_pages(1).expect("failed to allocate an anonymous page");
+    let paddr = alloc_pages(1, AllocPageFlags::USER).expect("failed to allocate an anonymous page");
     unsafe {
         paddr.as_mut_ptr::<u8>().write_bytes(0, PAGE_SIZE);
     }

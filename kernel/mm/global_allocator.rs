@@ -2,7 +2,7 @@ use crate::{arch::PAGE_SIZE, boot::RamArea};
 use buddy_system_allocator::LockedHeap;
 use penguin_utils::byte_size::ByteSize;
 
-use super::page_allocator::alloc_pages;
+use super::page_allocator::{alloc_pages, AllocPageFlags};
 
 #[global_allocator]
 static ALLOCATOR: LockedHeap = LockedHeap::empty();
@@ -14,8 +14,9 @@ fn alloc_error_handler(layout: core::alloc::Layout) -> ! {
 
 pub fn init() {
     unsafe {
+        // TODO: Expand the kernel heap when it has been exhausted.
         let size = 1024 * 1024;
-        let start = alloc_pages(size / PAGE_SIZE)
+        let start = alloc_pages(size / PAGE_SIZE, AllocPageFlags::KERNEL)
             .expect("failed to reserve memory pages for the global alllocator")
             .as_vaddr()
             .value();

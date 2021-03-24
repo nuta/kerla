@@ -5,7 +5,7 @@ use super::{
     UserVAddr, KERNEL_STACK_SIZE,
 };
 use super::{cpu_local::cpu_local_head, gdt::USER_RPL};
-use crate::mm::page_allocator::alloc_pages;
+use crate::mm::page_allocator::{alloc_pages, AllocPageFlags};
 use x86::{bits64::segmentation::wrgsbase, current::segmentation::wrfsbase};
 
 #[repr(C, packed)]
@@ -30,10 +30,10 @@ unsafe fn push_stack(mut rsp: *mut u64, value: u64) -> *mut u64 {
 
 impl Thread {
     pub fn new_kthread(ip: VAddr, sp: VAddr) -> Thread {
-        let interrupt_stack = alloc_pages(1)
+        let interrupt_stack = alloc_pages(1, AllocPageFlags::KERNEL)
             .expect("failed to allocate kernel stack")
             .as_vaddr();
-        let syscall_stack = alloc_pages(1)
+        let syscall_stack = alloc_pages(1, AllocPageFlags::KERNEL)
             .expect("failed to allocate kernel stack")
             .as_vaddr();
 
@@ -65,10 +65,10 @@ impl Thread {
     }
 
     pub fn new_user_thread(ip: UserVAddr, sp: UserVAddr, kernel_sp: VAddr) -> Thread {
-        let interrupt_stack = alloc_pages(1)
+        let interrupt_stack = alloc_pages(1, AllocPageFlags::KERNEL)
             .expect("failed to allocate kernel stack")
             .as_vaddr();
-        let syscall_stack = alloc_pages(1)
+        let syscall_stack = alloc_pages(1, AllocPageFlags::KERNEL)
             .expect("failed to allocate kernel stack")
             .as_vaddr();
 
@@ -104,10 +104,10 @@ impl Thread {
     }
 
     pub fn new_idle_thread() -> Thread {
-        let interrupt_stack = alloc_pages(1)
+        let interrupt_stack = alloc_pages(1, AllocPageFlags::KERNEL)
             .expect("failed to allocate kernel stack")
             .as_vaddr();
-        let syscall_stack = alloc_pages(1)
+        let syscall_stack = alloc_pages(1, AllocPageFlags::KERNEL)
             .expect("failed to allocate kernel stack")
             .as_vaddr();
 

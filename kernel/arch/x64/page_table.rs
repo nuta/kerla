@@ -1,5 +1,5 @@
 use super::{PAddr, UserVAddr, VAddr, PAGE_SIZE};
-use crate::mm::page_allocator::alloc_pages;
+use crate::mm::page_allocator::{alloc_pages, AllocPageFlags};
 use bitflags::bitflags;
 use core::{
     debug_assert,
@@ -53,7 +53,8 @@ fn traverse(
                 return None;
             }
 
-            let new_table = alloc_pages(1).expect("failed to allocate page table");
+            let new_table =
+                alloc_pages(1, AllocPageFlags::KERNEL).expect("failed to allocate page table");
             unsafe {
                 new_table.as_mut_ptr::<u8>().write_bytes(0, PAGE_SIZE);
                 *entry = new_table.value() as u64 | attrs.bits()
@@ -83,7 +84,7 @@ impl PageTable {
             static __kernel_pml4: u8;
         }
 
-        let pml4 = alloc_pages(1).expect("failed to allocate page table");
+        let pml4 = alloc_pages(1, AllocPageFlags::KERNEL).expect("failed to allocate page table");
 
         // Map kernel pages.
         unsafe {

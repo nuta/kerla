@@ -13,7 +13,7 @@ use crate::{
         stat::Stat,
     },
     mm::{
-        page_allocator::alloc_pages,
+        page_allocator::{alloc_pages, AllocPageFlags},
         vm::{Vm, VmAreaType},
     },
     result::{Errno, Error, ErrorExt, Result},
@@ -66,7 +66,7 @@ pub struct Process {
 
 impl Process {
     pub fn new_kthread(ip: VAddr) -> Result<Arc<Process>> {
-        let stack_bottom = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE)
+        let stack_bottom = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
             .into_error_with_message(Errno::ENOMEM, "failed to allocate kernel stack")?;
         let sp = stack_bottom.as_vaddr().add(KERNEL_STACK_SIZE);
         let process = Arc::new(Process {
@@ -102,8 +102,8 @@ impl Process {
         // Read the E\LF header in the executable file.
         let file_header_len = PAGE_SIZE;
         let file_header_top = USER_STACK_TOP;
-        let file_header_pages =
-            alloc_pages(file_header_len / PAGE_SIZE).into_error(Errno::ENOMEM)?;
+        let file_header_pages = alloc_pages(file_header_len / PAGE_SIZE, AllocPageFlags::KERNEL)
+            .into_error(Errno::ENOMEM)?;
         let buf = unsafe {
             core::slice::from_raw_parts_mut(file_header_pages.as_mut_ptr(), file_header_len)
         };
@@ -142,7 +142,8 @@ impl Process {
             return Err(Error::new(Errno::E2BIG));
         }
 
-        let init_stack_pages = alloc_pages(init_stack_len / PAGE_SIZE).into_error(Errno::ENOMEM)?;
+        let init_stack_pages = alloc_pages(init_stack_len / PAGE_SIZE, AllocPageFlags::KERNEL)
+            .into_error(Errno::ENOMEM)?;
         let user_sp = init_user_stack(
             init_stack_top,
             init_stack_pages.as_vaddr().add(init_stack_len),
@@ -197,7 +198,7 @@ impl Process {
             );
         }
 
-        let stack_bottom = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE)
+        let stack_bottom = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
             .into_error_with_message(Errno::ENOMEM, "failed to allocate kernel stack")?;
 
         let kernel_sp = stack_bottom.as_vaddr().add(KERNEL_STACK_SIZE);

@@ -3,9 +3,9 @@ use crate::{
     boot::RamArea,
 };
 use arrayvec::ArrayVec;
-use penguin_utils::byte_size::ByteSize;
-
+use bitflags::bitflags;
 use penguin_utils::bump_allocator::BumpAllocator as Allocator;
+use penguin_utils::byte_size::ByteSize;
 // TODO:
 // use penguin_utils::buddy_allocator::BuddyAllocator as Allocator;
 
@@ -24,7 +24,18 @@ fn num_pages_to_order(num_pages: usize) -> usize {
     unreachable!();
 }
 
-pub fn alloc_pages(num_pages: usize) -> Option<PAddr> {
+bitflags! {
+    pub struct AllocPageFlags: u32 {
+        // TODO: Currently both of them are unused in the allocator.
+
+        /// Allocate pages for the kernel purpose.
+        const KERNEL = 0;
+        /// Allocate pages for the user.
+        const USER = 0;
+    }
+}
+
+pub fn alloc_pages(num_pages: usize, flags: AllocPageFlags) -> Option<PAddr> {
     let order = num_pages_to_order(num_pages);
     let mut zones = ZONES.lock();
     for i in 0..zones.len() {
