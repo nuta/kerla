@@ -116,6 +116,7 @@ impl fmt::Display for VAddr {
 
 extern "C" {
     fn copy_from_user(dst: *mut u8, src: *const u8, len: usize);
+    fn strncpy_from_user(dst: *mut u8, src: *const u8, max_len: usize) -> usize;
     fn copy_to_user(dst: *mut u8, src: *const u8, len: usize);
 }
 
@@ -179,6 +180,15 @@ impl UserVAddr {
             copy_from_user(buf.as_mut_ptr(), self.value() as *const u8, buf.len());
         }
         Ok(())
+    }
+
+    /// Reads a string from the userspace and returns number of copied characters
+    /// excluding the NUL character. Note that `buf` is **NOT** NUL-terminated.
+    pub fn read_cstr(self, buf: &mut [u8]) -> Result<usize> {
+        self.access_ok(buf.len())?;
+        let read_len =
+            unsafe { strncpy_from_user(buf.as_mut_ptr(), self.value() as *const u8, buf.len()) };
+        Ok(read_len)
     }
 
     pub fn write<T>(self, buf: &T) -> Result<()> {
