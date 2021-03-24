@@ -56,13 +56,16 @@ pub fn switch(new_state: ProcessState) {
         // Pick a thread to run next.
         match scheduler.pick_next() {
             Some(next) => next,
-            None if prev_thread.is_idle() => return,
             None => IDLE_THREAD.get().get().clone(),
         }
     };
 
     assert!(HELD_LOCKS.get().is_empty());
-    assert!(!Arc::ptr_eq(prev_thread, &next_thread));
+
+    if Arc::ptr_eq(prev_thread, &next_thread) {
+        // Continue executing the current process.
+        return;
+    }
 
     // Save locks that will be released later.
     debug_assert!(HELD_LOCKS.get().is_empty());
