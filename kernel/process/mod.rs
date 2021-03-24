@@ -30,12 +30,14 @@ use opened_file::OpenedFileTable;
 use penguin_utils::once::Once;
 use penguin_utils::{alignment::align_up, lazy::Lazy};
 
+pub mod execve;
 mod init_stack;
 pub mod process;
 pub mod scheduler;
 pub mod switch;
 pub mod wait_queue;
 
+pub use execve::*;
 pub use init_stack::*;
 pub use process::*;
 pub use scheduler::*;
@@ -72,12 +74,16 @@ pub fn init() {
         )
         .expect("failed to mount devfs");
 
+    let console = root_fs
+        .lookup_inode(&root_dir, Path::new("/dev/console"), true)
+        .expect("failed to open /dev/console");
+
     let inode = root_fs
-        .lookup_inode(root_dir, Path::new("/bin/sh"), true)
+        .lookup_inode(&root_dir, Path::new("/bin/sh"), true)
         .expect("failed to open /sbin/init");
     let file = match inode {
         INode::FileLike(file) => file,
         _ => panic!("/sbin/init is not a file"),
     };
-    Process::new_init_process(file, root_fs).unwrap();
+    Process::new_init_process(file, console).unwrap();
 }

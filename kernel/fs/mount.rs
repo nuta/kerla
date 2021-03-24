@@ -49,7 +49,7 @@ impl RootFs {
 
     /// Resolves a path into an file.
     pub fn lookup_file(&self, path: &str) -> Result<Arc<dyn FileLike>> {
-        match self.lookup_inode(self.root_dir()?, Path::new(path), true)? {
+        match self.lookup_inode(&self.root_dir()?, Path::new(path), true)? {
             INode::Directory(_) => Err(Error::new(Errno::EISDIR)),
             INode::FileLike(file) => Ok(file),
             // Symbolic links should be already resolved.
@@ -59,7 +59,7 @@ impl RootFs {
 
     /// Resolves a path into an directory.
     pub fn lookup_dir(&self, path: &str) -> Result<Arc<dyn Directory>> {
-        match self.lookup_inode(self.root_dir()?, Path::new(path), true)? {
+        match self.lookup_inode(&self.root_dir()?, Path::new(path), true)? {
             INode::Directory(dir) => Ok(dir),
             INode::FileLike(_) => Err(Error::new(Errno::EISDIR)),
             // Symbolic links should be already resolved.
@@ -71,13 +71,13 @@ impl RootFs {
     /// linked are resolved and will never return `INode::Symlink`.
     pub fn lookup_inode(
         &self,
-        lookup_from: Arc<dyn Directory>,
+        lookup_from: &Arc<dyn Directory>,
         path: &Path,
         follow_symlink: bool,
     ) -> Result<INode> {
         Ok(self
             .do_lookup_inode(
-                lookup_from,
+                lookup_from.clone(),
                 path,
                 follow_symlink,
                 DEFAULT_SYMLINK_FOLLOW_MAX,
