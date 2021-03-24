@@ -60,6 +60,7 @@ impl Directory for DevRootDir {
         Ok(Stat {
             inode_no: INodeNo::new(1),
             mode: FileMode::new(S_IFDIR | 0o755),
+            ..Stat::zeroed()
         })
     }
 }

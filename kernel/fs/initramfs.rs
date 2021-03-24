@@ -187,6 +187,7 @@ impl InitramFs {
                         stat: Stat {
                             inode_no: INodeNo::new(ino),
                             mode,
+                            ..Stat::zeroed()
                         },
                     })),
                 );
@@ -198,6 +199,7 @@ impl InitramFs {
                         stat: Stat {
                             inode_no: INodeNo::new(ino),
                             mode,
+                            ..Stat::zeroed()
                         },
                     })),
                 );
@@ -210,6 +212,7 @@ impl InitramFs {
                 stat: Stat {
                     inode_no: INodeNo::new(2),
                     mode: FileMode::new(S_IFDIR | 0o755),
+                    ..Stat::zeroed()
                 },
                 files: root_files,
             }),
