@@ -1,5 +1,5 @@
 use crate::elf::{Elf, ProgramHeader};
-use crate::fs::opened_file::OpenedFileTable;
+use crate::fs::{mount::RootFs, opened_file::OpenedFileTable};
 use crate::mm::page_allocator::{alloc_pages, AllocPageFlags};
 use crate::process::*;
 use crate::result::{Errno, Error, ErrorExt, Result};
@@ -10,6 +10,7 @@ pub fn execve(
     executable: Arc<dyn FileLike>,
     argv: &[&[u8]],
     envp: &[&[u8]],
+    root_fs: Arc<SpinLock<RootFs>>,
     opened_files: Arc<SpinLock<OpenedFileTable>>,
 ) -> Result<Arc<Process>> {
     // Read the E\LF header in the executable file.
@@ -118,6 +119,7 @@ pub fn execve(
             arch: arch::Thread::new_user_thread(ip, user_sp, kernel_sp),
             state: ProcessState::Runnable,
         }),
+        root_fs,
         vm: Some(Arc::new(SpinLock::new(vm))),
         pid,
         opened_files,

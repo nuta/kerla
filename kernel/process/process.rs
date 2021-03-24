@@ -1,8 +1,9 @@
 use super::*;
 use crate::{
     arch::{self, SpinLock},
+    boot::INITIAL_ROOT_FS,
     fs::inode::{FileLike, INode},
-    fs::opened_file,
+    fs::{mount::RootFs, opened_file},
     mm::vm::Vm,
     result::Result,
 };
@@ -39,6 +40,7 @@ pub struct Process {
     pub pid: PId,
     pub vm: Option<Arc<SpinLock<Vm>>>,
     pub opened_files: Arc<SpinLock<OpenedFileTable>>,
+    pub root_fs: Arc<SpinLock<RootFs>>,
     pub(super) inner: SpinLock<MutableFields>,
 }
 
@@ -71,11 +73,13 @@ impl Process {
             }),
             vm: None,
             pid: PId::new(0),
+            root_fs: INITIAL_ROOT_FS.clone(),
             opened_files: Arc::new(SpinLock::new(OpenedFileTable::new())),
         }))
     }
 
     pub fn new_init_process(
+        root_fs: Arc<SpinLock<RootFs>>,
         executable: Arc<dyn FileLike>,
         console: INode,
         argv: &[&[u8]],
@@ -104,6 +108,7 @@ impl Process {
             executable,
             argv,
             &[],
+            root_fs,
             Arc::new(SpinLock::new(opened_files)),
         )
     }

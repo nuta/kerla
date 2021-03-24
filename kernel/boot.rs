@@ -1,7 +1,7 @@
 #![cfg_attr(test, allow(unreachable_code))]
 
 use crate::{
-    arch::{self, idle, PAddr},
+    arch::{self, idle, PAddr, SpinLock},
     fs::{
         devfs::{self, DEV_FS},
         initramfs::{self, INITRAM_FS},
@@ -12,6 +12,8 @@ use crate::{
     printk::PrintkLogger,
     process::{self, switch, Process, ProcessState},
 };
+use alloc::sync::Arc;
+use penguin_utils::once::Once;
 
 #[cfg(test)]
 use crate::test_runner::end_tests;
@@ -43,6 +45,8 @@ fn idle_thread() -> ! {
     }
 }
 
+pub static INITIAL_ROOT_FS: Once<Arc<SpinLock<RootFs>>> = Once::new();
+
 pub fn boot_kernel(bootinfo: &BootInfo) -> ! {
     // Initialize memory allocators first.
     page_allocator::init(&bootinfo.ram_areas);
@@ -58,7 +62,6 @@ pub fn boot_kernel(bootinfo: &BootInfo) -> ! {
     arch::init();
     devfs::init();
     initramfs::init();
-    process::init();
 
     // Prepare the root file system.
     let mut root_fs = RootFs::new(INITRAM_FS.clone());
@@ -79,9 +82,18 @@ pub fn boot_kernel(bootinfo: &BootInfo) -> ! {
         .lookup_file("/bin/sh")
         .expect("failed to open /sbin/init");
 
+    // We cannot initialize the process subsystem until INITIAL_ROOT_FS is initialized.
+    INITIAL_ROOT_FS.init(|| Arc::new(SpinLock::new(root_fs)));
+    process::init();
+
     // Create the init process.
-    Process::new_init_process(executable, console, &["/bin/sh".as_bytes()])
-        .expect("failed to execute /sbin/init");
+    Process::new_init_process(
+        INITIAL_ROOT_FS.clone(),
+        executable,
+        console,
+        &["/bin/sh".as_bytes()],
+    )
+    .expect("failed to execute /sbin/init");
 
     // We've done the kernel initialization. Switch into the init...
     switch(ProcessState::Runnable);
