@@ -181,6 +181,13 @@ impl UserVAddr {
         Ok(())
     }
 
+    pub fn write<T>(self, buf: &T) -> Result<()> {
+        self.write_bytes(unsafe {
+            slice::from_raw_parts(buf as *const T as *const u8, size_of::<T>())
+        })?;
+        Ok(())
+    }
+
     pub fn write_bytes(self, buf: &[u8]) -> Result<()> {
         self.access_ok(buf.len())?;
         unsafe {
