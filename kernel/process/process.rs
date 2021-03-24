@@ -95,7 +95,11 @@ impl Process {
         }))
     }
 
-    pub fn new_init_process(executable: Arc<dyn FileLike>, console: INode) -> Result<Arc<Process>> {
+    pub fn new_init_process(
+        executable: Arc<dyn FileLike>,
+        console: INode,
+        argv: &[&[u8]],
+    ) -> Result<Arc<Process>> {
         assert!(matches!(console, INode::FileLike(_)));
 
         let mut opened_files = OpenedFileTable::new();
@@ -118,6 +122,8 @@ impl Process {
         execve(
             PId::new(1),
             executable,
+            argv,
+            &[],
             Arc::new(SpinLock::new(opened_files)),
         )
     }

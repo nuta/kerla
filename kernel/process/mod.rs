@@ -64,26 +64,4 @@ pub fn init() {
     let idle_thread = Process::new_idle_thread().unwrap();
     IDLE_THREAD.as_mut().set(idle_thread.clone());
     CURRENT.as_mut().set(idle_thread);
-
-    let mut root_fs = RootFs::new(INITRAM_FS.clone());
-    let root_dir = root_fs.root_dir().expect("failed to open the root dir");
-    root_fs
-        .mount(
-            root_fs.lookup_dir("/dev").expect("failed to locate /dev"),
-            DEV_FS.clone(),
-        )
-        .expect("failed to mount devfs");
-
-    let console = root_fs
-        .lookup_inode(&root_dir, Path::new("/dev/console"), true)
-        .expect("failed to open /dev/console");
-
-    let inode = root_fs
-        .lookup_inode(&root_dir, Path::new("/bin/sh"), true)
-        .expect("failed to open /sbin/init");
-    let file = match inode {
-        INode::FileLike(file) => file,
-        _ => panic!("/sbin/init is not a file"),
-    };
-    Process::new_init_process(file, console).unwrap();
 }

@@ -8,6 +8,8 @@ use goblin::elf64::program_header::PT_LOAD;
 pub fn execve(
     pid: PId,
     executable: Arc<dyn FileLike>,
+    argv: &[&[u8]],
+    envp: &[&[u8]],
     opened_files: Arc<SpinLock<OpenedFileTable>>,
 ) -> Result<Arc<Process>> {
     // Read the E\LF header in the executable file.
@@ -31,8 +33,6 @@ pub fn execve(
     }
 
     // Set up the user stack.
-    let argv = &["sh".as_bytes()];
-    let envp = &[];
     let auxv = &[
         Auxv::Phdr(
             file_header_top
