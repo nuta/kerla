@@ -2,7 +2,7 @@ use super::{
     address::{PAddr, VAddr},
     apic, cpu_local, gdt, idt, ioapic, multiboot, pit, printchar, serial, syscall, tss,
 };
-use crate::boot::boot_kernel;
+use crate::boot::{boot_kernel, init_logger};
 use core::ptr;
 use x86::{
     bits64::segmentation::wrgsbase,
@@ -73,6 +73,7 @@ unsafe extern "C" fn bsp_early_init(multiboot_magic: u32, multiboot_info: u64) -
 
     // Initialize the serial driver first to enable print macros.
     serial::early_init();
+    init_logger();
     printchar('\n');
 
     let boot_info = multiboot::parse(multiboot_magic, PAddr::new(multiboot_info as usize));

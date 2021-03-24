@@ -33,6 +33,44 @@ macro_rules! println {
     ($fmt:expr, $($arg:tt)*) => { $crate::print!(concat!($fmt, "\n"), $($arg)*); };
 }
 
+pub struct PrintkLogger;
+impl log::Log for PrintkLogger {
+    fn enabled(&self, metadata: &log::Metadata) -> bool {
+        if cfg!(debug_assertions) {
+            true
+        } else {
+            metadata.level() <= log::Level::Info
+        }
+    }
+
+    fn log(&self, record: &log::Record) {
+        use log::Level;
+        const RESET: &str = "\x1b[0m";
+        const INFO_COLOR: &str = "\x1b[36m";
+        const WARN_COLOR: &str = "\x1b[33m";
+        const ERROR_COLOR: &str = "\x1b[1;31m";
+
+        if self.enabled(record.metadata()) {
+            match record.level() {
+                Level::Trace | Level::Debug => {
+                    println!("{}", record.args());
+                }
+                Level::Info => {
+                    println!("{}{}{}", INFO_COLOR, record.args(), RESET);
+                }
+                Level::Warn => {
+                    println!("{}{}{}", WARN_COLOR, record.args(), RESET);
+                }
+                Level::Error => {
+                    println!("{}{}{}", ERROR_COLOR, record.args(), RESET);
+                }
+            }
+        }
+    }
+
+    fn flush(&self) {}
+}
+
 /// A symbol.
 #[repr(C, packed)]
 struct SymbolEntry {
@@ -107,7 +145,7 @@ fn resolve_symbol(vaddr: VAddr) -> Option<Symbol> {
 pub fn backtrace() {
     Backtrace::current_frame().traverse(|i, vaddr| {
         if let Some(symbol) = resolve_symbol(vaddr) {
-            println!(
+            warn!(
                 "    {index}: {vaddr} {symbol_name}()+0x{offset:x}",
                 index = i,
                 vaddr = vaddr,
@@ -115,7 +153,7 @@ pub fn backtrace() {
                 offset = vaddr.value() - symbol.addr.value(),
             );
         } else {
-            println!(
+            warn!(
                 "    {index}: {vaddr} (symbol unknown)",
                 index = i,
                 vaddr = vaddr,

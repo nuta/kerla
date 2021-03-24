@@ -100,7 +100,7 @@ fn process_memory_map_entry(
         _ => "unknown",
     };
 
-    println!(
+    trace!(
         "multiboot2: {:016x}-{:016x}  {}\t({})",
         base,
         base + len,

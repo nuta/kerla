@@ -1,7 +1,10 @@
 #![cfg_attr(test, allow(unreachable_code))]
 
-use crate::arch::{idle, PAddr};
 use crate::mm::{global_allocator, page_allocator};
+use crate::{
+    arch::{idle, PAddr},
+    printk::PrintkLogger,
+};
 
 #[cfg(test)]
 use crate::test_runner::end_tests;
@@ -16,6 +19,17 @@ pub struct BootInfo {
     pub ram_areas: ArrayVec<[RamArea; 8]>,
 }
 
+static LOGGER: PrintkLogger = PrintkLogger;
+
+pub fn init_logger() {
+    log::set_logger(&PrintkLogger).unwrap();
+    log::set_max_level(if cfg!(debug_assertions) {
+        log::LevelFilter::Trace
+    } else {
+        log::LevelFilter::Info
+    });
+}
+
 pub fn boot_kernel(bootinfo: &BootInfo) {
     page_allocator::init(&bootinfo.ram_areas);
     global_allocator::init();
@@ -26,7 +40,7 @@ pub fn boot_kernel(bootinfo: &BootInfo) {
         end_tests();
     }
 
-    println!("Hello World from Penguin Kernel XD");
+    info!("Hello World from Penguin Kernel XD");
     crate::arch::init();
     crate::fs::devfs::init();
     crate::fs::initramfs::init();
