@@ -3,9 +3,8 @@ use super::{
     apic, cpu_local, gdt, idt, ioapic, multiboot, pit, printchar, serial, syscall, tss,
 };
 use crate::boot::{boot_kernel, init_logger};
-use core::ptr;
+
 use x86::{
-    bits64::segmentation::wrgsbase,
     controlregs::{self, Cr4, Xcr0},
     cpuid::CpuId,
     io::outb,
@@ -80,7 +79,6 @@ unsafe extern "C" fn bsp_early_init(multiboot_magic: u32, multiboot_info: u64) -
     init_pic();
     common_setup(VAddr::new(&__bsp_cpu_local as *const _ as usize));
     boot_kernel(&boot_info);
-    unreachable!();
 }
 
 /// Called after the memory allocator is initialized.

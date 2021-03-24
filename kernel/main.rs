@@ -8,7 +8,6 @@
 #![feature(const_btree_new)]
 #![test_runner(crate::test_runner::run_tests)]
 #![reexport_test_harness_main = "test_main"]
-#![allow(unused)]
 #![allow(clippy::upper_case_acronyms)]
 
 #[macro_use]

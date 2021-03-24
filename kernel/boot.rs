@@ -29,7 +29,7 @@ pub struct BootInfo {
 static LOGGER: PrintkLogger = PrintkLogger;
 
 pub fn init_logger() {
-    log::set_logger(&PrintkLogger).unwrap();
+    log::set_logger(&LOGGER).unwrap();
     log::set_max_level(if cfg!(debug_assertions) {
         log::LevelFilter::Trace
     } else {

@@ -28,13 +28,12 @@ pub const KERNEL_STACK_SIZE: usize = PAGE_SIZE * 64;
 pub const USER_STACK_TOP: UserVAddr = unsafe { UserVAddr::new_unchecked(0x0000_0c00_0000_0000) };
 pub const PAGE_SIZE: usize = 4096;
 
-use address::KERNEL_BASE_ADDR;
 pub use address::{PAddr, UserVAddr, VAddr};
 pub use arch_prctl::arch_prctl;
 pub use backtrace::Backtrace;
 pub use boot::init;
 pub use idle::{halt, idle};
-pub use interrupt::{disable_interrupt, enable_interrupt, is_interrupt_enabled};
+pub use interrupt::{enable_interrupt, is_interrupt_enabled};
 pub use lock::{SpinLock, SpinLockGuard};
 pub use page_table::{PageFaultReason, PageTable};
 #[cfg(test)]

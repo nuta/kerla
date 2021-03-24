@@ -1,12 +1,9 @@
+use crate::fs::opened_file::Fd;
+use crate::result::Result;
 use crate::syscalls::SyscallDispatcher;
-use crate::{
-    arch::UserVAddr,
-    fs::opened_file::Fd,
-    result::{Errno, Error, Result},
-};
 
 impl SyscallDispatcher {
-    pub fn sys_ioctl(&mut self, fd: Fd, cmd: usize, arg: usize) -> Result<isize> {
+    pub fn sys_ioctl(&mut self, _fd: Fd, _cmd: usize, _arg: usize) -> Result<isize> {
         // TODO:
         Ok(0)
     }

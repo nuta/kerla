@@ -35,7 +35,7 @@ bitflags! {
     }
 }
 
-pub fn alloc_pages(num_pages: usize, flags: AllocPageFlags) -> Option<PAddr> {
+pub fn alloc_pages(num_pages: usize, _flags: AllocPageFlags) -> Option<PAddr> {
     let order = num_pages_to_order(num_pages);
     let mut zones = ZONES.lock();
     for i in 0..zones.len() {

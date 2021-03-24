@@ -1,36 +1,12 @@
 use super::*;
+use crate::arch::{self, enable_interrupt, is_interrupt_enabled};
 use crate::process::PId;
-use crate::{
-    arch::{self, disable_interrupt, enable_interrupt, is_interrupt_enabled, SpinLock, VAddr},
-    elf::Elf,
-    fs::initramfs::INITRAM_FS,
-    fs::mount::RootFs,
-    fs::opened_file,
-    fs::path::Path,
-    fs::{
-        devfs::DEV_FS,
-        inode::{FileLike, INode},
-        opened_file::*,
-        stat::Stat,
-    },
-    mm::{
-        page_allocator::alloc_pages,
-        vm::{Vm, VmAreaType},
-    },
-    result::{Errno, Error, ErrorExt, Result},
-};
-use alloc::collections::BTreeMap;
+
 use alloc::sync::Arc;
-use alloc::vec::Vec;
-use arch::{UserVAddr, KERNEL_STACK_SIZE, PAGE_SIZE, USER_STACK_TOP};
+
 use arrayvec::ArrayVec;
-use core::cmp::max;
-use core::mem::{self, size_of, size_of_val};
-use core::sync::atomic::{AtomicI32, Ordering};
-use goblin::elf64::program_header::PT_LOAD;
-use opened_file::OpenedFileTable;
-use penguin_utils::once::Once;
-use penguin_utils::{alignment::align_up, lazy::Lazy};
+
+use core::mem::{self};
 
 cpu_local! {
     static ref HELD_LOCKS: ArrayVec<[Arc<Process>; 2]> = ArrayVec::new();
@@ -45,7 +21,7 @@ pub fn switch(new_state: ProcessState) {
 
     let prev_thread = CURRENT.get();
     let next_thread = {
-        let mut scheduler = SCHEDULER.lock();
+        let scheduler = SCHEDULER.lock();
 
         // Push back the currently running thread to the runqueue if it's still
         // ready for running, in other words, it's not blocked.

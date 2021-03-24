@@ -1,11 +1,10 @@
 use super::{
     file_system::FileSystem,
     inode::{DirEntry, Directory, FileLike, INode, INodeNo},
-    path::PathBuf,
     stat::{FileMode, Stat, S_IFDIR},
 };
 use crate::{
-    arch::{print_str, SpinLock},
+    arch::print_str,
     process::WaitQueue,
     result::{Errno, Error, Result},
 };
@@ -80,11 +79,11 @@ impl FileLike for NullFile {
         unimplemented!()
     }
 
-    fn read(&self, offset: usize, buf: &mut [u8]) -> Result<usize> {
+    fn read(&self, _offset: usize, _buf: &mut [u8]) -> Result<usize> {
         Ok(0)
     }
 
-    fn write(&self, offset: usize, buf: &[u8]) -> Result<usize> {
+    fn write(&self, _offset: usize, buf: &[u8]) -> Result<usize> {
         Ok(buf.len())
     }
 }
@@ -105,7 +104,7 @@ impl ConsoleFile {
 
     pub fn input_char(&self, ch: char) {
         self.write(0, &[ch as u8]).ok();
-        self.input.push(ch as u8);
+        self.input.push(ch as u8).ok();
         self.wait_queue.wake_one();
     }
 }
@@ -116,7 +115,7 @@ impl FileLike for ConsoleFile {
         unimplemented!()
     }
 
-    fn read(&self, offset: usize, buf: &mut [u8]) -> Result<usize> {
+    fn read(&self, _offset: usize, buf: &mut [u8]) -> Result<usize> {
         loop {
             let mut read_len = 0;
             while let Some(ch) = self.input.pop() {
@@ -132,7 +131,7 @@ impl FileLike for ConsoleFile {
         }
     }
 
-    fn write(&self, offset: usize, buf: &[u8]) -> Result<usize> {
+    fn write(&self, _offset: usize, buf: &[u8]) -> Result<usize> {
         print_str(buf);
         Ok(buf.len())
     }

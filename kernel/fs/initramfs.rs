@@ -40,7 +40,7 @@ impl FileLike for InitramFsFile {
         Ok(buf.len())
     }
 
-    fn write(&self, offset: usize, buf: &[u8]) -> Result<usize> {
+    fn write(&self, _offset: usize, _buf: &[u8]) -> Result<usize> {
         Err(Error::new(Errno::EROFS))
     }
 
@@ -65,7 +65,10 @@ impl Directory for InitramFsDir {
     }
 
     fn lookup(&self, name: &str) -> Result<DirEntry> {
-        let initramfs_inode = self.files.get(name).ok_or(Error::new(Errno::ENOENT))?;
+        let initramfs_inode = self
+            .files
+            .get(name)
+            .ok_or_else(|| Error::new(Errno::ENOENT))?;
         let inode = match initramfs_inode {
             InitramFsINode::File(file) => INode::FileLike(file.clone() as Arc<dyn FileLike>),
             InitramFsINode::Directory(dir) => INode::Directory(dir.clone() as Arc<dyn Directory>),
@@ -109,13 +112,13 @@ impl InitramFs {
 
             let ino = parse_hex_field(image.consume_bytes(8).unwrap());
             let mode = FileMode::new(parse_hex_field(image.consume_bytes(8).unwrap()) as u32);
-            let uid = parse_hex_field(image.consume_bytes(8).unwrap());
-            let gid = parse_hex_field(image.consume_bytes(8).unwrap());
-            let nlink = parse_hex_field(image.consume_bytes(8).unwrap());
-            let mtime = parse_hex_field(image.consume_bytes(8).unwrap());
+            let _uid = parse_hex_field(image.consume_bytes(8).unwrap());
+            let _gid = parse_hex_field(image.consume_bytes(8).unwrap());
+            let _nlink = parse_hex_field(image.consume_bytes(8).unwrap());
+            let _mtime = parse_hex_field(image.consume_bytes(8).unwrap());
             let filesize = parse_hex_field(image.consume_bytes(8).unwrap());
-            let dev_major = parse_hex_field(image.consume_bytes(8).unwrap());
-            let dev_minor = parse_hex_field(image.consume_bytes(8).unwrap());
+            let _dev_major = parse_hex_field(image.consume_bytes(8).unwrap());
+            let _dev_minor = parse_hex_field(image.consume_bytes(8).unwrap());
 
             // Skip c_rmaj and c_rmin.
             image.skip(16).unwrap();
@@ -139,7 +142,7 @@ impl InitramFs {
 
             // Skip the trailing '\0'.
             image.skip(1).unwrap();
-            image.skip_until_alignment(4);
+            image.skip_until_alignment(4).unwrap();
 
             // Look for the parent directory for the file.
             let mut files = &mut root_files;

@@ -1,4 +1,4 @@
-use crate::{arch::PageTable, arch::UserVAddr, arch::VAddr, arch::PAGE_SIZE, fs::inode::FileLike};
+use crate::{arch::PageTable, arch::UserVAddr, arch::PAGE_SIZE, fs::inode::FileLike};
 use crate::{
     arch::USER_STACK_TOP,
     result::{Errno, Error, Result},
@@ -93,10 +93,6 @@ impl Vm {
 
     fn heap_vma(&self) -> &VmArea {
         &self.vm_areas[1]
-    }
-
-    fn stack_vma_mut(&mut self) -> &mut VmArea {
-        &mut self.vm_areas[0]
     }
 
     fn heap_vma_mut(&mut self) -> &mut VmArea {

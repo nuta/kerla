@@ -2,19 +2,13 @@ use super::{
     file_system::FileSystem,
     inode::{Directory, FileLike, INode, INodeNo},
     path::Path,
-    path::PathBuf,
 };
 use crate::result::{Errno, Error, Result};
 use alloc::sync::Arc;
-use alloc::vec::Vec;
+
 use hashbrown::HashMap;
 
 const DEFAULT_SYMLINK_FOLLOW_MAX: usize = 8;
-
-pub struct LookupResult {
-    dir: Arc<dyn Directory>,
-    inode: INode,
-}
 
 pub struct MountPoint {
     fs: Arc<dyn FileSystem>,
@@ -75,14 +69,12 @@ impl RootFs {
         path: &Path,
         follow_symlink: bool,
     ) -> Result<INode> {
-        Ok(self
-            .do_lookup_inode(
-                lookup_from.clone(),
-                path,
-                follow_symlink,
-                DEFAULT_SYMLINK_FOLLOW_MAX,
-            )?
-            .inode)
+        self.do_lookup_inode(
+            lookup_from.clone(),
+            path,
+            follow_symlink,
+            DEFAULT_SYMLINK_FOLLOW_MAX,
+        )
     }
 
     fn do_lookup_inode(
@@ -91,7 +83,7 @@ impl RootFs {
         path: &Path,
         follow_symlink: bool,
         symlink_follow_limit: usize,
-    ) -> Result<LookupResult> {
+    ) -> Result<INode> {
         let mut current_dir = lookup_from;
         let mut components = path.components().peekable();
         while let Some(name) = components.next() {
@@ -118,10 +110,7 @@ impl RootFs {
                     );
                 }
                 (None, inode) => {
-                    return Ok(LookupResult {
-                        dir: current_dir,
-                        inode,
-                    });
+                    return Ok(inode);
                 }
                 (Some(_), INode::Directory(dir)) => match self.lookup_mount_point(&dir)? {
                     Some(mount_point) => {
@@ -134,7 +123,7 @@ impl RootFs {
                         current_dir = dir;
                     }
                 },
-                (Some(_), INode::Symlink((symlink))) => {
+                (Some(_), INode::Symlink(symlink)) => {
                     // Follow the symlink even if follow_symlinks is false since
                     // it's not the last one of the path components.
 
@@ -149,14 +138,12 @@ impl RootFs {
                         current_dir
                     };
 
-                    let linked_inode = self
-                        .do_lookup_inode(
-                            follow_from,
-                            &linked_to,
-                            follow_symlink,
-                            symlink_follow_limit - 1,
-                        )?
-                        .inode;
+                    let linked_inode = self.do_lookup_inode(
+                        follow_from,
+                        &linked_to,
+                        follow_symlink,
+                        symlink_follow_limit - 1,
+                    )?;
 
                     current_dir = match linked_inode {
                         INode::Directory(dir) => dir,

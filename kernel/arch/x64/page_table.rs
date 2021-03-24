@@ -1,4 +1,4 @@
-use super::{PAddr, UserVAddr, VAddr, PAGE_SIZE};
+use super::{PAddr, UserVAddr, PAGE_SIZE};
 use crate::mm::page_allocator::{alloc_pages, AllocPageFlags};
 use bitflags::bitflags;
 use core::{

@@ -1,10 +1,9 @@
-use core::unimplemented;
+
 
 use crate::syscalls::SyscallDispatcher;
 
 use super::{
     gdt::{KERNEL_CS, USER_CS32},
-    UserVAddr,
 };
 use x86::msr::{self, rdmsr, wrmsr};
 

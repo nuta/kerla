@@ -20,14 +20,15 @@ impl SyscallDispatcher {
         SyscallDispatcher {}
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn dispatch(
         &mut self,
         a1: usize,
         a2: usize,
         a3: usize,
-        a4: usize,
-        a5: usize,
-        a6: usize,
+        _a4: usize,
+        _a5: usize,
+        _a6: usize,
         n: usize,
     ) -> Result<isize> {
         match n {

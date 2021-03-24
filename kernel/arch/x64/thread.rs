@@ -1,12 +1,12 @@
 use super::{
     address::VAddr,
     gdt::{USER_CS64, USER_DS},
-    tss::{IST_RSP0, TSS},
+    tss::{TSS},
     UserVAddr, KERNEL_STACK_SIZE,
 };
 use super::{cpu_local::cpu_local_head, gdt::USER_RPL};
 use crate::mm::page_allocator::{alloc_pages, AllocPageFlags};
-use x86::{bits64::segmentation::wrgsbase, current::segmentation::wrfsbase};
+use x86::{current::segmentation::wrfsbase};
 
 #[repr(C, packed)]
 pub struct Thread {

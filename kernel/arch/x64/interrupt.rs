@@ -3,11 +3,8 @@ use crate::{
     mm::page_fault::handle_page_fault,
     process::{switch, ProcessState},
 };
-use bitflags::bitflags;
-use x86::{
-    controlregs::cr2,
-    current::rflags::{self, RFlags},
-};
+
+use x86::{controlregs::cr2, current::rflags::RFlags};
 
 /// The interrupt stack frame.
 #[derive(Debug, Copy, Clone)]
@@ -76,7 +73,6 @@ unsafe extern "C" fn x64_handle_interrupt(vec: u8, frame: *const InterruptFrame)
     }
 
     if vec == 14 {
-        let vaddr = unsafe { cr2() as usize };
         let reason = PageFaultReason::from_bits_truncate(frame.error as u32);
 
         // Panic if it's occurred in the kernel space.
@@ -85,12 +81,14 @@ unsafe extern "C" fn x64_handle_interrupt(vec: u8, frame: *const InterruptFrame)
         if !occurred_in_user {
             panic!(
                 "page fault occurred in the kernel: rip={:x}, rsp={:x}, vaddr={:x}",
-                frame.rip, frame.rsp, vaddr
+                frame.rip,
+                frame.rsp,
+                cr2()
             );
         }
 
         // Abort if the virtual address points to out of the user's address space.
-        let unaligned_vaddr = match UserVAddr::new(vaddr) {
+        let unaligned_vaddr = match UserVAddr::new(cr2() as usize) {
             Ok(uvaddr) => uvaddr,
             Err(_) => {
                 // TODO: Kill the current user process.
@@ -105,10 +103,6 @@ unsafe extern "C" fn x64_handle_interrupt(vec: u8, frame: *const InterruptFrame)
     println!("WARN: unsupported interrupt vector");
     switch(ProcessState::Sleeping);
     unreachable!();
-}
-
-pub unsafe fn disable_interrupt() {
-    asm!("cli");
 }
 
 pub unsafe fn enable_interrupt() {

@@ -2,7 +2,7 @@ use super::address::{PAddr, VAddr};
 use crate::boot::{BootInfo, RamArea};
 use arrayvec::ArrayVec;
 use core::mem::size_of;
-use core::{cmp::max, intrinsics::transmute};
+use core::{cmp::max};
 use penguin_utils::alignment::align_up;
 use penguin_utils::byte_size::ByteSize;
 
@@ -110,7 +110,7 @@ fn process_memory_map_entry(
 }
 
 unsafe fn parse_multiboot2_info(header: &Multiboot2InfoHeader) -> BootInfo {
-    let mut header_vaddr = VAddr::new(header as *const _ as usize);
+    let header_vaddr = VAddr::new(header as *const _ as usize);
     let mut off = size_of::<Multiboot2TagHeader>();
     let mut ram_areas = ArrayVec::new();
     while off + size_of::<Multiboot2TagHeader>() < header.total_size as usize {

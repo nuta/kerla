@@ -1,35 +1,17 @@
 use super::*;
 use crate::{
-    arch::{self, disable_interrupt, enable_interrupt, is_interrupt_enabled, SpinLock, VAddr},
-    fs::initramfs::INITRAM_FS,
-    fs::mount::RootFs,
+    arch::{self, SpinLock},
+    fs::inode::{FileLike, INode},
     fs::opened_file,
-    fs::path::Path,
-    fs::{
-        devfs::DEV_FS,
-        inode::{FileLike, INode},
-        opened_file::*,
-        stat::Stat,
-    },
-    mm::{
-        page_allocator::{alloc_pages, AllocPageFlags},
-        vm::{Vm, VmAreaType},
-    },
-    result::{Errno, Error, ErrorExt, Result},
+    mm::vm::Vm,
+    result::Result,
 };
-use alloc::collections::BTreeMap;
-use alloc::sync::Arc;
-use alloc::vec::Vec;
-use arch::{SpinLockGuard, UserVAddr, KERNEL_STACK_SIZE, PAGE_SIZE, USER_STACK_TOP};
-use arrayvec::ArrayVec;
-use core::cmp::max;
-use core::mem::{self, size_of, size_of_val};
-use core::sync::atomic::{AtomicI32, Ordering};
-use opened_file::OpenedFileTable;
-use penguin_utils::once::Once;
-use penguin_utils::{alignment::align_up, lazy::Lazy};
 
-static NEXT_PID: AtomicI32 = AtomicI32::new(1);
+use alloc::sync::Arc;
+
+use arch::SpinLockGuard;
+
+use opened_file::OpenedFileTable;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct PId(i32);
@@ -38,10 +20,6 @@ impl PId {
     pub const fn new(pid: i32) -> PId {
         PId(pid)
     }
-}
-
-fn alloc_pid() -> Option<PId> {
-    Some(PId::new(NEXT_PID.fetch_add(1, Ordering::SeqCst)))
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -65,6 +43,7 @@ pub struct Process {
 }
 
 impl Process {
+    /*
     pub fn new_kthread(ip: VAddr) -> Result<Arc<Process>> {
         let stack_bottom = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
             .into_error_with_message(Errno::ENOMEM, "failed to allocate kernel stack")?;
@@ -82,6 +61,7 @@ impl Process {
         SCHEDULER.lock().enqueue(process.clone());
         Ok(process)
     }
+    */
 
     pub fn new_idle_thread() -> Result<Arc<Process>> {
         Ok(Arc::new(Process {
@@ -107,17 +87,17 @@ impl Process {
         opened_files.open_with_fixed_fd(
             Fd::new(0),
             Arc::new(OpenedFile::new(console.clone(), OpenMode::O_RDONLY, 0)),
-        );
+        )?;
         // Open stdout.
         opened_files.open_with_fixed_fd(
             Fd::new(1),
             Arc::new(OpenedFile::new(console.clone(), OpenMode::O_WRONLY, 0)),
-        );
+        )?;
         // Open stderr.
         opened_files.open_with_fixed_fd(
             Fd::new(2),
             Arc::new(OpenedFile::new(console, OpenMode::O_WRONLY, 0)),
-        );
+        )?;
 
         execve(
             PId::new(1),
@@ -126,10 +106,6 @@ impl Process {
             &[],
             Arc::new(SpinLock::new(opened_files)),
         )
-    }
-
-    pub fn is_idle(&self) -> bool {
-        self.pid == PId::new(0)
     }
 
     pub fn lock(&self) -> SpinLockGuard<'_, MutableFields> {

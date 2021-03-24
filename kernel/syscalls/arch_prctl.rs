@@ -1,7 +1,6 @@
 use crate::{
     arch::{arch_prctl, UserVAddr},
-    fs::opened_file::Fd,
-    result::{Errno, Error, Result},
+    result::Result,
 };
 use crate::{process::current_process, syscalls::SyscallDispatcher};
 

@@ -1,5 +1,5 @@
 use super::{current_process, switch, Process, ProcessState, SCHEDULER};
-use crate::arch::SpinLock;
+
 use alloc::sync::Arc;
 use crossbeam::queue::SegQueue;
 
@@ -25,7 +25,7 @@ impl WaitQueue {
         }
     }
 
-    pub fn wake_all(&self) {
+    pub fn _wake_all(&self) {
         while let Some(process) = self.queue.pop() {
             SCHEDULER.lock().enqueue(process);
         }

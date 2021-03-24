@@ -1,35 +1,14 @@
-use super::*;
 use crate::{
-    arch::{self, disable_interrupt, enable_interrupt, is_interrupt_enabled, SpinLock, VAddr},
-    elf::Elf,
-    fs::initramfs::INITRAM_FS,
-    fs::mount::RootFs,
-    fs::opened_file,
-    fs::path::Path,
-    fs::{
-        devfs::DEV_FS,
-        inode::{FileLike, INode},
-        opened_file::*,
-        stat::Stat,
-    },
-    mm::{
-        page_allocator::alloc_pages,
-        vm::{Vm, VmAreaType},
-    },
-    result::{Errno, Error, ErrorExt, Result},
+    arch::{self, VAddr},
+    result::{Errno, Error, Result},
 };
-use alloc::collections::BTreeMap;
-use alloc::sync::Arc;
+
 use alloc::vec::Vec;
-use arch::{UserVAddr, KERNEL_STACK_SIZE, PAGE_SIZE, USER_STACK_TOP};
-use arrayvec::ArrayVec;
-use core::cmp::max;
-use core::mem::{self, size_of, size_of_val};
-use core::sync::atomic::{AtomicI32, Ordering};
-use goblin::elf64::program_header::PT_LOAD;
-use opened_file::OpenedFileTable;
-use penguin_utils::once::Once;
-use penguin_utils::{alignment::align_up, lazy::Lazy};
+use arch::UserVAddr;
+
+use core::mem::size_of;
+
+use penguin_utils::alignment::align_up;
 
 pub enum Auxv {
     /// End of a vector.
@@ -119,42 +98,42 @@ pub(super) fn init_user_stack(
     // Write envp strings.
     let mut envp_ptrs = Vec::with_capacity(argv.len());
     for env in envp {
-        push_bytes_to_stack(&mut sp, stack_bottom, &[0]);
-        push_bytes_to_stack(&mut sp, stack_bottom, env);
+        push_bytes_to_stack(&mut sp, stack_bottom, &[0])?;
+        push_bytes_to_stack(&mut sp, stack_bottom, env)?;
         envp_ptrs.push(kernel_sp_to_user_sp(sp)?);
     }
 
     // Write argv strings.
     let mut argv_ptrs = Vec::with_capacity(argv.len());
     for arg in argv.iter().rev() {
-        push_bytes_to_stack(&mut sp, stack_bottom, &[0]);
-        push_bytes_to_stack(&mut sp, stack_bottom, arg);
+        push_bytes_to_stack(&mut sp, stack_bottom, &[0])?;
+        push_bytes_to_stack(&mut sp, stack_bottom, arg)?;
         argv_ptrs.push(kernel_sp_to_user_sp(sp)?);
     }
 
     // The length of the string table wrote above could be unaligned.
-    sp.align_down(size_of::<usize>());
+    sp = sp.align_down(size_of::<usize>());
 
     // Push auxiliary vector entries.
-    push_auxv_entry_to_stack(&mut sp, stack_bottom, &Auxv::Null);
+    push_auxv_entry_to_stack(&mut sp, stack_bottom, &Auxv::Null)?;
     for aux in auxv {
-        push_auxv_entry_to_stack(&mut sp, stack_bottom, aux);
+        push_auxv_entry_to_stack(&mut sp, stack_bottom, aux)?;
     }
 
     // Push environment pointers (`const char **envp`).
-    push_usize_to_stack(&mut sp, stack_bottom, 0);
+    push_usize_to_stack(&mut sp, stack_bottom, 0)?;
     for ptr in envp_ptrs {
-        push_usize_to_stack(&mut sp, stack_bottom, ptr.value());
+        push_usize_to_stack(&mut sp, stack_bottom, ptr.value())?;
     }
 
     // Push argument pointers (`const char **argv`).
-    push_usize_to_stack(&mut sp, stack_bottom, 0);
+    push_usize_to_stack(&mut sp, stack_bottom, 0)?;
     for ptr in argv_ptrs {
-        push_usize_to_stack(&mut sp, stack_bottom, ptr.value());
+        push_usize_to_stack(&mut sp, stack_bottom, ptr.value())?;
     }
 
     // Push argc.
-    push_usize_to_stack(&mut sp, stack_bottom, argv.len());
+    push_usize_to_stack(&mut sp, stack_bottom, argv.len())?;
 
-    Ok(kernel_sp_to_user_sp(sp)?)
+    kernel_sp_to_user_sp(sp)
 }

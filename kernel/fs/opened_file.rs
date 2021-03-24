@@ -3,7 +3,6 @@ use crate::result::{Errno, Error, Result};
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use bitflags::bitflags;
-use hashbrown::HashMap;
 
 bitflags! {
     pub struct OpenMode: u32 {
@@ -29,13 +28,12 @@ impl Fd {
 
 pub struct OpenedFile {
     inode: INode,
-    mode: OpenMode,
     pos: usize,
 }
 
 impl OpenedFile {
-    pub fn new(inode: INode, mode: OpenMode, pos: usize) -> OpenedFile {
-        OpenedFile { inode, mode, pos }
+    pub fn new(inode: INode, _mode: OpenMode, pos: usize) -> OpenedFile {
+        OpenedFile { inode, pos }
     }
 
     pub fn as_file(&self) -> Result<&Arc<dyn FileLike>> {
@@ -52,15 +50,11 @@ impl OpenedFile {
 
 pub struct OpenedFileTable {
     files: Vec<Option<Arc<OpenedFile>>>,
-    next_tid: i32,
 }
 
 impl OpenedFileTable {
     pub fn new() -> OpenedFileTable {
-        OpenedFileTable {
-            files: Vec::new(),
-            next_tid: 0,
-        }
+        OpenedFileTable { files: Vec::new() }
     }
 
     pub fn get(&self, fd: Fd) -> Result<&Arc<OpenedFile>> {

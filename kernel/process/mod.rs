@@ -1,41 +1,26 @@
 use crate::{
-    arch::{self, disable_interrupt, enable_interrupt, is_interrupt_enabled, SpinLock, VAddr},
-    elf::Elf,
-    fs::initramfs::INITRAM_FS,
-    fs::mount::RootFs,
-    fs::opened_file,
-    fs::path::Path,
-    fs::{
-        devfs::DEV_FS,
-        inode::{FileLike, INode},
-        opened_file::*,
-        stat::Stat,
-    },
-    mm::{
-        page_allocator::alloc_pages,
-        vm::{Vm, VmAreaType},
-    },
-    result::{Errno, Error, ErrorExt, Result},
+    arch::{self, SpinLock},
+    fs::{inode::FileLike, opened_file::*},
+    mm::vm::{Vm, VmAreaType},
 };
-use alloc::collections::{BTreeMap, VecDeque};
+
 use alloc::sync::Arc;
-use alloc::vec::Vec;
+
 use arch::{UserVAddr, KERNEL_STACK_SIZE, PAGE_SIZE, USER_STACK_TOP};
-use arrayvec::ArrayVec;
+
 use core::cmp::max;
-use core::mem::{self, size_of, size_of_val};
-use core::sync::atomic::{AtomicI32, Ordering};
-use goblin::elf64::program_header::PT_LOAD;
-use opened_file::OpenedFileTable;
+use core::mem::size_of;
+
 use penguin_utils::once::Once;
 use penguin_utils::{alignment::align_up, lazy::Lazy};
 
-pub mod execve;
+mod execve;
 mod init_stack;
-pub mod process;
-pub mod scheduler;
-pub mod switch;
-pub mod wait_queue;
+#[allow(clippy::module_inception)]
+mod process;
+mod scheduler;
+mod switch;
+mod wait_queue;
 
 pub use execve::*;
 pub use init_stack::*;

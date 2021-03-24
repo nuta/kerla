@@ -23,7 +23,7 @@ pub fn execve(
 
     let elf = Elf::parse(&buf);
     let ip = elf.entry()?;
-    let sp = UserVAddr::new(0xdead_0000_beef_beef)?;
+    let _sp = UserVAddr::new(0xdead_0000_beef_beef)?;
 
     let mut end_of_image = 0;
     for phdr in elf.program_headers() {

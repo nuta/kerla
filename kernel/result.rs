@@ -2,6 +2,7 @@ use core::fmt;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 #[repr(i32)]
+#[allow(unused)]
 pub enum Errno {
     EPERM = 1,
     ENOENT = 2,

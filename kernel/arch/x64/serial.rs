@@ -1,6 +1,6 @@
 use x86::io::{inb, outb};
 
-use crate::fs::devfs::{CONSOLE_FILE, DEV_FS};
+use crate::fs::devfs::{CONSOLE_FILE};
 
 use super::ioapic::enable_irq;
 

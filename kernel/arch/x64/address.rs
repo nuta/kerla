@@ -143,13 +143,11 @@ impl UserVAddr {
     }
 
     #[inline(always)]
-    #[must_use]
     pub const fn add(self, offset: usize) -> Result<UserVAddr> {
         UserVAddr::new(self.0 as usize + offset)
     }
 
     #[inline(always)]
-    #[must_use]
     pub const fn sub(self, offset: usize) -> Result<UserVAddr> {
         UserVAddr::new(self.0 as usize - offset)
     }
@@ -162,7 +160,7 @@ impl UserVAddr {
     pub fn access_ok(self, len: usize) -> Result<()> {
         match self.value().checked_add(len) {
             Some(end) if end <= KERNEL_BASE_ADDR as usize => Ok(()),
-            Some(end) => Err(Error::with_message(Errno::EFAULT, "invalid user pointer")),
+            Some(_end) => Err(Error::with_message(Errno::EFAULT, "invalid user pointer")),
             None => Err(Error::with_message(Errno::EFAULT, "overflow in access_ok")),
         }
     }
