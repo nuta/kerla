@@ -3,6 +3,7 @@ use crate::{
     fs::opened_file::Fd,
     result::{Errno, Error, Result},
 };
+use alloc::vec::Vec;
 
 const SYS_READ: usize = 0;
 const SYS_WRITE: usize = 1;
@@ -12,6 +13,24 @@ const SYS_WRITEV: usize = 20;
 const SYS_EXIT: usize = 60;
 const SYS_ARCH_PRCTL: usize = 158;
 const SYS_SET_TID_ADDRESS: usize = 218;
+
+pub(self) struct UserCStr {
+    buf: Vec<u8>,
+}
+
+impl UserCStr {
+    pub fn new(uaddr: UserVAddr, max_len: usize) -> Result<UserCStr> {
+        let mut buf = Vec::with_capacity(max_len);
+        buf.resize(max_len, 0);
+        let copied_len = uaddr.read_cstr(buf.as_mut_slice())?;
+        buf.resize(copied_len, 0);
+        Ok(UserCStr { buf })
+    }
+
+    pub fn as_str(&self) -> Result<&str> {
+        core::str::from_utf8(&self.buf).map_err(|_| Error::new(Errno::EINVAL))
+    }
+}
 
 pub struct SyscallDispatcher {}
 
