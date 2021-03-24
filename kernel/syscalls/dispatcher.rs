@@ -40,7 +40,10 @@ impl SyscallDispatcher {
             SYS_IOCTL => self.sys_ioctl(Fd::new(a1 as i32), a2, a3),
             SYS_SET_TID_ADDRESS => self.sys_set_tid_address(UserVAddr::new(a1)?),
             SYS_EXIT => self.sys_exit(a1 as i32),
-            _ => Err(Error::new(Errno::ENOSYS)),
+            _ => {
+                debug_warn!("unimplemented system call n={}", n);
+                Err(Error::new(Errno::ENOSYS))
+            }
         }
     }
 }
