@@ -20,7 +20,7 @@ const SYS_SET_TID_ADDRESS: usize = 218;
 
 const PATH_MAX: usize = 512;
 
-pub(self) struct UserCStr {
+pub(super) struct UserCStr {
     buf: Vec<u8>,
 }
 
