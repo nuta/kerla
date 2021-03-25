@@ -1,4 +1,5 @@
 use alloc::string::{String, ToString};
+use core::fmt;
 use core::ops::Deref;
 
 #[derive(Debug, Eq, PartialEq, Hash)]
@@ -30,6 +31,11 @@ impl Path {
     }
 }
 
+impl fmt::Display for Path {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", &self.path)
+    }
+}
 pub struct Components<'a> {
     path: &'a str,
 }
