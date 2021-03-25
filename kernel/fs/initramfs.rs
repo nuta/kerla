@@ -11,6 +11,7 @@ use crate::{
     result::{Errno, Error, Result},
 };
 use alloc::sync::Arc;
+use core::cmp::min;
 use core::str::from_utf8_unchecked;
 use hashbrown::HashMap;
 use penguin_utils::byte_size::ByteSize;
@@ -36,8 +37,10 @@ struct InitramFsFile {
 
 impl FileLike for InitramFsFile {
     fn read(&self, offset: usize, buf: &mut [u8]) -> Result<usize> {
-        buf.copy_from_slice(&self.data[offset..offset + buf.len()]);
-        Ok(buf.len())
+        let end = min(offset + buf.len(), self.data.len());
+        let copy_len = end - offset;
+        buf[0..copy_len].copy_from_slice(&self.data[offset..end]);
+        Ok(copy_len)
     }
 
     fn write(&self, _offset: usize, _buf: &[u8]) -> Result<usize> {
