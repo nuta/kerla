@@ -11,6 +11,7 @@ const SYS_STAT: usize = 4;
 const SYS_BRK: usize = 12;
 const SYS_IOCTL: usize = 16;
 const SYS_WRITEV: usize = 20;
+const SYS_FORK: usize = 57;
 const SYS_EXECVE: usize = 59;
 const SYS_EXIT: usize = 60;
 const SYS_ARCH_PRCTL: usize = 158;
