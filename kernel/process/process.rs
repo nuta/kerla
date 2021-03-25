@@ -5,6 +5,7 @@ use crate::{
     fs::inode::{FileLike, INode},
     fs::{mount::RootFs, opened_file},
     mm::vm::Vm,
+    process::execve,
     result::Result,
 };
 
