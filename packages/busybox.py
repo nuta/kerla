@@ -13,7 +13,7 @@ class Busybox(Package):
         self.url = f"https://busybox.net/downloads/busybox-{self.version}.tar.bz2"
         self.host_deps = ["musl-tools"]
         self.files = {
-            "/bin/busybox": "busybox"
+            "/bin/busybox": "busybox_unstripped"
         }
 
         self.symlinks = {}
@@ -31,4 +31,5 @@ class Busybox(Package):
         self.set_kconfig("UNAME", True)
         self.set_kconfig("ASH", True)
         self.set_kconfig("ASH_OPTIMIZE_FOR_SIZE", True)
+        self.set_kconfig("DEBUG", True)
         self.make()
