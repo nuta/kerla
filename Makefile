@@ -33,7 +33,7 @@ NM         ?= rust-nm
 READELF    ?= readelf
 STRIP      ?= rust-strip
 
-export RUSTFLAGS = -Z macro-backtrace -Z emit-stack-sizes
+export RUSTFLAGS = -Z emit-stack-sizes
 CARGOFLAGS += -Z build-std=core,alloc -Z build-std-features=compiler-builtins-mem
 CARGOFLAGS += --target $(target_json)
 CARGOFLAGS += $(if $(RELEASE),--release,)
