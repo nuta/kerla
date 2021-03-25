@@ -54,6 +54,8 @@ pub fn switch(new_state: ProcessState) {
     let mut prev_inner = prev_thread.inner.lock();
     let mut next_inner = next_thread.inner.lock();
 
+    prev_inner.state = new_state;
+
     if let Some(vm) = next_thread.vm.as_ref() {
         let lock = vm.lock();
         lock.page_table().switch();

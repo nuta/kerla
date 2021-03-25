@@ -14,6 +14,7 @@ const SYS_WRITEV: usize = 20;
 const SYS_FORK: usize = 57;
 const SYS_EXECVE: usize = 59;
 const SYS_EXIT: usize = 60;
+const SYS_WAIT4: usize = 61;
 const SYS_ARCH_PRCTL: usize = 158;
 const SYS_SET_TID_ADDRESS: usize = 218;
 
@@ -79,6 +80,12 @@ impl<'a> SyscallDispatcher<'a> {
                 UserVAddr::new(a3)?,
             ),
             SYS_FORK => self.sys_fork(),
+            SYS_WAIT4 => self.sys_wait4(
+                PId::new(a1 as i32),
+                UserVAddr::new(a2)?,
+                a3 as i32,
+                UserVAddr::new(a4)?,
+            ),
             SYS_EXIT => self.sys_exit(a1 as i32),
             _ => {
                 debug_warn!("unimplemented system call n={}", n);

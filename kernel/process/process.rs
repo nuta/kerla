@@ -39,6 +39,7 @@ impl PId {
 pub enum ProcessState {
     Runnable,
     Sleeping,
+    WaitForAnyChild,
 }
 
 /// Mutable fields in the process struct.
@@ -145,6 +146,23 @@ impl Process {
 
         PROCESSES.lock().insert(process.pid, process.clone());
         Ok(process)
+    }
+
+    pub fn exit(&self) {
+        if let Some(parent) = self.parent.as_ref() {
+            if let Some(parent) = parent.upgrade() {
+                let mut lock = parent.lock();
+                // FIXME: What if the child exists before the parent enters the
+                //        wait state?
+                if ProcessState::WaitForAnyChild == lock.state {
+                    // FIXME: Cleanup.
+                    lock.state = ProcessState::Runnable;
+                    lock.resumed_by = Some(self.pid);
+                    drop(lock);
+                    SCHEDULER.lock().enqueue(parent);
+                }
+            }
+        }
     }
 
     pub fn lock(&self) -> SpinLockGuard<'_, MutableFields> {
