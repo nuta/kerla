@@ -10,8 +10,7 @@ impl<'a> SyscallDispatcher<'a> {
         let mut buf = vec![0; len]; // TODO: deny too long len
         uaddr.read_bytes(&mut buf)?;
         let current = current_process().opened_files.lock();
-        let open_file = current.get(fd)?;
-        let file = open_file.as_file()?;
+        let mut open_file = current.get(fd)?.lock();
 
         // MAX_READ_WRITE_LEN limit guarantees total_len is in the range of isize.
         let written_len = file.write(open_file.pos(), buf.as_slice())?;

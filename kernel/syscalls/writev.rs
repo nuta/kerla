@@ -10,7 +10,7 @@ impl<'a> SyscallDispatcher<'a> {
         let iov_count = min(iov_count, IOV_MAX);
 
         let current = current_process().opened_files.lock();
-        let open_file = current.get(fd)?;
+        let open_file = current.get(fd)?.lock();
         let file = open_file.as_file()?;
 
         let mut total_len: usize = 0;

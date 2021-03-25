@@ -8,8 +8,7 @@ impl<'a> SyscallDispatcher<'a> {
         let len = min(len, MAX_READ_WRITE_LEN);
 
         let current = current_process().opened_files.lock();
-        let open_file = current.get(fd)?;
-        let file = open_file.as_file()?;
+        let mut open_file = current.get(fd)?.lock();
 
         let mut buf = vec![0; len]; // TODO: deny too long len
         let len = file.read(open_file.pos(), buf.as_mut_slice())?;
