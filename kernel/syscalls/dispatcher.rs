@@ -1,6 +1,7 @@
 use crate::{
     fs::{opened_file::Fd, path::Path},
     arch::{SyscallFrame, UserVAddr},
+    process::PId,
     result::{Errno, Error, Result},
 };
 use alloc::vec::Vec;
@@ -57,7 +58,7 @@ impl<'a> SyscallDispatcher<'a> {
         a1: usize,
         a2: usize,
         a3: usize,
-        _a4: usize,
+        a4: usize,
         _a5: usize,
         _a6: usize,
         n: usize,
