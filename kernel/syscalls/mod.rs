@@ -3,6 +3,7 @@ use crate::arch::UserVAddr;
 pub(self) mod arch_prctl;
 pub(self) mod brk;
 pub(self) mod dispatcher;
+pub(self) mod execve;
 pub(self) mod exit;
 pub(self) mod fork;
 pub(self) mod ioctl;

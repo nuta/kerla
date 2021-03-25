@@ -11,6 +11,7 @@ const SYS_STAT: usize = 4;
 const SYS_BRK: usize = 12;
 const SYS_IOCTL: usize = 16;
 const SYS_WRITEV: usize = 20;
+const SYS_EXECVE: usize = 59;
 const SYS_EXIT: usize = 60;
 const SYS_ARCH_PRCTL: usize = 158;
 const SYS_SET_TID_ADDRESS: usize = 218;
@@ -71,6 +72,11 @@ impl<'a> SyscallDispatcher<'a> {
             SYS_BRK => self.sys_brk(UserVAddr::new(a1)?),
             SYS_IOCTL => self.sys_ioctl(Fd::new(a1 as i32), a2, a3),
             SYS_SET_TID_ADDRESS => self.sys_set_tid_address(UserVAddr::new(a1)?),
+            SYS_EXECVE => self.sys_execve(
+                Path::new(UserCStr::new(UserVAddr::new(a1)?, PATH_MAX)?.as_str()?),
+                UserVAddr::new(a2)?,
+                UserVAddr::new(a3)?,
+            ),
             SYS_FORK => self.sys_fork(),
             SYS_EXIT => self.sys_exit(a1 as i32),
             _ => {
