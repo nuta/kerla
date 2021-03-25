@@ -90,17 +90,29 @@ impl Process {
         // Open stdin.
         opened_files.open_with_fixed_fd(
             Fd::new(0),
-            Arc::new(OpenedFile::new(console.clone(), OpenMode::O_RDONLY, 0)),
+            Arc::new(SpinLock::new(OpenedFile::new(
+                console.clone(),
+                OpenMode::O_RDONLY,
+                0,
+            ))),
         )?;
         // Open stdout.
         opened_files.open_with_fixed_fd(
             Fd::new(1),
-            Arc::new(OpenedFile::new(console.clone(), OpenMode::O_WRONLY, 0)),
+            Arc::new(SpinLock::new(OpenedFile::new(
+                console.clone(),
+                OpenMode::O_WRONLY,
+                0,
+            ))),
         )?;
         // Open stderr.
         opened_files.open_with_fixed_fd(
             Fd::new(2),
-            Arc::new(OpenedFile::new(console, OpenMode::O_WRONLY, 0)),
+            Arc::new(SpinLock::new(OpenedFile::new(
+                console,
+                OpenMode::O_WRONLY,
+                0,
+            ))),
         )?;
 
         execve(

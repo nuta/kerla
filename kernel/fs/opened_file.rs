@@ -1,4 +1,5 @@
 use super::inode::{FileLike, INode};
+use crate::arch::SpinLock;
 use crate::result::{Errno, Error, Result};
 use alloc::sync::Arc;
 use alloc::vec::Vec;
@@ -49,22 +50,28 @@ impl OpenedFile {
 }
 
 pub struct OpenedFileTable {
-    files: Vec<Option<Arc<OpenedFile>>>,
+    files: Vec<Option<Arc<SpinLock<OpenedFile>>>>,
 }
 
 impl OpenedFileTable {
     pub fn new() -> OpenedFileTable {
-        OpenedFileTable { files: Vec::new() }
+        OpenedFileTable {
+            files: Vec::new(),
+        }
     }
 
-    pub fn get(&self, fd: Fd) -> Result<&Arc<OpenedFile>> {
+    pub fn get(&self, fd: Fd) -> Result<&Arc<SpinLock<OpenedFile>>> {
         match self.files.get(fd.as_usize()) {
             Some(Some(opened_file)) => Ok(opened_file),
             _ => Err(Error::new(Errno::EBADF)),
         }
     }
 
-    pub fn open_with_fixed_fd(&mut self, fd: Fd, opened_file: Arc<OpenedFile>) -> Result<()> {
+    pub fn open_with_fixed_fd(
+        &mut self,
+        fd: Fd,
+        opened_file: Arc<SpinLock<OpenedFile>>,
+    ) -> Result<()> {
         match self.files.get_mut(fd.as_usize()) {
             Some(Some(_)) => {
                 return Err(Error::with_message(
