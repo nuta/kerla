@@ -92,6 +92,15 @@ impl OpenedFileTable {
         }
     }
 
+    pub fn close(&mut self, fd: Fd) -> Result<()> {
+        match self.files.get_mut(fd.as_usize()) {
+            Some(opened_file) => *opened_file = None,
+            _ => return Err(Error::new(Errno::EBADF)),
+        }
+
+        Ok(())
+    }
+
     pub fn open(&mut self, inode: INode) -> Result<Fd> {
         let mut i = (self.prev_fd + 1) % FD_MAX;
         while i != self.prev_fd {
