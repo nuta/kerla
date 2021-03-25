@@ -12,6 +12,7 @@ use x86::{current::segmentation::wrfsbase};
 pub struct Thread {
     rsp: u64,
     pub(super) fsbase: u64,
+    pub(super) xsave_area: Option<VAddr>,
     interrupt_stack: VAddr,
     syscall_stack: VAddr,
 }
@@ -59,6 +60,7 @@ impl Thread {
         Thread {
             rsp: rsp as u64,
             fsbase: 0,
+            xsave_area: None,
             interrupt_stack,
             syscall_stack,
         }
@@ -70,6 +72,10 @@ impl Thread {
             .as_vaddr();
         let syscall_stack = alloc_pages(1, AllocPageFlags::KERNEL)
             .expect("failed to allocate kernel stack")
+            .as_vaddr();
+        // TODO: Check the size of XSAVE area.
+        let xsave_area = alloc_pages(1, AllocPageFlags::KERNEL)
+            .expect("failed to allocate xsave area")
             .as_vaddr();
 
         let rsp = unsafe {
@@ -98,6 +104,7 @@ impl Thread {
         Thread {
             rsp: rsp as u64,
             fsbase: 0,
+            xsave_area: Some(xsave_area),
             interrupt_stack,
             syscall_stack,
         }
@@ -127,6 +134,16 @@ pub fn switch_thread(prev: &mut Thread, next: &mut Thread) {
     head.rsp0 = (next.syscall_stack.value() + KERNEL_STACK_SIZE) as u64;
     TSS.as_mut()
         .set_rsp0((next.interrupt_stack.value() + KERNEL_STACK_SIZE) as u64);
+
+    // Save and restore the XSAVE area (i.e. XMM/YMM registrers).
+    unsafe {
+        if let Some(xsave_area) = prev.xsave_area.as_ref() {
+            asm!("xsave [{0}]", in(reg) xsave_area.value() as u64);
+        }
+        if let Some(xsave_area) = next.xsave_area.as_ref() {
+            asm!("xrstor [{0}]", in(reg) xsave_area.value() as u64);
+        }
+    }
 
     // Fill an invalid value for now: must be initialized in interrupt handlers.
     head.rsp3 = 0xbaad_5a5a_5b5b_baad;
