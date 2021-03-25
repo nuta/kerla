@@ -5,6 +5,16 @@ use alloc::sync::Arc;
 use alloc::vec::Vec;
 use bitflags::bitflags;
 
+const FD_MAX: i32 = 1024;
+
+bitflags! {
+    pub struct OpenFlags: i32 {
+        const O_CREAT = 0o100;
+        const O_TRUNC = 0o1000;
+        const O_APPEND = 0o2000;
+        }
+}
+
 bitflags! {
     pub struct OpenMode: u32 {
         const O_RDONLY = 0o0;
@@ -64,12 +74,14 @@ impl OpenedFile {
 #[derive(Clone)]
 pub struct OpenedFileTable {
     files: Vec<Option<Arc<SpinLock<OpenedFile>>>>,
+    prev_fd: i32,
 }
 
 impl OpenedFileTable {
     pub fn new() -> OpenedFileTable {
         OpenedFileTable {
             files: Vec::new(),
+            prev_fd: 1,
         }
     }
 
@@ -78,6 +90,22 @@ impl OpenedFileTable {
             Some(Some(opened_file)) => Ok(opened_file),
             _ => Err(Error::new(Errno::EBADF)),
         }
+    }
+
+    pub fn open(&mut self, inode: INode) -> Result<Fd> {
+        let mut i = (self.prev_fd + 1) % FD_MAX;
+        while i != self.prev_fd {
+            if matches!(self.files.get(i as usize), Some(None) | None) {
+                // It looks the fd number is not in use. Open the file at that fd.
+                let fd = Fd::new(i);
+                self.open_with_fixed_fd(fd, Arc::new(SpinLock::new(OpenedFile { inode, pos: 0 })))?;
+                return Ok(fd);
+            }
+
+            i = (i + 1) % FD_MAX;
+        }
+
+        Err(Error::new(Errno::ENFILE))
     }
 
     pub fn open_with_fixed_fd(

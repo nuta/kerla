@@ -7,6 +7,7 @@ pub(self) mod execve;
 pub(self) mod exit;
 pub(self) mod fork;
 pub(self) mod ioctl;
+pub(self) mod open;
 pub(self) mod read;
 pub(self) mod set_tid_address;
 pub(self) mod stat;

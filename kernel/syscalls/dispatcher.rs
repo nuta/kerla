@@ -1,6 +1,10 @@
 use crate::{
-    fs::{opened_file::Fd, path::Path},
     arch::{SyscallFrame, UserVAddr},
+    fs::{
+        opened_file::{Fd, OpenFlags},
+        path::Path,
+        stat::FileMode,
+    },
     process::PId,
     result::{Errno, Error, Result},
 };
@@ -8,6 +12,7 @@ use alloc::vec::Vec;
 
 const SYS_READ: usize = 0;
 const SYS_WRITE: usize = 1;
+const SYS_OPEN: usize = 2;
 const SYS_STAT: usize = 4;
 const SYS_BRK: usize = 12;
 const SYS_IOCTL: usize = 16;
@@ -64,6 +69,10 @@ impl<'a> SyscallDispatcher<'a> {
         n: usize,
     ) -> Result<isize> {
         match n {
+            SYS_OPEN => self.sys_open(
+                Path::new(UserCStr::new(UserVAddr::new(a1)?, PATH_MAX)?.as_str()?),
+                OpenFlags::from_bits(a2 as i32).ok_or(Error::new(Errno::ENOSYS))?,
+            ),
             SYS_READ => self.sys_read(Fd::new(a1 as i32), UserVAddr::new(a2)?, a3),
             SYS_WRITE => self.sys_write(Fd::new(a1 as i32), UserVAddr::new(a2)?, a3),
             SYS_WRITEV => self.sys_writev(Fd::new(a1 as i32), UserVAddr::new(a2)?, a3),
