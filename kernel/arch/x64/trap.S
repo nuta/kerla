@@ -46,9 +46,10 @@ syscall_entry:
     push r15
 
     mov rcx, r10 // arg3
+    push rsp     // syscall frame
     push rax     // syscall number
     call x64_handle_syscall
-    add rsp, 8
+    add rsp, 16
 
     // Restore registers.
     pop r15

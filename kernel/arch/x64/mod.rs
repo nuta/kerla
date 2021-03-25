@@ -39,4 +39,5 @@ pub use page_table::{PageFaultReason, PageTable};
 #[cfg(test)]
 pub use semihosting::{semihosting_halt, ExitStatus};
 pub use serial::{print_str, printchar};
+pub use syscall::SyscallFrame;
 pub use thread::{switch_thread, Thread};

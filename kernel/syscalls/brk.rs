@@ -1,7 +1,7 @@
 use crate::{arch::UserVAddr, result::Result};
 use crate::{process::current_process, syscalls::SyscallDispatcher};
 
-impl SyscallDispatcher {
+impl<'a> SyscallDispatcher<'a> {
     pub fn sys_brk(&mut self, new_heap_end: UserVAddr) -> Result<isize> {
         let mut vm = current_process().vm();
         if !new_heap_end.is_null() {

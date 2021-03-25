@@ -3,7 +3,7 @@ use crate::{arch::UserVAddr, fs::opened_file::Fd, result::Result};
 use crate::{process::current_process, syscalls::SyscallDispatcher};
 use core::cmp::min;
 
-impl SyscallDispatcher {
+impl<'a> SyscallDispatcher<'a> {
     pub fn sys_read(&mut self, fd: Fd, uaddr: UserVAddr, len: usize) -> Result<isize> {
         let len = min(len, MAX_READ_WRITE_LEN);
 

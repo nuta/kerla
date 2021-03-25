@@ -5,7 +5,7 @@ use core::cmp::min;
 
 use core::mem::size_of;
 
-impl SyscallDispatcher {
+impl<'a> SyscallDispatcher<'a> {
     pub fn sys_writev(&mut self, fd: Fd, iov_base: UserVAddr, iov_count: usize) -> Result<isize> {
         let iov_count = min(iov_count, IOV_MAX);
 

@@ -1,6 +1,6 @@
 use crate::{
-    arch::UserVAddr,
     fs::{opened_file::Fd, path::Path},
+    arch::{SyscallFrame, UserVAddr},
     result::{Errno, Error, Result},
 };
 use alloc::vec::Vec;
@@ -30,16 +30,22 @@ impl UserCStr {
         Ok(UserCStr { buf })
     }
 
+    pub fn as_bytes(&self) -> &[u8] {
+        &self.buf
+    }
+
     pub fn as_str(&self) -> Result<&str> {
         core::str::from_utf8(&self.buf).map_err(|_| Error::new(Errno::EINVAL))
     }
 }
 
-pub struct SyscallDispatcher {}
+pub struct SyscallDispatcher<'a> {
+    pub frame: &'a SyscallFrame,
+}
 
-impl SyscallDispatcher {
-    pub fn new() -> SyscallDispatcher {
-        SyscallDispatcher {}
+impl<'a> SyscallDispatcher<'a> {
+    pub fn new(frame: &'a SyscallFrame) -> SyscallDispatcher<'a> {
+        SyscallDispatcher { frame }
     }
 
     #[allow(clippy::too_many_arguments)]

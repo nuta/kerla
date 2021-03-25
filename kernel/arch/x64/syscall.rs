@@ -1,15 +1,30 @@
-
-
 use crate::syscalls::SyscallDispatcher;
 
-use super::{
-    gdt::{KERNEL_CS, USER_CS32},
-};
+use super::gdt::{KERNEL_CS, USER_CS32};
 use x86::msr::{self, rdmsr, wrmsr};
 
 // Clear IF bit to disable interrupts when we enter the syscall handler
 // or an interrupt occurs before doing SWAPGS.
 const SYSCALL_RFLAGS_MASK: u64 = 0x200;
+
+#[repr(C, packed)]
+pub struct SyscallFrame {
+    pub(super) r15: u64,
+    pub(super) r14: u64,
+    pub(super) r13: u64,
+    pub(super) r12: u64,
+    pub(super) r10: u64,
+    pub(super) r9: u64,
+    pub(super) r8: u64,
+    pub(super) rsi: u64,
+    pub(super) rdi: u64,
+    pub(super) rdx: u64,
+    pub(super) rbx: u64,
+    pub(super) rbp: u64,
+    pub(super) rip: u64,
+    pub(super) rflags: u64,
+    pub(super) rsp: u64,
+}
 
 #[no_mangle]
 extern "C" fn x64_handle_syscall(
@@ -20,8 +35,9 @@ extern "C" fn x64_handle_syscall(
     a5: usize,
     a6: usize,
     n: usize,
+    frame: *const SyscallFrame,
 ) -> isize {
-    let mut context = SyscallDispatcher::new();
+    let mut context = SyscallDispatcher::new(unsafe { &*frame });
     context
         .dispatch(a1, a2, a3, a4, a5, a6, n)
         .unwrap_or_else(|err| -(err.errno() as isize))
