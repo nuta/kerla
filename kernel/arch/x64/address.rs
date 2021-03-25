@@ -23,6 +23,11 @@ impl PAddr {
         PAddr(addr as u64)
     }
 
+    #[inline(always)]
+    pub const fn is_null(self) -> bool {
+        self.0 == 0
+    }
+
     pub const fn as_vaddr(self) -> VAddr {
         debug_assert!(self.0 < KERNEL_STRAIGHT_MAP_PADDR_END);
         VAddr::new((self.0 + KERNEL_BASE_ADDR) as usize)
