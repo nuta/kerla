@@ -51,7 +51,7 @@ pub struct Vm {
 }
 
 impl Vm {
-    pub fn new(stack_bottom: UserVAddr, heap_bottom: UserVAddr) -> Vm {
+    pub fn new(stack_bottom: UserVAddr, heap_bottom: UserVAddr) -> Result<Vm> {
         debug_assert!(is_aligned(stack_bottom.value(), PAGE_SIZE));
         debug_assert!(is_aligned(heap_bottom.value(), PAGE_SIZE));
 
@@ -67,12 +67,12 @@ impl Vm {
             area_type: VmAreaType::Anonymous,
         };
 
-        Vm {
-            page_table: PageTable::new(),
+        Ok(Vm {
+            page_table: PageTable::new()?,
             // The order of elements must be unchanged because `stack_vma_mut()`
             // and `heap_vma_mut` depends on it.
             vm_areas: vec![stack_vma, heap_vma],
-        }
+        })
     }
 
     pub fn page_table(&self) -> &PageTable {
