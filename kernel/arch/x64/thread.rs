@@ -1,12 +1,14 @@
 use super::{
     address::VAddr,
     gdt::{USER_CS64, USER_DS},
-    tss::{TSS},
+    syscall::SyscallFrame,
+    tss::TSS,
     UserVAddr, KERNEL_STACK_SIZE,
 };
 use super::{cpu_local::cpu_local_head, gdt::USER_RPL};
 use crate::mm::page_allocator::{alloc_pages, AllocPageFlags};
-use x86::{current::segmentation::wrfsbase};
+use crate::result::Result;
+use x86::current::segmentation::wrfsbase;
 
 #[repr(C, packed)]
 pub struct Thread {
@@ -20,6 +22,7 @@ pub struct Thread {
 extern "C" {
     fn kthread_entry();
     fn userland_entry();
+    fn forked_child_entry();
     fn do_switch_thread(prev_rsp: *const u64, next_rsp: *const u64);
 }
 
@@ -121,9 +124,67 @@ impl Thread {
         Thread {
             rsp: 0,
             fsbase: 0,
+            xsave_area: None,
             interrupt_stack,
             syscall_stack,
         }
+    }
+
+    pub fn fork(&self, frame: &SyscallFrame) -> Result<Thread> {
+        // TODO: Check the size of XSAVE area.
+        let xsave_area = alloc_pages(1, AllocPageFlags::KERNEL)
+            .expect("failed to allocate xsave area")
+            .as_vaddr();
+
+        let rsp = unsafe {
+            let kernel_sp =
+                alloc_pages(1, AllocPageFlags::KERNEL).expect("failed allocate kernel stack");
+            let mut rsp: *mut u64 = kernel_sp.as_mut_ptr();
+
+            // Registers to be restored by IRET.
+            rsp = push_stack(rsp, (USER_DS | USER_RPL) as u64); // SS
+            rsp = push_stack(rsp, frame.rsp); // user RSP
+            rsp = push_stack(rsp, frame.rflags); // user RFLAGS.
+            rsp = push_stack(rsp, (USER_CS64 | USER_RPL) as u64); // CS
+            rsp = push_stack(rsp, frame.rip); // user RIP
+
+            // Registers to be restored in forked_child_entry,
+            rsp = push_stack(rsp, frame.rflags); // user R11
+            rsp = push_stack(rsp, frame.rip); // user RCX
+            rsp = push_stack(rsp, frame.r10);
+            rsp = push_stack(rsp, frame.r9);
+            rsp = push_stack(rsp, frame.r8);
+            rsp = push_stack(rsp, frame.rsi);
+            rsp = push_stack(rsp, frame.rdi);
+            rsp = push_stack(rsp, frame.rdx);
+
+            // Registers to be restored in do_switch_thread().
+            rsp = push_stack(rsp, forked_child_entry as *const u8 as u64); // RIP.
+            rsp = push_stack(rsp, frame.rbp); // UserRBP.
+            rsp = push_stack(rsp, frame.rbx); // UserRBX.
+            rsp = push_stack(rsp, frame.r12); // UserR12.
+            rsp = push_stack(rsp, frame.r13); // UserR13.
+            rsp = push_stack(rsp, frame.r14); // UserR14.
+            rsp = push_stack(rsp, frame.r15); // UserR15.
+            rsp = push_stack(rsp, 0x02); // RFLAGS (interrupts disabled).
+
+            rsp
+        };
+
+        let interrupt_stack = alloc_pages(1, AllocPageFlags::KERNEL)
+            .expect("failed allocate kernel stack")
+            .as_vaddr();
+        let syscall_stack = alloc_pages(1, AllocPageFlags::KERNEL)
+            .expect("failed allocate kernel stack")
+            .as_vaddr();
+
+        Ok(Thread {
+            rsp: rsp as u64,
+            fsbase: self.fsbase,
+            xsave_area: Some(xsave_area),
+            interrupt_stack,
+            syscall_stack,
+        })
     }
 }
 

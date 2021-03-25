@@ -1,4 +1,6 @@
-use crate::{arch::PageTable, arch::UserVAddr, arch::PAGE_SIZE, fs::inode::FileLike};
+use crate::{
+    arch::PageTable, arch::SpinLock, arch::UserVAddr, arch::PAGE_SIZE, fs::inode::FileLike,
+};
 use crate::{
     arch::USER_STACK_TOP,
     result::{Errno, Error, Result},
@@ -7,6 +9,7 @@ use alloc::sync::Arc;
 use alloc::vec::Vec;
 use penguin_utils::alignment::{align_up, is_aligned};
 
+#[derive(Clone)]
 pub enum VmAreaType {
     Anonymous,
     File {
@@ -16,6 +19,7 @@ pub enum VmAreaType {
     },
 }
 
+#[derive(Clone)]
 pub struct VmArea {
     start: UserVAddr,
     len: usize,
@@ -135,5 +139,12 @@ impl Vm {
 
         heap_vma.len += increment;
         Ok(())
+    }
+
+    pub fn fork(&self) -> Result<Vm> {
+        Ok(Vm {
+            page_table: PageTable::duplicate_from(&self.page_table)?,
+            vm_areas: self.vm_areas.clone(),
+        })
     }
 }

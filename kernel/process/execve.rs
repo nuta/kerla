@@ -3,9 +3,11 @@ use crate::fs::{mount::RootFs, opened_file::OpenedFileTable};
 use crate::mm::page_allocator::{alloc_pages, AllocPageFlags};
 use crate::process::*;
 use crate::result::{Errno, Error, ErrorExt, Result};
+use alloc::sync::Weak;
 use goblin::elf64::program_header::PT_LOAD;
 
 pub fn execve(
+    parent: Option<Weak<Process>>,
     pid: PId,
     executable: Arc<dyn FileLike>,
     argv: &[&[u8]],
@@ -115,14 +117,17 @@ pub fn execve(
     let kernel_sp = stack_bottom.as_vaddr().add(KERNEL_STACK_SIZE);
 
     let process = Arc::new(Process {
+        parent,
         inner: SpinLock::new(MutableFields {
             arch: arch::Thread::new_user_thread(ip, user_sp, kernel_sp),
             state: ProcessState::Runnable,
+            resumed_by: None,
         }),
         root_fs,
         vm: Some(Arc::new(SpinLock::new(vm))),
         pid,
         opened_files,
+        wait_queue: WaitQueue::new(),
     });
 
     SCHEDULER.lock().enqueue(process.clone());

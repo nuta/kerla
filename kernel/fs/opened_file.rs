@@ -61,6 +61,7 @@ impl OpenedFile {
     }
 }
 
+#[derive(Clone)]
 pub struct OpenedFileTable {
     files: Vec<Option<Arc<SpinLock<OpenedFile>>>>,
 }
@@ -102,5 +103,9 @@ impl OpenedFileTable {
         }
 
         Ok(())
+    }
+
+    pub fn fork(&self) -> OpenedFileTable {
+        self.clone()
     }
 }

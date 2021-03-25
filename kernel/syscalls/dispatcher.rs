@@ -71,6 +71,7 @@ impl<'a> SyscallDispatcher<'a> {
             SYS_BRK => self.sys_brk(UserVAddr::new(a1)?),
             SYS_IOCTL => self.sys_ioctl(Fd::new(a1 as i32), a2, a3),
             SYS_SET_TID_ADDRESS => self.sys_set_tid_address(UserVAddr::new(a1)?),
+            SYS_FORK => self.sys_fork(),
             SYS_EXIT => self.sys_exit(a1 as i32),
             _ => {
                 debug_warn!("unimplemented system call n={}", n);

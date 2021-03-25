@@ -228,6 +228,28 @@ userland_entry:
     swapgs
     iretq
 
+.global forked_child_entry
+forked_child_entry:
+    call after_switch
+
+    pop rdx
+    pop rdi
+    pop rsi
+    pop r8
+    pop r9
+    pop r10
+
+    // Restore SYSCALL-related registers.
+    pop rcx
+    pop r11
+
+    // Set fork(2)'s the return value.
+    xor rax, rax
+
+    cli
+    swapgs
+    iretq
+
 /// fn do_switch_thread(prev_rsp: u64, next_rsp: u64);
 ///
 /// Saves the current context into `prev` and restore the context from `next`.

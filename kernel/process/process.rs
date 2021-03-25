@@ -8,11 +8,18 @@ use crate::{
     result::Result,
 };
 
-use alloc::sync::Arc;
+use alloc::collections::BTreeMap;
+use alloc::sync::{Arc, Weak};
 
-use arch::SpinLockGuard;
+use arch::{SpinLockGuard, SyscallFrame};
 
 use opened_file::OpenedFileTable;
+
+pub static PROCESSES: SpinLock<BTreeMap<PId, Arc<Process>>> = SpinLock::new(BTreeMap::new());
+
+pub fn get_process_by_pid(pid: PId) -> Option<Arc<Process>> {
+    PROCESSES.lock().get(&pid).cloned()
+}
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct PId(i32);
@@ -20,6 +27,10 @@ pub struct PId(i32);
 impl PId {
     pub const fn new(pid: i32) -> PId {
         PId(pid)
+    }
+
+    pub const fn as_i32(self) -> i32 {
+        self.0
     }
 }
 
@@ -33,14 +44,17 @@ pub enum ProcessState {
 pub struct MutableFields {
     pub arch: arch::Thread,
     pub state: ProcessState,
+    pub resumed_by: Option<PId>,
 }
 
 /// The process control block.
 pub struct Process {
     pub pid: PId,
+    pub parent: Option<Weak<Process>>,
     pub vm: Option<Arc<SpinLock<Vm>>>,
     pub opened_files: Arc<SpinLock<OpenedFileTable>>,
     pub root_fs: Arc<SpinLock<RootFs>>,
+    pub wait_queue: WaitQueue,
     pub(super) inner: SpinLock<MutableFields>,
 }
 
@@ -70,10 +84,13 @@ impl Process {
             inner: SpinLock::new(MutableFields {
                 arch: arch::Thread::new_idle_thread(),
                 state: ProcessState::Runnable,
+                resumed_by: None,
             }),
+            parent: None,
             vm: None,
             pid: PId::new(0),
             root_fs: INITIAL_ROOT_FS.clone(),
+            wait_queue: WaitQueue::new(),
             opened_files: Arc::new(SpinLock::new(OpenedFileTable::new())),
         }))
     }
@@ -115,14 +132,18 @@ impl Process {
             ))),
         )?;
 
-        execve(
+        let process = execve(
+            None,
             PId::new(1),
             executable,
             argv,
             &[],
             root_fs,
             Arc::new(SpinLock::new(opened_files)),
-        )
+        )?;
+
+        PROCESSES.lock().insert(process.pid, process.clone());
+        Ok(process)
     }
 
     pub fn lock(&self) -> SpinLockGuard<'_, MutableFields> {

@@ -15,6 +15,7 @@ use penguin_utils::once::Once;
 use penguin_utils::{alignment::align_up, lazy::Lazy};
 
 mod execve;
+mod fork;
 mod init_stack;
 #[allow(clippy::module_inception)]
 mod process;
@@ -23,6 +24,7 @@ mod switch;
 mod wait_queue;
 
 pub use execve::*;
+pub use fork::*;
 pub use init_stack::*;
 pub use process::*;
 pub use scheduler::*;

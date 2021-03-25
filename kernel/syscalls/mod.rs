@@ -4,6 +4,7 @@ pub(self) mod arch_prctl;
 pub(self) mod brk;
 pub(self) mod dispatcher;
 pub(self) mod exit;
+pub(self) mod fork;
 pub(self) mod ioctl;
 pub(self) mod read;
 pub(self) mod set_tid_address;
