@@ -24,7 +24,7 @@ mod syscall;
 mod thread;
 mod tss;
 
-pub const KERNEL_STACK_SIZE: usize = PAGE_SIZE * 64;
+pub const KERNEL_STACK_SIZE: usize = PAGE_SIZE * 256;
 pub const USER_STACK_TOP: UserVAddr = unsafe { UserVAddr::new_unchecked(0x0000_0c00_0000_0000) };
 pub const PAGE_SIZE: usize = 4096;
 
