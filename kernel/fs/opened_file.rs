@@ -47,6 +47,18 @@ impl OpenedFile {
     pub fn pos(&self) -> usize {
         self.pos
     }
+
+    pub fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
+        let read_len = self.as_file()?.read(self.pos, buf)?;
+        self.pos += read_len;
+        Ok(read_len)
+    }
+
+    pub fn write(&mut self, buf: &[u8]) -> Result<usize> {
+        let written_len = self.as_file()?.write(self.pos, buf)?;
+        self.pos += written_len;
+        Ok(written_len)
+    }
 }
 
 pub struct OpenedFileTable {

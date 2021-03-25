@@ -12,8 +12,7 @@ impl<'a> SyscallDispatcher<'a> {
         let current = current_process().opened_files.lock();
         let mut open_file = current.get(fd)?.lock();
 
-        // MAX_READ_WRITE_LEN limit guarantees total_len is in the range of isize.
-        let written_len = file.write(open_file.pos(), buf.as_slice())?;
+        let written_len = open_file.write(buf.as_slice())?;
 
         // MAX_READ_WRITE_LEN limit guarantees total_len is in the range of isize.
         Ok(written_len as isize)
