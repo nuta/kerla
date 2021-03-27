@@ -198,11 +198,14 @@ pub fn switch_thread(prev: &mut Thread, next: &mut Thread) {
 
     // Save and restore the XSAVE area (i.e. XMM/YMM registrers).
     unsafe {
+        use core::arch::x86_64::{_xrstor64, _xsave64};
+
+        let xsave_mask = x86::controlregs::xcr0().bits();
         if let Some(xsave_area) = prev.xsave_area.as_ref() {
-            asm!("xsave [{0}]", in(reg) xsave_area.value() as u64);
+            _xsave64(xsave_area.as_mut_ptr(), xsave_mask);
         }
         if let Some(xsave_area) = next.xsave_area.as_ref() {
-            asm!("xrstor [{0}]", in(reg) xsave_area.value() as u64);
+            _xrstor64(xsave_area.as_mut_ptr(), xsave_mask);
         }
     }
 
