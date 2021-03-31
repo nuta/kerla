@@ -12,6 +12,7 @@ path = "main.rs"
 penguin_utils = { path = "../utils", features = ["no_std"] }
 spin = "0.7.1"
 x86 = "0.36.0"
+memoffset = "0.6.2"
 buddy_system_allocator = "0.7.0"
 arrayvec = { version = "0.5.2", default-features = false, features = ["unstable-const-fn"] }
 goblin = { version = "0.3", default-features = false, features = ["elf64"] }
@@ -19,3 +20,4 @@ bitflags = "1.2.1"
 hashbrown = { version = "0.1.0", features = ["nightly"] }
 log = "0.4"
 crossbeam = { version = "0.8.0", default-features = false, features = ["alloc"] }
+smoltcp = { version = "0.7.1", default-features = false, features = ["log", "alloc", "proto-ipv4", "socket", "socket-raw", "socket-udp", "socket-tcp", "proto-dhcpv4", "ethernet"] }

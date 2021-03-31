@@ -10,6 +10,7 @@ use crate::{
         path::Path,
     },
     mm::{global_allocator, page_allocator},
+    net,
     printk::PrintkLogger,
     process::{self, switch, Process, ProcessState},
 };
@@ -64,6 +65,7 @@ pub fn boot_kernel(bootinfo: &BootInfo) -> ! {
     devfs::init();
     initramfs::init();
     drivers::init();
+    net::init();
 
     // Prepare the root file system.
     let mut root_fs = RootFs::new(INITRAM_FS.clone());

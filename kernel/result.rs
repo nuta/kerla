@@ -108,3 +108,26 @@ impl<T> ErrorExt<T> for Option<T> {
         }
     }
 }
+
+impl From<smoltcp::Error> for Error {
+    fn from(error: smoltcp::Error) -> Error {
+        debug_warn!("smoltcp: {}", error);
+        match error {
+            smoltcp::Error::Exhausted => Error::with_message(Errno::EINVAL, "smoltcp(Exhausted)"),
+            smoltcp::Error::Illegal => Error::with_message(Errno::EINVAL, "smoltcp(Illegal)"),
+            smoltcp::Error::Unaddressable => {
+                Error::with_message(Errno::EINVAL, "smoltcp(Unaddressable)")
+            }
+            smoltcp::Error::Finished => Error::with_message(Errno::EINVAL, "smoltcp(Finished)"),
+            smoltcp::Error::Truncated => Error::with_message(Errno::EINVAL, "smoltcp(Truncated)"),
+            smoltcp::Error::Checksum => Error::with_message(Errno::EINVAL, "smoltcp(Checksum)"),
+            smoltcp::Error::Unrecognized => {
+                Error::with_message(Errno::EINVAL, "smoltcp(Unrecognized)")
+            }
+            smoltcp::Error::Fragmented => Error::with_message(Errno::EINVAL, "smoltcp(Fragmented)"),
+            smoltcp::Error::Malformed => Error::with_message(Errno::EINVAL, "smoltcp(Malformed)"),
+            smoltcp::Error::Dropped => Error::with_message(Errno::ENOMEM, "smoltcp(Dropped)"),
+            _ => unreachable!(),
+        }
+    }
+}

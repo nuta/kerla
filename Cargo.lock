@@ -121,10 +121,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "memoffset"
-version = "0.6.1"
+name = "managed"
+version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "157b4208e3059a8f9e78d559edc658e13df41410cb3ae03979c83130067fdd87"
+checksum = "c75de51135344a4f8ed3cfe2720dc27736f7711989703a0b43aadf3753c55577"
+
+[[package]]
+name = "memoffset"
+version = "0.6.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cc14fc54a812b4472b4113facc3e44d099fbc0ea2ce0551fa5c703f8edfbfd38"
 dependencies = [
  "autocfg",
 ]
@@ -140,7 +146,9 @@ dependencies = [
  "goblin",
  "hashbrown",
  "log",
+ "memoffset",
  "penguin_utils",
+ "smoltcp",
  "spin",
  "x86",
 ]
@@ -184,6 +192,18 @@ name = "scroll"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fda28d4b4830b807a8b43f7b0e6b5df875311b3e7621d84577188c175b6ec1ec"
+
+[[package]]
+name = "smoltcp"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "97173c1ef35b0a09304cb3882eba594761243005847cbbf6124f966e8da6519a"
+dependencies = [
+ "bitflags",
+ "byteorder",
+ "log",
+ "managed",
+]
 
 [[package]]
 name = "spin"

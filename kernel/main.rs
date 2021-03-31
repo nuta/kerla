@@ -26,6 +26,7 @@ mod elf;
 mod fs;
 mod lang_items;
 mod mm;
+mod net;
 mod process;
 mod result;
 mod syscalls;
