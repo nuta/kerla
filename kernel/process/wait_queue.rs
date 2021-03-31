@@ -8,7 +8,7 @@ pub struct WaitQueue {
 }
 
 impl WaitQueue {
-    pub fn new() -> WaitQueue {
+    pub const fn new() -> WaitQueue {
         WaitQueue {
             queue: SegQueue::new(),
         }
@@ -25,7 +25,7 @@ impl WaitQueue {
         }
     }
 
-    pub fn _wake_all(&self) {
+    pub fn wake_all(&self) {
         while let Some(process) = self.queue.pop() {
             SCHEDULER.lock().enqueue(process);
         }
