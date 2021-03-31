@@ -12,7 +12,9 @@ impl<T> SpinLock<T> {
             inner: spin::mutex::SpinMutex::new(value),
         }
     }
+}
 
+impl<T: ?Sized> SpinLock<T> {
     pub fn lock(&self) -> SpinLockGuard<'_, T> {
         SpinLockGuard {
             inner: ManuallyDrop::new(self.inner.lock()),
