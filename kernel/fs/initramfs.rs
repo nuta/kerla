@@ -210,6 +210,8 @@ impl InitramFs {
                     })),
                 );
             }
+
+            image.skip_until_alignment(4).unwrap();
         }
 
         InitramFs {
