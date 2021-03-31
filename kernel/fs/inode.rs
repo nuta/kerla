@@ -1,5 +1,6 @@
 use crate::fs::stat::Stat;
-use crate::result::Result;
+use crate::net::*;
+use crate::result::{Errno, Error, Result};
 use alloc::sync::Arc;
 
 use super::path::PathBuf;
@@ -15,9 +16,29 @@ impl INodeNo {
 }
 
 pub trait FileLike: Send + Sync {
-    fn stat(&self) -> Result<Stat>;
-    fn read(&self, offset: usize, buf: &mut [u8]) -> Result<usize>;
-    fn write(&self, offset: usize, buf: &[u8]) -> Result<usize>;
+    fn stat(&self) -> Result<Stat> {
+        Err(Error::new(Errno::EBADF))
+    }
+
+    fn read(&self, offset: usize, buf: &mut [u8]) -> Result<usize> {
+        Err(Error::new(Errno::EBADF))
+    }
+
+    fn write(&self, offset: usize, buf: &[u8]) -> Result<usize> {
+        Err(Error::new(Errno::EBADF))
+    }
+
+    fn bind(&self, endpoint: Endpoint) -> Result<()> {
+        Err(Error::new(Errno::EBADF))
+    }
+
+    fn sendto(&self, buf: &[u8], endpoint: Endpoint) -> Result<()> {
+        Err(Error::new(Errno::EBADF))
+    }
+
+    fn recvfrom(&self, buf: &mut [u8], flags: RecvFromFlags) -> Result<(usize, Endpoint)> {
+        Err(Error::new(Errno::EBADF))
+    }
 }
 
 pub struct DirEntry {

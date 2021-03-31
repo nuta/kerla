@@ -1,5 +1,6 @@
 use super::inode::{FileLike, INode};
 use crate::arch::SpinLock;
+use crate::net::*;
 use crate::result::{Errno, Error, Result};
 use alloc::sync::Arc;
 use alloc::vec::Vec;
@@ -68,6 +69,18 @@ impl OpenedFile {
         let written_len = self.as_file()?.write(self.pos, buf)?;
         self.pos += written_len;
         Ok(written_len)
+    }
+
+    pub fn bind(&mut self, endpoint: Endpoint) -> Result<()> {
+        self.as_file()?.bind(endpoint)
+    }
+
+    pub fn sendto(&mut self, buf: &[u8], endpoint: Endpoint) -> Result<()> {
+        self.as_file()?.sendto(buf, endpoint)
+    }
+
+    pub fn recvfrom(&mut self, buf: &mut [u8], flags: RecvFromFlags) -> Result<(usize, Endpoint)> {
+        self.as_file()?.recvfrom(buf, flags)
     }
 }
 
