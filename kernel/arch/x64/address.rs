@@ -72,6 +72,11 @@ impl VAddr {
         VAddr(addr as u64)
     }
 
+    pub const fn as_paddr(self) -> PAddr {
+        debug_assert!(self.0 >= KERNEL_BASE_ADDR);
+        PAddr::new((self.0 - KERNEL_BASE_ADDR) as usize)
+    }
+
     pub const unsafe fn as_ptr<T>(self) -> *const T {
         debug_assert!(self.0 >= KERNEL_BASE_ADDR);
         self.0 as *const _
