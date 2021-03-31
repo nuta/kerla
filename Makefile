@@ -81,6 +81,7 @@ run: build
 		--arch $(ARCH)                    \
 		$(if $(GUI),--gui,)               \
 		$(if $(GDB),--gdb,)               \
+		$(if $(QEMU),--qemu $(QEMU),)     \
 		$(kernel_elf)
 
 .PHONY: bochs

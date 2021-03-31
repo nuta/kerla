@@ -28,6 +28,7 @@ def main():
     parser.add_argument("--arch", choices=["x64"])
     parser.add_argument("--gui", action="store_true")
     parser.add_argument("--gdb", action="store_true")
+    parser.add_argument("--qemu")
     parser.add_argument("kernel_elf", help="The kernel ELF executable.")
     args = parser.parse_args()
 
@@ -47,7 +48,12 @@ def main():
         kernel_elf = args.kernel_elf
 
     qemu = ARCHS[args.arch]
-    argv = [qemu["bin"]] + qemu["args"] + ["-kernel", kernel_elf]
+    if args.qemu:
+        qemu_bin = args.qemu
+    else:
+        qemu_bin = qemu["bin"]
+
+    argv = [qemu_bin] + qemu["args"] + ["-kernel", kernel_elf]
     if not args.gui:
         argv += ["-nographic"]
     if args.gdb:
