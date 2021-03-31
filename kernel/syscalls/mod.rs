@@ -17,6 +17,7 @@ pub(self) mod fork;
 pub(self) mod ioctl;
 pub(self) mod open;
 pub(self) mod read;
+pub(self) mod sendto;
 pub(self) mod set_tid_address;
 pub(self) mod socket;
 pub(self) mod stat;

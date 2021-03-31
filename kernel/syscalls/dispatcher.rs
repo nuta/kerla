@@ -19,6 +19,7 @@ const SYS_BRK: usize = 12;
 const SYS_IOCTL: usize = 16;
 const SYS_WRITEV: usize = 20;
 const SYS_SOCKET: usize = 41;
+const SYS_SENDTO: usize = 44;
 const SYS_BIND: usize = 49;
 const SYS_FORK: usize = 57;
 const SYS_EXECVE: usize = 59;
@@ -116,6 +117,14 @@ impl<'a> SyscallDispatcher<'a> {
             SYS_EXIT => self.sys_exit(a1 as i32),
             SYS_SOCKET => self.sys_socket(a1 as i32, a2 as i32, a3 as i32),
             SYS_BIND => self.sys_bind(Fd::new(a1 as i32), UserVAddr::new(a2)?, a3 as usize),
+            SYS_SENDTO => self.sys_sendto(
+                Fd::new(a1 as i32),
+                UserVAddr::new(a2)?,
+                a3 as usize,
+                SendToFlags::from_bits(a4 as i32).ok_or(Error::new(Errno::ENOSYS))?,
+                UserVAddr::new(a5)?,
+                a6,
+            ),
             _ => {
                 debug_warn!(
                     "unimplemented system call: {} (n={})",
