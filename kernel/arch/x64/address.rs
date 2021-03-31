@@ -201,19 +201,18 @@ impl UserVAddr {
         Ok(read_len)
     }
 
-    pub fn write<T>(self, buf: &T) -> Result<()> {
-        self.write_bytes(unsafe {
-            slice::from_raw_parts(buf as *const T as *const u8, size_of::<T>())
-        })?;
-        Ok(())
+    pub fn write<T>(self, buf: &T) -> Result<usize> {
+        let len = size_of::<T>();
+        self.write_bytes(unsafe { slice::from_raw_parts(buf as *const T as *const u8, len) })?;
+        Ok(len)
     }
 
-    pub fn write_bytes(self, buf: &[u8]) -> Result<()> {
+    pub fn write_bytes(self, buf: &[u8]) -> Result<usize> {
         self.access_ok(buf.len())?;
         unsafe {
             copy_to_user(self.value() as *mut u8, buf.as_ptr(), buf.len());
         }
-        Ok(())
+        Ok(buf.len())
     }
 }
 
