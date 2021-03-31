@@ -105,6 +105,10 @@ check:
 checkw:
 	$(CARGO) watch -s "$(MAKE) check"
 
+.PHONY: docs
+docs:
+	RUSTFLAGS="-C panic=abort -Z panic_abort_tests" $(CARGO) doc --workspace
+
 .PHONY: lint
 lint:
 	RUSTFLAGS="-C panic=abort -Z panic_abort_tests" $(CARGO) clippy --fix -Z unstable-options --allow-dirty
