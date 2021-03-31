@@ -18,6 +18,7 @@ const SYS_STAT: usize = 4;
 const SYS_BRK: usize = 12;
 const SYS_IOCTL: usize = 16;
 const SYS_WRITEV: usize = 20;
+const SYS_SOCKET: usize = 41;
 const SYS_FORK: usize = 57;
 const SYS_EXECVE: usize = 59;
 const SYS_EXIT: usize = 60;
@@ -112,6 +113,7 @@ impl<'a> SyscallDispatcher<'a> {
                 UserVAddr::new(a4)?,
             ),
             SYS_EXIT => self.sys_exit(a1 as i32),
+            SYS_SOCKET => self.sys_socket(a1 as i32, a2 as i32, a3 as i32),
             _ => {
                 debug_warn!(
                     "unimplemented system call: {} (n={})",

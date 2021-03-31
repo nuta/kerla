@@ -11,6 +11,7 @@ pub(self) mod ioctl;
 pub(self) mod open;
 pub(self) mod read;
 pub(self) mod set_tid_address;
+pub(self) mod socket;
 pub(self) mod stat;
 pub(self) mod wait4;
 pub(self) mod write;
@@ -26,3 +27,7 @@ pub(self) struct IoVec {
     base: UserVAddr,
     len: usize,
 }
+
+pub const AF_INET: i32 = 2;
+pub const SOCK_DGRAM: i32 = 2;
+pub const IPPROTO_UDP: i32 = 17;
