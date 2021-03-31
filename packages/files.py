@@ -13,6 +13,9 @@ FILES["/etc/banner"] = r"""
                 ||----w |
                 ||     ||
 """.lstrip()
+FILES["/etc/resolv.conf"] = """
+nameserver 1.1.1.1
+""".lstrip()
 
 
 class Files(Package):
