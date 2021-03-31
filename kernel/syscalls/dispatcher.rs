@@ -16,6 +16,7 @@ const SYS_WRITE: usize = 1;
 const SYS_OPEN: usize = 2;
 const SYS_CLOSE: usize = 3;
 const SYS_STAT: usize = 4;
+const SYS_POLL: usize = 7;
 const SYS_BRK: usize = 12;
 const SYS_IOCTL: usize = 16;
 const SYS_WRITEV: usize = 20;
@@ -100,6 +101,7 @@ impl<'a> SyscallDispatcher<'a> {
                 Path::new(UserCStr::new(UserVAddr::new(a1)?, PATH_MAX)?.as_str()?),
                 UserVAddr::new(a2)?,
             ),
+            SYS_POLL => self.sys_poll(UserVAddr::new(a1)?, a2, a3 as i32),
             SYS_ARCH_PRCTL => self.sys_arch_prctl(a1 as i32, UserVAddr::new(a2)?),
             SYS_BRK => self.sys_brk(UserVAddr::new(a1)?),
             SYS_IOCTL => self.sys_ioctl(Fd::new(a1 as i32), a2, a3),

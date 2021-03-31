@@ -16,6 +16,7 @@ pub(self) mod exit;
 pub(self) mod fork;
 pub(self) mod ioctl;
 pub(self) mod open;
+pub(self) mod poll;
 pub(self) mod read;
 pub(self) mod recvfrom;
 pub(self) mod sendto;
