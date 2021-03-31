@@ -15,7 +15,7 @@ pub fn execve(
     root_fs: Arc<SpinLock<RootFs>>,
     opened_files: Arc<SpinLock<OpenedFileTable>>,
 ) -> Result<Arc<Process>> {
-    // Read the E\LF header in the executable file.
+    // Read the ELF header in the executable file.
     let file_header_len = PAGE_SIZE;
     let file_header_top = USER_STACK_TOP;
     let file_header_pages = alloc_pages(file_header_len / PAGE_SIZE, AllocPageFlags::KERNEL)
