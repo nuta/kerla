@@ -14,6 +14,7 @@ use core::mem::size_of;
 use penguin_utils::once::Once;
 use penguin_utils::{alignment::align_up, lazy::Lazy};
 
+mod elf;
 mod execve;
 mod fork;
 mod init_stack;

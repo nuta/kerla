@@ -22,7 +22,6 @@ mod printk;
 mod arch;
 mod boot;
 mod drivers;
-mod elf;
 mod fs;
 mod lang_items;
 mod mm;
