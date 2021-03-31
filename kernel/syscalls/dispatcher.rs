@@ -5,6 +5,7 @@ use crate::{
         path::Path,
         stat::FileMode,
     },
+    net::{RecvFromFlags, SendToFlags},
     process::PId,
     result::{Errno, Error, Result},
 };
@@ -20,6 +21,7 @@ const SYS_IOCTL: usize = 16;
 const SYS_WRITEV: usize = 20;
 const SYS_SOCKET: usize = 41;
 const SYS_SENDTO: usize = 44;
+const SYS_RECVFROM: usize = 45;
 const SYS_BIND: usize = 49;
 const SYS_FORK: usize = 57;
 const SYS_EXECVE: usize = 59;
@@ -124,6 +126,14 @@ impl<'a> SyscallDispatcher<'a> {
                 SendToFlags::from_bits(a4 as i32).ok_or(Error::new(Errno::ENOSYS))?,
                 UserVAddr::new(a5)?,
                 a6,
+            ),
+            SYS_RECVFROM => self.sys_recvfrom(
+                Fd::new(a1 as i32),
+                UserVAddr::new(a2)?,
+                a3 as usize,
+                RecvFromFlags::from_bits(a4 as i32).ok_or(Error::new(Errno::ENOSYS))?,
+                UserVAddr::new(a5)?,
+                UserVAddr::new(a6)?,
             ),
             _ => {
                 debug_warn!(
