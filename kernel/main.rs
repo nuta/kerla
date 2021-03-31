@@ -21,6 +21,7 @@ mod printk;
 #[macro_use]
 mod arch;
 mod boot;
+mod drivers;
 mod elf;
 mod fs;
 mod lang_items;

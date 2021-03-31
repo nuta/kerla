@@ -2,6 +2,7 @@
 
 use crate::{
     arch::{self, idle, PAddr, SpinLock},
+    drivers,
     fs::{
         devfs::{self, DEV_FS},
         initramfs::{self, INITRAM_FS},
@@ -62,6 +63,7 @@ pub fn boot_kernel(bootinfo: &BootInfo) -> ! {
     arch::init();
     devfs::init();
     initramfs::init();
+    drivers::init();
 
     // Prepare the root file system.
     let mut root_fs = RootFs::new(INITRAM_FS.clone());

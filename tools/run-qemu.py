@@ -16,6 +16,11 @@ ARCHS = {
         "args": COMMON_ARGS + [
             "-m", "512",
             "-cpu", "Icelake-Server",
+
+            "-device", "virtio-net,netdev=net0,disable-legacy=off,disable-modern=on",
+            "-netdev", "user,id=net0,hostfwd=tcp:127.0.0.1:50080-:80",
+            "-object", "filter-dump,id=fiter0,netdev=net0,file=virtio-net.pcap",
+
             "-device", "isa-debug-exit,iobase=0x501,iosize=2",
             "-d", "guest_errors,unimp",
         ]

@@ -34,6 +34,7 @@ pub use backtrace::Backtrace;
 pub use boot::init;
 pub use idle::{halt, idle};
 pub use interrupt::{enable_interrupt, is_interrupt_enabled};
+pub use ioapic::enable_irq;
 pub use lock::{SpinLock, SpinLockGuard};
 pub use page_table::{PageFaultReason, PageTable};
 #[cfg(test)]

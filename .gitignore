@@ -8,6 +8,7 @@
 *.symbols
 *.log
 *.map
+*.pcap
 
 # A temporary file created by the linker. Ignore them not to notify cargo-watch.
 *.map*

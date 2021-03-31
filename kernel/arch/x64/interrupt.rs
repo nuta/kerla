@@ -1,5 +1,6 @@
 use super::{apic::ack_interrupt, PageFaultReason, UserVAddr};
 use crate::{
+    drivers::handle_irq,
     mm::page_fault::handle_page_fault,
     process::{switch, ProcessState},
 };
@@ -99,6 +100,12 @@ unsafe extern "C" fn x64_handle_interrupt(vec: u8, frame: *const InterruptFrame)
         };
 
         handle_page_fault(unaligned_vaddr, reason);
+        return;
+    }
+
+    if vec > 32 {
+        handle_irq(vec - 32);
+        ack_interrupt();
         return;
     }
 
