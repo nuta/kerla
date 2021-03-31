@@ -1,5 +1,5 @@
 use crate::{
-    arch::{PAddr, SpinLock},
+    arch::{PAddr, SpinLock, PAGE_SIZE},
     boot::RamArea,
 };
 use arrayvec::ArrayVec;
@@ -32,15 +32,24 @@ bitflags! {
         const KERNEL = 0;
         /// Allocate pages for the user.
         const USER = 0;
+        /// Fill allocated pages with zeroes.
+        const ZEROED = 1 << 0;
     }
 }
 
-pub fn alloc_pages(num_pages: usize, _flags: AllocPageFlags) -> Option<PAddr> {
+pub fn alloc_pages(num_pages: usize, flags: AllocPageFlags) -> Option<PAddr> {
     let order = num_pages_to_order(num_pages);
     let mut zones = ZONES.lock();
     for i in 0..zones.len() {
-        if let Some(paddr) = zones[i].alloc_pages(order) {
-            return Some(PAddr::new(paddr));
+        if let Some(paddr) = zones[i].alloc_pages(order).map(PAddr::new) {
+            if flags.contains(AllocPageFlags::ZEROED) {
+                unsafe {
+                    paddr
+                        .as_mut_ptr::<u8>()
+                        .write_bytes(0, num_pages * PAGE_SIZE);
+                }
+            }
+            return Some(paddr);
         }
     }
 
