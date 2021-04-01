@@ -1,10 +1,9 @@
-use crate::{arch::SpinLockGuard, process::Process};
 use crate::{
     fs::inode::FileLike,
     result::{Errno, Error, Result},
 };
 use alloc::sync::Arc;
-use smoltcp::socket::{SocketSet, UdpPacketMetadata, UdpSocketBuffer};
+use smoltcp::socket::{UdpPacketMetadata, UdpSocketBuffer};
 
 use super::{iterate_event_loop, socket::*, SOCKETS, SOCKET_WAIT_QUEUE};
 
@@ -36,18 +35,16 @@ impl From<smoltcp::wire::IpEndpoint> for Endpoint {
 }
 
 pub struct UdpSocket {
-    process: Arc<Process>,
     handle: smoltcp::socket::SocketHandle,
 }
 
 impl UdpSocket {
-    pub fn new(process: Arc<Process>) -> Arc<UdpSocket> {
+    pub fn new() -> Arc<UdpSocket> {
         let rx_buffer = UdpSocketBuffer::new(vec![UdpPacketMetadata::EMPTY; 64], vec![0; 4096]);
         let tx_buffer = UdpSocketBuffer::new(vec![UdpPacketMetadata::EMPTY; 64], vec![0; 4096]);
         let inner = smoltcp::socket::UdpSocket::new(rx_buffer, tx_buffer);
         let handle = SOCKETS.lock().add(inner);
-        let udp_sock = Arc::new(UdpSocket { process, handle });
-        udp_sock
+        Arc::new(UdpSocket { handle })
     }
 }
 
@@ -79,7 +76,7 @@ impl FileLike for UdpSocket {
         Ok(())
     }
 
-    fn recvfrom(&self, buf: &mut [u8], flags: RecvFromFlags) -> Result<(usize, Endpoint)> {
+    fn recvfrom(&self, buf: &mut [u8], _flags: RecvFromFlags) -> Result<(usize, Endpoint)> {
         loop {
             let result = SOCKETS
                 .lock()

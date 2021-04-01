@@ -8,15 +8,13 @@ pub mod virtio;
 pub mod virtio_net;
 
 pub use driver::*;
-use hashbrown::HashMap;
 
 use crate::{
     arch::{enable_irq, SpinLock},
     net::iterate_event_loop,
 };
 use alloc::boxed::Box;
-use core::any::Any;
-use virtio_net::{VirtioNet, VirtioNetBuilder};
+use virtio_net::VirtioNetBuilder;
 
 pub(super) static DRIVER_BUILDERS: SpinLock<Vec<Box<dyn DriverBuilder>>> =
     SpinLock::new(Vec::new());
@@ -43,10 +41,9 @@ pub fn attach_irq<F: FnMut() + Send + Sync + 'static>(vec: u8, f: F) {
 }
 
 pub fn handle_irq(vec: u8) {
-    IRQ_HANDLERS
-        .lock()
-        .get_mut(&vec)
-        .map(|handler| (*handler)());
+    if let Some(handler) = IRQ_HANDLERS.lock().get_mut(&vec) {
+        (*handler)();
+    }
 
     // FIXME:
     // We need to release the driver lock.
@@ -61,18 +58,16 @@ pub fn init() {
 
     // Scan PCI devices.
     for device in pci::enumerate_pci_devices() {
-        unsafe {
-            trace!(
-                "pci: found a device: id={:04x}:{:04x}, bar0={:016x?}, irq={}",
-                device.config().vendor_id(),
-                device.config().device_id(),
-                device.config().bar0(),
-                device.config().interrupt_line()
-            );
+        trace!(
+            "pci: found a device: id={:04x}:{:04x}, bar0={:016x?}, irq={}",
+            device.config().vendor_id(),
+            device.config().device_id(),
+            device.config().bar0(),
+            device.config().interrupt_line()
+        );
 
-            for builder in DRIVER_BUILDERS.lock().iter() {
-                builder.attach_pci(&device).ok();
-            }
+        for builder in DRIVER_BUILDERS.lock().iter() {
+            builder.attach_pci(&device).ok();
         }
     }
 }

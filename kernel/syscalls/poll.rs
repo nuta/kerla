@@ -1,9 +1,7 @@
-use super::MAX_READ_WRITE_LEN;
+use crate::syscalls::SyscallDispatcher;
 use crate::{arch::UserVAddr, fs::opened_file::Fd, result::Result};
-use crate::{process::current_process, syscalls::SyscallDispatcher};
-use core::cmp::min;
 
-struct PollFd {
+struct _PollFd {
     /// The target file.
     fd: Fd,
     /// Requested events.
@@ -13,9 +11,9 @@ struct PollFd {
 }
 
 impl<'a> SyscallDispatcher<'a> {
-    pub fn sys_poll(&mut self, fds: UserVAddr, nfds: usize, timeout: i32) -> Result<isize> {
+    pub fn sys_poll(&mut self, _fds: UserVAddr, _nfds: usize, _timeout: i32) -> Result<isize> {
         // TODO:
-        for i in 0..0x300000u64 {
+        for _ in 0..0x300000u64 {
             unsafe {
                 asm!("in al, 0x80", out("rax") _);
             }

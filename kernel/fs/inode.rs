@@ -20,23 +20,23 @@ pub trait FileLike: Send + Sync {
         Err(Error::new(Errno::EBADF))
     }
 
-    fn read(&self, offset: usize, buf: &mut [u8]) -> Result<usize> {
+    fn read(&self, _offset: usize, _buf: &mut [u8]) -> Result<usize> {
         Err(Error::new(Errno::EBADF))
     }
 
-    fn write(&self, offset: usize, buf: &[u8]) -> Result<usize> {
+    fn write(&self, _offset: usize, _buf: &[u8]) -> Result<usize> {
         Err(Error::new(Errno::EBADF))
     }
 
-    fn bind(&self, endpoint: Endpoint) -> Result<()> {
+    fn bind(&self, _endpoint: Endpoint) -> Result<()> {
         Err(Error::new(Errno::EBADF))
     }
 
-    fn sendto(&self, buf: &[u8], endpoint: Endpoint) -> Result<()> {
+    fn sendto(&self, _buf: &[u8], _endpoint: Endpoint) -> Result<()> {
         Err(Error::new(Errno::EBADF))
     }
 
-    fn recvfrom(&self, buf: &mut [u8], flags: RecvFromFlags) -> Result<(usize, Endpoint)> {
+    fn recvfrom(&self, _buf: &mut [u8], _flags: RecvFromFlags) -> Result<(usize, Endpoint)> {
         Err(Error::new(Errno::EBADF))
     }
 }

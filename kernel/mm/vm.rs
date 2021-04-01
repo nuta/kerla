@@ -1,6 +1,4 @@
-use crate::{
-    arch::PageTable, arch::SpinLock, arch::UserVAddr, arch::PAGE_SIZE, fs::inode::FileLike,
-};
+use crate::{arch::PageTable, arch::UserVAddr, arch::PAGE_SIZE, fs::inode::FileLike};
 use crate::{
     arch::USER_STACK_TOP,
     result::{Errno, Error, Result},

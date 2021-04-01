@@ -10,7 +10,7 @@ impl<'a> SyscallDispatcher<'a> {
         fd: Fd,
         uaddr: UserVAddr,
         len: usize,
-        flags: SendToFlags,
+        _flags: SendToFlags,
         dst_addr: UserVAddr,
         addr_len: usize,
     ) -> Result<isize> {

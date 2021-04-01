@@ -40,12 +40,6 @@ pub struct Components<'a> {
     path: &'a str,
 }
 
-impl<'a> Components<'a> {
-    pub fn as_path(&self) -> &Path {
-        Path::new(self.path)
-    }
-}
-
 impl<'a> Iterator for Components<'a> {
     type Item = &'a str;
     fn next(&mut self) -> Option<Self::Item> {
@@ -69,12 +63,6 @@ pub struct PathBuf {
 }
 
 impl PathBuf {
-    pub fn new() -> PathBuf {
-        PathBuf {
-            path: String::new(),
-        }
-    }
-
     pub fn as_path(&self) -> &Path {
         Path::new(&self.path)
     }

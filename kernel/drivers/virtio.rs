@@ -1,6 +1,4 @@
 //! A virtio device driver library.
-use super::pci::{PciConfig, PciDevice};
-use super::Driver;
 use crate::drivers::ioport::IoPort;
 use crate::{
     arch::{PAddr, VAddr, PAGE_SIZE},
@@ -12,7 +10,7 @@ use bitflags::bitflags;
 use core::convert::TryInto;
 use core::mem::size_of;
 use core::sync::atomic::{self, Ordering};
-use penguin_utils::{alignment::align_up, lazy::Lazy};
+use penguin_utils::alignment::align_up;
 
 const VIRTIO_STATUS_ACK: u8 = 1;
 const VIRTIO_STATUS_DRIVER: u8 = 2;
@@ -255,11 +253,6 @@ impl VirtQueue {
         self.num_descs
     }
 
-    pub fn desc(&self, index: u16) -> &VirtqDesc {
-        debug_assert!(index < self.num_descs);
-        unsafe { &*self.descs.as_ptr::<VirtqDesc>().offset(index as isize) }
-    }
-
     fn desc_mut(&mut self, index: u16) -> &mut VirtqDesc {
         debug_assert!(index < self.num_descs);
         unsafe { &mut *self.descs.as_mut_ptr::<VirtqDesc>().offset(index as isize) }
@@ -288,10 +281,6 @@ impl VirtQueue {
         unsafe { &*self.used.as_ptr::<VirtqUsed>() }
     }
 
-    fn used_mut(&mut self) -> &mut VirtqUsed {
-        unsafe { &mut *self.used.as_mut_ptr::<VirtqUsed>() }
-    }
-
     fn used_elem(&self, index: u16) -> &VirtqUsedElem {
         debug_assert!(index < self.num_descs);
         unsafe {
@@ -299,17 +288,6 @@ impl VirtQueue {
                 .used
                 .add(size_of::<VirtqUsed>())
                 .as_ptr::<VirtqUsedElem>()
-                .offset(index as isize)
-        }
-    }
-
-    fn used_elem_mut(&mut self, index: u16) -> &mut VirtqUsedElem {
-        debug_assert!(index < self.num_descs);
-        unsafe {
-            &mut *self
-                .used
-                .add(size_of::<VirtqUsed>())
-                .as_mut_ptr::<VirtqUsedElem>()
                 .offset(index as isize)
         }
     }
@@ -347,7 +325,7 @@ impl Virtio {
             return Err(Error::new(Errno::EINVAL));
         }
 
-        self.write_device_features(features);
+        self.write_driver_features(features);
         self.write_device_status(self.read_device_status() | VIRTIO_STATUS_FEAT_OK);
 
         if (self.read_device_status() & VIRTIO_STATUS_FEAT_OK) == 0 {
@@ -383,11 +361,6 @@ impl Virtio {
         IsrStatus::from_bits(self.ioport.read8(VIRTIO_REG_ISR_STATUS)).unwrap()
     }
 
-    /// Selects the current virtqueue in the common config.
-    fn select_virtq(&self, index: u16) {
-        self.ioport.write16(VIRTIO_REG_QUEUE_SELECT, index);
-    }
-
     fn read_device_status(&self) -> u8 {
         self.ioport.read8(VIRTIO_REG_DEVICE_STATUS)
     }
@@ -400,7 +373,7 @@ impl Virtio {
         self.ioport.read32(VIRTIO_REG_DEVICE_FEATS)
     }
 
-    fn write_device_features(&self, value: u32) {
-        self.ioport.write32(VIRTIO_REG_DEVICE_FEATS, value)
+    fn write_driver_features(&self, value: u32) {
+        self.ioport.write32(VIRTIO_REG_DRIVER_FEATS, value)
     }
 }

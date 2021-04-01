@@ -1,4 +1,4 @@
-use super::{write_endpoint_as_sockaddr, SockAddrIn, MAX_READ_WRITE_LEN};
+use super::{write_endpoint_as_sockaddr, MAX_READ_WRITE_LEN};
 use crate::net::RecvFromFlags;
 use crate::{arch::UserVAddr, fs::opened_file::Fd, result::Result};
 use crate::{process::current_process, syscalls::SyscallDispatcher};

@@ -7,12 +7,11 @@ use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use crossbeam::queue::ArrayQueue;
-use hashbrown::HashMap;
 use penguin_utils::once::Once;
-use smoltcp::wire::{self, EthernetAddress, IpCidr, Ipv4Cidr};
+use smoltcp::wire::{self, EthernetAddress, IpCidr};
 use smoltcp::{
     dhcp::Dhcpv4Client,
-    phy::{Checksum, ChecksumCapabilities, Device, DeviceCapabilities},
+    phy::{Device, DeviceCapabilities},
 };
 use smoltcp::{iface::EthernetInterface, time::Instant};
 use smoltcp::{
@@ -39,7 +38,7 @@ pub fn send_ethernet_frame(frame: &[u8]) {
 }
 
 pub fn receive_ethernet_frame(frame: &[u8]) {
-    if let Err(_) = RX_PACKET_QUEUE.lock().push(frame.to_vec()) {
+    if RX_PACKET_QUEUE.lock().push(frame.to_vec()).is_err() {
         // TODO: Introduce warn_once! macro
         warn!("the rx packet queue is full; dropping an incoming packet");
     }
@@ -60,40 +59,41 @@ pub fn iterate_event_loop() {
     let timestamp = now();
     let mut do_again = true;
     while do_again {
-        dhcp.poll(&mut iface, &mut sockets, timestamp)
+        if let Some(config) = dhcp
+            .poll(&mut iface, &mut sockets, timestamp)
             .unwrap_or_else(|e| {
                 println!("DHCP: {:?}", e);
                 None
             })
-            .map(|config| {
-                info!("DHCP config: {:?}", config);
-                if let Some(cidr) = config.address {
-                    iface.update_ip_addrs(|addrs| {
-                        addrs.iter_mut().next().map(|addr| {
-                            *addr = IpCidr::Ipv4(cidr);
-                        });
-                    });
-                    println!("Assigned a new IPv4 address: {}", cidr);
-                }
-
-                config
-                    .router
-                    .map(|router| iface.routes_mut().add_default_ipv4_route(router).unwrap());
-                iface.routes_mut().update(|routes_map| {
-                    routes_map
-                        .get(&IpCidr::new(wire::Ipv4Address::UNSPECIFIED.into(), 0))
-                        .map(|default_route| {
-                            println!("Default gateway: {}", default_route.via_router);
-                        });
-                });
-
-                if config.dns_servers.iter().any(|s| s.is_some()) {
-                    println!("DNS servers:");
-                    for dns_server in config.dns_servers.iter().filter_map(|s| *s) {
-                        println!("- {}", dns_server);
+        {
+            info!("DHCP config: {:?}", config);
+            if let Some(cidr) = config.address {
+                iface.update_ip_addrs(|addrs| {
+                    if let Some(addr) = addrs.iter_mut().next() {
+                        *addr = IpCidr::Ipv4(cidr);
                     }
+                });
+                println!("Assigned a new IPv4 address: {}", cidr);
+            }
+
+            config
+                .router
+                .map(|router| iface.routes_mut().add_default_ipv4_route(router).unwrap());
+            iface.routes_mut().update(|routes_map| {
+                if let Some(default_route) =
+                    routes_map.get(&IpCidr::new(wire::Ipv4Address::UNSPECIFIED.into(), 0))
+                {
+                    println!("Default gateway: {}", default_route.via_router);
                 }
             });
+
+            if config.dns_servers.iter().any(|s| s.is_some()) {
+                println!("DNS servers:");
+                for dns_server in config.dns_servers.iter().filter_map(|s| *s) {
+                    println!("- {}", dns_server);
+                }
+            }
+        }
 
         do_again = match iface.poll(&mut sockets, timestamp) {
             Ok(do_again) => do_again,
@@ -110,10 +110,10 @@ pub fn iterate_event_loop() {
         trace!("smotcp: poll, do_again={}", do_again);
     }
 
-    let mut timeout = dhcp.next_poll(timestamp);
-    iface
-        .poll_delay(&sockets, timestamp)
-        .map(|sockets_timeout| timeout = sockets_timeout);
+    let mut _timeout = dhcp.next_poll(timestamp);
+    if let Some(sockets_timeout) = iface.poll_delay(&sockets, timestamp) {
+        _timeout = sockets_timeout;
+    }
 }
 
 pub fn uptime() -> i64 {
@@ -125,7 +125,7 @@ struct OurRxToken {
 }
 
 impl RxToken for OurRxToken {
-    fn consume<R, F>(mut self, timestamp: Instant, f: F) -> smoltcp::Result<R>
+    fn consume<R, F>(mut self, _timestamp: Instant, f: F) -> smoltcp::Result<R>
     where
         F: FnOnce(&mut [u8]) -> smoltcp::Result<R>,
     {
@@ -136,13 +136,13 @@ impl RxToken for OurRxToken {
 struct OurTxToken {}
 
 impl TxToken for OurTxToken {
-    fn consume<R, F>(self, timestamp: Instant, len: usize, f: F) -> smoltcp::Result<R>
+    fn consume<R, F>(self, _timestamp: Instant, len: usize, f: F) -> smoltcp::Result<R>
     where
         F: FnOnce(&mut [u8]) -> smoltcp::Result<R>,
     {
         let mut buffer = vec![0; len];
         let return_value = f(&mut buffer)?;
-        if let Ok(mut frame) = EthernetFrame::new_checked(&mut buffer) {
+        if EthernetFrame::new_checked(&mut buffer).is_ok() {
             send_ethernet_frame(&buffer);
         }
 
@@ -186,7 +186,7 @@ pub fn init() {
     let ethernet_addr = EthernetAddress(mac_addr.as_array());
     let ip_addrs = [IpCidr::new(wire::Ipv4Address::UNSPECIFIED.into(), 0)];
     let routes = Routes::new(BTreeMap::new());
-    let mut iface = EthernetInterfaceBuilder::new(OurDevice)
+    let iface = EthernetInterfaceBuilder::new(OurDevice)
         .ethernet_addr(ethernet_addr)
         .neighbor_cache(neighbor_cache)
         .ip_addrs(ip_addrs)
@@ -196,7 +196,7 @@ pub fn init() {
     let mut sockets = SocketSet::new(vec![]);
     let dhcp_rx_buffer = RawSocketBuffer::new([RawPacketMetadata::EMPTY; 4], vec![0; 2048]);
     let dhcp_tx_buffer = RawSocketBuffer::new([RawPacketMetadata::EMPTY; 4], vec![0; 2048]);
-    let mut dhcp = Dhcpv4Client::new(&mut sockets, dhcp_rx_buffer, dhcp_tx_buffer, now());
+    let dhcp = Dhcpv4Client::new(&mut sockets, dhcp_rx_buffer, dhcp_tx_buffer, now());
 
     RX_PACKET_QUEUE.init(|| SpinLock::new(ArrayQueue::new(128)));
     INTERFACE.init(|| SpinLock::new(iface));

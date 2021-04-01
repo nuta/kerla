@@ -1,28 +1,22 @@
 //! A virtio-net device driver.
 use super::{
     attach_irq,
-    pci::{PciConfig, PciDevice},
+    pci::PciDevice,
     register_ethernet_driver,
     virtio::{IsrStatus, Virtio},
     DriverBuilder, MacAddress,
 };
 use super::{Driver, EthernetDriver};
 use crate::{
-    arch::{PAddr, SpinLock, VAddr, PAGE_SIZE},
+    arch::{SpinLock, VAddr, PAGE_SIZE},
     mm::page_allocator::{alloc_pages, AllocPageFlags},
     result::{Errno, Error, Result},
 };
 use crate::{drivers::ioport::IoPort, net::receive_ethernet_frame};
-use alloc::boxed::Box;
 use alloc::sync::Arc;
-use alloc::vec::Vec;
-use core::convert::TryInto;
 use core::mem::size_of;
-use core::sync::atomic::{self, Ordering};
-use penguin_utils::{alignment::align_up, lazy::Lazy};
+use penguin_utils::alignment::align_up;
 const VIRTIO_NET_F_MAC: u32 = 1 << 5;
-const VIRTIO_NET_F_STATUS: u32 = 1 << 15;
-const VIRTIO_NET_F_MRG_RXBUF: u32 = 1 << 16;
 
 const VIRTIO_NET_QUEUE_RX: u16 = 0;
 const VIRTIO_NET_QUEUE_TX: u16 = 1;
@@ -55,21 +49,18 @@ pub struct VirtioNet {
     tx_ring_len: usize,
     tx_ring_index: usize,
     tx_buffer: VAddr,
-    rx_buffer: VAddr,
+    _rx_buffer: VAddr,
 }
 
 impl VirtioNet {
     pub fn new(ioport: IoPort) -> Result<VirtioNet> {
         let mut virtio = Virtio::new(ioport);
-        virtio.initialize(
-            VIRTIO_NET_F_MAC | VIRTIO_NET_F_STATUS,
-            2, /* RX and TX queues. */
-        )?;
+        virtio.initialize(VIRTIO_NET_F_MAC, 2 /* RX and TX queues. */)?;
 
         // Read the MAC address.
         let mut mac_addr = [0; 6];
-        for i in 0..6 {
-            mac_addr[i] = virtio
+        for (i, byte) in mac_addr.iter_mut().enumerate() {
+            *byte = virtio
                 .read_device_config8((memoffset::offset_of!(VirtioNetConfig, mac) + i) as u16);
         }
         info!(
@@ -106,7 +97,7 @@ impl VirtioNet {
             mac_addr: MacAddress::new(mac_addr),
             virtio,
             tx_buffer,
-            rx_buffer,
+            _rx_buffer: rx_buffer,
             tx_ring_len,
             tx_ring_index: 0,
         })
@@ -134,17 +125,18 @@ impl VirtioNet {
 
             let buffer = unsafe {
                 core::slice::from_raw_parts(
-                    addr.as_ptr::<u8>()
-                        .offset(size_of::<VirtioNetHeader>() as isize),
+                    addr.as_ptr::<u8>().add(size_of::<VirtioNetHeader>()),
                     len - size_of::<VirtioNetHeader>(),
                 )
             };
             receive_ethernet_frame(buffer);
 
-            rx_virtq.enqueue(&[super::virtio::VirtqDescBuffer::WritableFromDevice {
-                addr,
-                len: PACKET_LEN_MAX,
-            }]);
+            warn_if_err!(
+                rx_virtq.enqueue(&[super::virtio::VirtqDescBuffer::WritableFromDevice {
+                    addr,
+                    len: PACKET_LEN_MAX,
+                }])
+            );
         }
     }
 }
@@ -184,7 +176,7 @@ impl EthernetDriver for VirtioNet {
         // Copy the payload into the our buffer.
         unsafe {
             addr.as_mut_ptr::<u8>()
-                .offset(header_len as isize)
+                .add(header_len)
                 .copy_from_nonoverlapping(frame.as_ptr(), frame.len());
         }
 
@@ -219,7 +211,7 @@ impl DriverBuilder for VirtioNetBuilder {
 
         let ioport = match pci_device.config().bar0() {
             super::pci::Bar::IOMapped { port } => IoPort::new(port),
-            bar0 @ _ => {
+            bar0 => {
                 warn!("virtio: unsupported type of BAR#0: {:x?}", bar0);
                 return Err(Error::new(Errno::EINVAL));
             }

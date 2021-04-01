@@ -1,8 +1,5 @@
 use super::pci::PciDevice;
-use crate::arch::SpinLock;
-use crate::result::{Errno, Error, Result};
-use alloc::boxed::Box;
-use core::any::Any;
+use crate::result::Result;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct MacAddress([u8; 6]);
@@ -16,7 +13,7 @@ impl MacAddress {
     }
 }
 
-pub trait Driver: Send + Sync + Any {
+pub trait Driver: Send + Sync {
     fn name(&self) -> &str;
 }
 

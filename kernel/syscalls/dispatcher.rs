@@ -3,7 +3,6 @@ use crate::{
     fs::{
         opened_file::{Fd, OpenFlags},
         path::Path,
-        stat::FileMode,
     },
     net::{RecvFromFlags, SendToFlags},
     process::PId,
@@ -39,8 +38,7 @@ pub(super) struct UserCStr {
 
 impl UserCStr {
     pub fn new(uaddr: UserVAddr, max_len: usize) -> Result<UserCStr> {
-        let mut buf = Vec::with_capacity(max_len);
-        buf.resize(max_len, 0);
+        let mut buf = vec![0; max_len];
         let copied_len = uaddr.read_cstr(buf.as_mut_slice())?;
         buf.resize(copied_len, 0);
         Ok(UserCStr { buf })
@@ -91,7 +89,7 @@ impl<'a> SyscallDispatcher<'a> {
         match n {
             SYS_OPEN => self.sys_open(
                 Path::new(UserCStr::new(UserVAddr::new(a1)?, PATH_MAX)?.as_str()?),
-                OpenFlags::from_bits(a2 as i32).ok_or(Error::new(Errno::ENOSYS))?,
+                OpenFlags::from_bits(a2 as i32).ok_or_else(|| Error::new(Errno::ENOSYS))?,
             ),
             SYS_CLOSE => self.sys_close(Fd::new(a1 as i32)),
             SYS_READ => self.sys_read(Fd::new(a1 as i32), UserVAddr::new(a2)?, a3),
@@ -125,7 +123,7 @@ impl<'a> SyscallDispatcher<'a> {
                 Fd::new(a1 as i32),
                 UserVAddr::new(a2)?,
                 a3 as usize,
-                SendToFlags::from_bits(a4 as i32).ok_or(Error::new(Errno::ENOSYS))?,
+                SendToFlags::from_bits(a4 as i32).ok_or_else(|| Error::new(Errno::ENOSYS))?,
                 UserVAddr::new(a5)?,
                 a6,
             ),
@@ -133,7 +131,7 @@ impl<'a> SyscallDispatcher<'a> {
                 Fd::new(a1 as i32),
                 UserVAddr::new(a2)?,
                 a3 as usize,
-                RecvFromFlags::from_bits(a4 as i32).ok_or(Error::new(Errno::ENOSYS))?,
+                RecvFromFlags::from_bits(a4 as i32).ok_or_else(|| Error::new(Errno::ENOSYS))?,
                 UserVAddr::new(a5)?,
                 UserVAddr::new(a6)?,
             ),

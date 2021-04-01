@@ -88,12 +88,12 @@ fn duplicate_table(original_table_paddr: PAddr, level: usize) -> Result<PAddr> {
     let orig_table = unsafe { original_table_paddr.as_ptr::<PageTableEntry>() };
     let new_table_paddr =
         alloc_pages(1, AllocPageFlags::KERNEL).ok_or_else(|| Error::new(Errno::ENOMEM))?;
-    let mut new_table = unsafe { new_table_paddr.as_mut_ptr::<PageTableEntry>() };
+    let new_table = unsafe { new_table_paddr.as_mut_ptr::<PageTableEntry>() };
 
     debug_assert!(level > 0);
     for i in 0..ENTRIES_PER_TABLE {
         let entry = unsafe { *orig_table.offset(i as isize) };
-        let mut paddr = entry_paddr(entry);
+        let paddr = entry_paddr(entry);
 
         // Check if we need to copy the entry.
         if paddr.is_null() {
@@ -103,7 +103,7 @@ fn duplicate_table(original_table_paddr: PAddr, level: usize) -> Result<PAddr> {
         // Create a deep copy of the page table entry.
         let new_paddr = if level == 1 {
             // Copy a physical page referenced from the last-level page table.
-            let mut new_paddr =
+            let new_paddr =
                 alloc_pages(1, AllocPageFlags::KERNEL).ok_or_else(|| Error::new(Errno::ENOMEM))?;
             unsafe {
                 ptr::copy_nonoverlapping::<u8>(paddr.as_ptr(), new_paddr.as_mut_ptr(), PAGE_SIZE);

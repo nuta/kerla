@@ -127,7 +127,7 @@ pub fn write_endpoint_as_sockaddr(
                 info!("write: {:?} {}, off={}", addr, endpoint.port, offset);
                 offset += sockaddr.add(offset)?.write_bytes(&addr.0)?;
                 // zero
-                offset += sockaddr.add(offset)?.write_bytes(&[0; 8])?;
+                sockaddr.add(offset)?.write_bytes(&[0; 8])?;
 
                 let mut wrr = vec![0; 16];
                 sockaddr.read_bytes(&mut wrr).unwrap();

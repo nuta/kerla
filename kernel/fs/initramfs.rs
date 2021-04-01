@@ -48,7 +48,7 @@ impl FileLike for InitramFsFile {
     }
 
     fn stat(&self) -> Result<Stat> {
-        Ok(self.stat.clone())
+        Ok(self.stat)
     }
 }
 
@@ -64,7 +64,7 @@ struct InitramFsDir {
 
 impl Directory for InitramFsDir {
     fn stat(&self) -> Result<Stat> {
-        Ok(self.stat.clone())
+        Ok(self.stat)
     }
 
     fn lookup(&self, name: &str) -> Result<DirEntry> {

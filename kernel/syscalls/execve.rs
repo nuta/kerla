@@ -18,7 +18,7 @@ impl<'a> SyscallDispatcher<'a> {
         &mut self,
         path: &Path,
         argv_uaddr: UserVAddr,
-        envp_uaddr: UserVAddr,
+        _envp_uaddr: UserVAddr,
     ) -> Result<isize> {
         let current = current_process();
         let executable = current.root_fs.lock().lookup_file(path.as_str())?;
@@ -59,6 +59,5 @@ impl<'a> SyscallDispatcher<'a> {
 
         switch(ProcessState::Sleeping /* FIXME: */);
         unreachable!();
-        Ok(0)
     }
 }

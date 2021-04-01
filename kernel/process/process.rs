@@ -12,7 +12,7 @@ use crate::{
 use alloc::collections::BTreeMap;
 use alloc::sync::{Arc, Weak};
 
-use arch::{SpinLockGuard, SyscallFrame};
+use arch::SpinLockGuard;
 
 use opened_file::OpenedFileTable;
 

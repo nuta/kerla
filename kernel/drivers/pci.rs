@@ -1,8 +1,6 @@
 use crate::arch::PAddr;
-use alloc::vec::Vec;
 use core::convert::TryInto;
 use core::{mem::size_of, mem::MaybeUninit};
-use hashbrown::HashMap;
 use penguin_utils::alignment::is_aligned;
 use x86::io::{inl, outl};
 
@@ -129,11 +127,6 @@ impl PciBus {
         ((value >> ((offset & 0x03) * 8)) & 0xff) as u8
     }
 
-    pub fn read16(&self, bus: u8, slot: u8, offset: u32) -> u16 {
-        let value = self.read32(bus, slot, offset & 0xfffc);
-        ((value >> ((offset & 0x03) * 8)) & 0xffff) as u16
-    }
-
     pub fn write32(&self, bus: u8, slot: u8, offset: u32, value: u32) {
         assert!(is_aligned(offset as usize, 4));
         let addr = (1 << 31) | ((bus as u32) << 16) | ((slot as u32) << 11) | offset;
@@ -156,7 +149,7 @@ impl PciBus {
         let mut config = MaybeUninit::uninit();
         for i in 0..(size_of::<PciConfig>() / size_of::<u32>()) {
             unsafe {
-                *(config.as_mut_ptr() as *mut u32).offset(i as isize) =
+                *(config.as_mut_ptr() as *mut u32).add(i) =
                     self.read32(bus, slot, (i * size_of::<u32>()) as u32);
             }
         }

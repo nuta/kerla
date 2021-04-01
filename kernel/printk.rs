@@ -46,6 +46,17 @@ macro_rules! debug_warn {
     };
 }
 
+/// Prints a warning message if it is `Err`.
+#[macro_export]
+macro_rules! warn_if_err {
+    ($result:expr) => {
+        #[cfg(debug_assertions)]
+        if let Err(err) = $result {
+            $crate::debug_warn!("{}:{}: error returned: {:?}", file!(), line!(), err)
+        }
+    };
+}
+
 pub struct PrintkLogger;
 impl log::Log for PrintkLogger {
     fn enabled(&self, metadata: &log::Metadata) -> bool {

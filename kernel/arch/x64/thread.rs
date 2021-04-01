@@ -33,6 +33,7 @@ unsafe fn push_stack(mut rsp: *mut u64, value: u64) -> *mut u64 {
 }
 
 impl Thread {
+    #[allow(unused)]
     pub fn new_kthread(ip: VAddr, sp: VAddr) -> Thread {
         let interrupt_stack = alloc_pages(1, AllocPageFlags::KERNEL)
             .expect("failed to allocate kernel stack")

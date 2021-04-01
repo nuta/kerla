@@ -1,4 +1,3 @@
-use crate::result::Result;
 use bitflags::bitflags;
 
 bitflags! {
@@ -25,7 +24,7 @@ impl From<u32> for Ipv4Address {
             ((value >> 24) & 0xff) as u8,
             ((value >> 16) & 0xff) as u8,
             ((value >> 8) & 0xff) as u8,
-            ((value >> 0) & 0xff) as u8,
+            (value & 0xff) as u8,
         ])
     }
 }
