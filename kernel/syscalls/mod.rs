@@ -9,6 +9,7 @@ use penguin_utils::endian::NetworkEndianExt;
 pub(self) mod arch_prctl;
 pub(self) mod bind;
 pub(self) mod brk;
+pub(self) mod chdir;
 pub(self) mod close;
 pub(self) mod connect;
 pub(self) mod dispatcher;
