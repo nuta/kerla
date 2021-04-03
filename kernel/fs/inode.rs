@@ -32,6 +32,10 @@ pub trait FileLike: Send + Sync {
         Err(Error::new(Errno::EBADF))
     }
 
+    fn connect(&self, _endpoint: Endpoint) -> Result<()> {
+        Err(Error::new(Errno::EBADF))
+    }
+
     fn sendto(&self, _buf: &[u8], _endpoint: Endpoint) -> Result<()> {
         Err(Error::new(Errno::EBADF))
     }

@@ -10,6 +10,7 @@ pub(self) mod arch_prctl;
 pub(self) mod bind;
 pub(self) mod brk;
 pub(self) mod close;
+pub(self) mod connect;
 pub(self) mod dispatcher;
 pub(self) mod execve;
 pub(self) mod exit;
@@ -39,7 +40,9 @@ pub(self) struct IoVec {
 }
 
 pub const AF_INET: i32 = 2;
+pub const SOCK_STREAM: i32 = 1;
 pub const SOCK_DGRAM: i32 = 2;
+pub const IPPROTO_TCP: i32 = 6;
 pub const IPPROTO_UDP: i32 = 17;
 
 #[allow(non_camel_case_types)]

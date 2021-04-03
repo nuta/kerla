@@ -1,6 +1,6 @@
-use super::{AF_INET, IPPROTO_UDP, SOCK_DGRAM};
+use super::{AF_INET, IPPROTO_TCP, IPPROTO_UDP, SOCK_DGRAM, SOCK_STREAM};
 use crate::fs::inode::{FileLike, INode};
-use crate::net::UdpSocket;
+use crate::net::{TcpSocket, UdpSocket};
 use crate::result::{Errno, Error, Result};
 use crate::{process::current_process, syscalls::SyscallDispatcher};
 use alloc::sync::Arc;
@@ -14,6 +14,9 @@ impl<'a> SyscallDispatcher<'a> {
         let socket = match (domain, type_, protocol) {
             (AF_INET, SOCK_DGRAM, 0) | (AF_INET, SOCK_DGRAM, IPPROTO_UDP) => {
                 UdpSocket::new() as Arc<dyn FileLike>
+            }
+            (AF_INET, SOCK_STREAM, 0) | (AF_INET, SOCK_STREAM, IPPROTO_TCP) => {
+                TcpSocket::new() as Arc<dyn FileLike>
             }
             (_, _, _) => {
                 debug_warn!(

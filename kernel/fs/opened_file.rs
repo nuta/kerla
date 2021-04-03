@@ -76,6 +76,10 @@ impl OpenedFile {
         self.as_file()?.bind(endpoint)
     }
 
+    pub fn connect(&mut self, endpoint: Endpoint) -> Result<()> {
+        self.as_file()?.connect(endpoint)
+    }
+
     pub fn sendto(&mut self, buf: &[u8], endpoint: Endpoint) -> Result<()> {
         self.as_file()?.sendto(buf, endpoint)
     }

@@ -20,6 +20,7 @@ const SYS_BRK: usize = 12;
 const SYS_IOCTL: usize = 16;
 const SYS_WRITEV: usize = 20;
 const SYS_SOCKET: usize = 41;
+const SYS_CONNECT: usize = 42;
 const SYS_SENDTO: usize = 44;
 const SYS_RECVFROM: usize = 45;
 const SYS_BIND: usize = 49;
@@ -119,6 +120,7 @@ impl<'a> SyscallDispatcher<'a> {
             SYS_EXIT => self.sys_exit(a1 as i32),
             SYS_SOCKET => self.sys_socket(a1 as i32, a2 as i32, a3 as i32),
             SYS_BIND => self.sys_bind(Fd::new(a1 as i32), UserVAddr::new(a2)?, a3 as usize),
+            SYS_CONNECT => self.sys_connect(Fd::new(a1 as i32), UserVAddr::new(a2)?, a3 as usize),
             SYS_SENDTO => self.sys_sendto(
                 Fd::new(a1 as i32),
                 UserVAddr::new(a2)?,
