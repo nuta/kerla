@@ -1,9 +1,10 @@
 //! Initramfs parser.
 //! https://www.kernel.org/doc/html/latest/driver-api/early-userspace/buffer-format.html
+use crate::alloc::string::ToString;
 use crate::{
     fs::{
         file_system::FileSystem,
-        inode::{DirEntry, Directory, FileLike, INode, INodeNo},
+        inode::{DirEntry, Directory, FileLike, FileType, INode, INodeNo},
         path::Path,
         stat::FileMode,
         stat::{Stat, S_IFDIR},
@@ -31,6 +32,7 @@ fn parse_hex_field(bytes: &[u8]) -> usize {
 pub static INITRAM_FS: Once<Arc<InitramFs>> = Once::new();
 
 struct InitramFsFile {
+    filename: &'static str,
     data: &'static [u8],
     stat: Stat,
 }
@@ -58,6 +60,7 @@ enum InitramFsINode {
     Symlink(Arc<InitramFsSymlink>),
 }
 struct InitramFsDir {
+    filename: &'static str,
     stat: Stat,
     files: HashMap<&'static str, InitramFsINode>,
 }
@@ -65,6 +68,28 @@ struct InitramFsDir {
 impl Directory for InitramFsDir {
     fn stat(&self) -> Result<Stat> {
         Ok(self.stat)
+    }
+
+    fn readdir(&self, index: usize) -> Result<Option<DirEntry>> {
+        let entry = self.files.values().nth(index).map(|entry| match entry {
+            InitramFsINode::Directory(dir) => DirEntry {
+                inode_no: dir.stat.inode_no,
+                file_type: FileType::Directory,
+                name: dir.filename.to_string(),
+            },
+            InitramFsINode::File(file) => DirEntry {
+                inode_no: file.stat.inode_no,
+                file_type: FileType::Regular,
+                name: file.filename.to_string(),
+            },
+            InitramFsINode::Symlink(symlink) => DirEntry {
+                inode_no: symlink.stat.inode_no,
+                file_type: FileType::Link,
+                name: symlink.filename.to_string(),
+            },
+        });
+
+        Ok(entry)
     }
 
     fn lookup(&self, name: &str) -> Result<INode> {
@@ -81,12 +106,14 @@ impl Directory for InitramFsDir {
 }
 
 struct InitramFsSymlink {
+    filename: &'static str,
+    stat: Stat,
     dst: PathBuf,
 }
 
 impl Symlink for InitramFsSymlink {
     fn stat(&self) -> Result<Stat> {
-        todo!()
+        Ok(self.stat)
     }
 
     fn linked_to(&self) -> Result<PathBuf> {
@@ -177,16 +204,25 @@ impl InitramFs {
             // Create a file or a directory under its parent.
             let data = image.consume_bytes(filesize).unwrap();
             if mode.is_symbolic_link() {
+                let filename = filename.unwrap();
                 files.insert(
-                    filename.unwrap(),
+                    filename,
                     InitramFsINode::Symlink(Arc::new(InitramFsSymlink {
+                        filename,
+                        stat: Stat {
+                            inode_no: INodeNo::new(ino),
+                            mode,
+                            ..Stat::zeroed()
+                        },
                         dst: PathBuf::from(core::str::from_utf8(data).unwrap()),
                     })),
                 );
             } else if mode.is_directory() {
+                let filename = filename.unwrap();
                 files.insert(
-                    filename.unwrap(),
+                    filename,
                     InitramFsINode::Directory(Arc::new(InitramFsDir {
+                        filename,
                         files: HashMap::new(),
                         stat: Stat {
                             inode_no: INodeNo::new(ino),
@@ -196,9 +232,11 @@ impl InitramFs {
                     })),
                 );
             } else if mode.is_regular_file() {
+                let filename = filename.unwrap();
                 files.insert(
-                    filename.unwrap(),
+                    filename,
                     InitramFsINode::File(Arc::new(InitramFsFile {
+                        filename,
                         data,
                         stat: Stat {
                             inode_no: INodeNo::new(ino),
@@ -215,6 +253,7 @@ impl InitramFs {
         InitramFs {
             root_dir: Arc::new(InitramFsDir {
                 // TODO: Should we use other value for the root directory?
+                filename: "",
                 stat: Stat {
                     inode_no: INodeNo::new(2),
                     mode: FileMode::new(S_IFDIR | 0o755),

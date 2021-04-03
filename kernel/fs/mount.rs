@@ -90,6 +90,10 @@ impl RootFs {
         follow_symlink: bool,
         symlink_follow_limit: usize,
     ) -> Result<INode> {
+        if path == Path::new("/") {
+            return Ok(INode::Directory(lookup_from));
+        }
+
         let mut current_dir = lookup_from;
         let mut components = path.components().peekable();
         while let Some(name) = components.next() {

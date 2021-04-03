@@ -33,6 +33,7 @@ const SYS_EXIT: usize = 60;
 const SYS_WAIT4: usize = 61;
 const SYS_CHDIR: usize = 80;
 const SYS_ARCH_PRCTL: usize = 158;
+const SYS_GETDENTS64: usize = 217;
 const SYS_SET_TID_ADDRESS: usize = 218;
 
 const PATH_MAX: usize = 512;
@@ -109,6 +110,7 @@ impl<'a> SyscallDispatcher<'a> {
             SYS_WRITEV => self.sys_writev(Fd::new(a1 as i32), UserVAddr::new(a2)?, a3),
             SYS_STAT => self.sys_stat(&resolve_path(a1)?, UserVAddr::new(a2)?),
             SYS_LSTAT => self.sys_lstat(&resolve_path(a1)?, UserVAddr::new(a2)?),
+            SYS_GETDENTS64 => self.sys_getdents64(Fd::new(a1 as i32), UserVAddr::new(a2)?, a3),
             SYS_POLL => self.sys_poll(UserVAddr::new(a1)?, a2, a3 as i32),
             SYS_CHDIR => self.sys_chdir(&resolve_path(a1)?),
             SYS_ARCH_PRCTL => self.sys_arch_prctl(a1 as i32, UserVAddr::new(a2)?),

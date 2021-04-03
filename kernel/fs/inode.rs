@@ -1,6 +1,7 @@
 use crate::fs::stat::Stat;
 use crate::net::*;
 use crate::result::{Errno, Error, Result};
+use alloc::string::String;
 use alloc::sync::Arc;
 
 use super::path::PathBuf;
@@ -12,6 +13,10 @@ pub struct INodeNo(usize);
 impl INodeNo {
     pub const fn new(no: usize) -> INodeNo {
         INodeNo(no)
+    }
+
+    pub const fn as_u64(self) -> u64 {
+        self.0 as u64
     }
 }
 
@@ -45,12 +50,25 @@ pub trait FileLike: Send + Sync {
     }
 }
 
+/// Represents `d_type` in `linux_dirent`. See `getdents64(2)` manual.
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[repr(u8)]
+#[non_exhaustive]
+pub enum FileType {
+    Directory = 4,
+    Regular = 8,
+    Link = 10,
+}
+
 pub struct DirEntry {
-    pub inode: INode,
+    pub inode_no: INodeNo,
+    pub file_type: FileType,
+    pub name: String,
 }
 
 pub trait Directory: Send + Sync {
     fn stat(&self) -> Result<Stat>;
+    fn readdir(&self, index: usize) -> Result<Option<DirEntry>>;
     fn lookup(&self, name: &str) -> Result<INode>;
 }
 
@@ -64,4 +82,22 @@ pub enum INode {
     FileLike(Arc<dyn FileLike>),
     Directory(Arc<dyn Directory>),
     Symlink(Arc<dyn Symlink>),
+}
+
+impl From<Arc<dyn FileLike>> for INode {
+    fn from(file: Arc<dyn FileLike>) -> Self {
+        INode::FileLike(file)
+    }
+}
+
+impl From<Arc<dyn Directory>> for INode {
+    fn from(dir: Arc<dyn Directory>) -> Self {
+        INode::Directory(dir)
+    }
+}
+
+impl From<Arc<dyn Symlink>> for INode {
+    fn from(symlink: Arc<dyn Symlink>) -> Self {
+        INode::Symlink(symlink)
+    }
 }

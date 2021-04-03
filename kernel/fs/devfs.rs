@@ -52,6 +52,10 @@ impl Directory for DevRootDir {
         }
     }
 
+    fn readdir(&self, _index: usize) -> Result<Option<DirEntry>> {
+        todo!()
+    }
+
     fn stat(&self) -> Result<Stat> {
         Ok(Stat {
             inode_no: INodeNo::new(1),

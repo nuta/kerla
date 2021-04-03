@@ -1,4 +1,4 @@
-use super::inode::{FileLike, INode};
+use super::inode::{DirEntry, Directory, FileLike, INode};
 use crate::arch::SpinLock;
 use crate::net::*;
 use crate::result::{Errno, Error, Result};
@@ -57,6 +57,13 @@ impl OpenedFile {
         }
     }
 
+    pub fn as_dir(&self) -> Result<&Arc<dyn Directory>> {
+        match &self.inode {
+            INode::Directory(dir) => Ok(dir),
+            _ => Err(Error::new(Errno::EBADF)),
+        }
+    }
+
     pub fn pos(&self) -> usize {
         self.pos
     }
@@ -87,6 +94,12 @@ impl OpenedFile {
 
     pub fn recvfrom(&mut self, buf: &mut [u8], flags: RecvFromFlags) -> Result<(usize, Endpoint)> {
         self.as_file()?.recvfrom(buf, flags)
+    }
+
+    pub fn readdir(&mut self) -> Result<Option<DirEntry>> {
+        let entry = self.as_dir()?.readdir(self.pos)?;
+        self.pos += 1;
+        Ok(entry)
     }
 }
 
