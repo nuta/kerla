@@ -1,10 +1,12 @@
 use crate::{
     arch::{SyscallFrame, UserVAddr},
+    fs::path::PathBuf,
     fs::{
         opened_file::{Fd, OpenFlags},
         path::Path,
     },
     net::{RecvFromFlags, SendToFlags},
+    process::current_process,
     process::PId,
     result::{Errno, Error, Result},
 };
@@ -15,6 +17,7 @@ const SYS_WRITE: usize = 1;
 const SYS_OPEN: usize = 2;
 const SYS_CLOSE: usize = 3;
 const SYS_STAT: usize = 4;
+const SYS_LSTAT: usize = 6;
 const SYS_POLL: usize = 7;
 const SYS_BRK: usize = 12;
 const SYS_IOCTL: usize = 16;
@@ -54,6 +57,13 @@ impl UserCStr {
     }
 }
 
+fn resolve_path(uaddr: usize) -> Result<PathBuf> {
+    Ok(PathBuf::resolve(
+        Path::new(UserCStr::new(UserVAddr::new(uaddr)?, PATH_MAX)?.as_str()?),
+        &current_process().lock().working_dir,
+    ))
+}
+
 pub struct SyscallDispatcher<'a> {
     pub frame: &'a SyscallFrame,
 }
@@ -89,27 +99,23 @@ impl<'a> SyscallDispatcher<'a> {
 
         match n {
             SYS_OPEN => self.sys_open(
-                Path::new(UserCStr::new(UserVAddr::new(a1)?, PATH_MAX)?.as_str()?),
+                &resolve_path(a1)?,
                 OpenFlags::from_bits(a2 as i32).ok_or_else(|| Error::new(Errno::ENOSYS))?,
             ),
             SYS_CLOSE => self.sys_close(Fd::new(a1 as i32)),
             SYS_READ => self.sys_read(Fd::new(a1 as i32), UserVAddr::new(a2)?, a3),
             SYS_WRITE => self.sys_write(Fd::new(a1 as i32), UserVAddr::new(a2)?, a3),
             SYS_WRITEV => self.sys_writev(Fd::new(a1 as i32), UserVAddr::new(a2)?, a3),
-            SYS_STAT => self.sys_stat(
-                Path::new(UserCStr::new(UserVAddr::new(a1)?, PATH_MAX)?.as_str()?),
-                UserVAddr::new(a2)?,
-            ),
+            SYS_STAT => self.sys_stat(&resolve_path(a1)?, UserVAddr::new(a2)?),
+            SYS_LSTAT => self.sys_lstat(&resolve_path(a1)?, UserVAddr::new(a2)?),
             SYS_POLL => self.sys_poll(UserVAddr::new(a1)?, a2, a3 as i32),
             SYS_ARCH_PRCTL => self.sys_arch_prctl(a1 as i32, UserVAddr::new(a2)?),
             SYS_BRK => self.sys_brk(UserVAddr::new(a1)?),
             SYS_IOCTL => self.sys_ioctl(Fd::new(a1 as i32), a2, a3),
             SYS_SET_TID_ADDRESS => self.sys_set_tid_address(UserVAddr::new(a1)?),
-            SYS_EXECVE => self.sys_execve(
-                Path::new(UserCStr::new(UserVAddr::new(a1)?, PATH_MAX)?.as_str()?),
-                UserVAddr::new(a2)?,
-                UserVAddr::new(a3)?,
-            ),
+            SYS_EXECVE => {
+                self.sys_execve(&resolve_path(a1)?, UserVAddr::new(a2)?, UserVAddr::new(a3)?)
+            }
             SYS_FORK => self.sys_fork(),
             SYS_WAIT4 => self.sys_wait4(
                 PId::new(a1 as i32),
