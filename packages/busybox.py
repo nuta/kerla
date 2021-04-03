@@ -1,7 +1,9 @@
 from . import Package
 
 COMMANDS = [
-    "sh", "echo", "cat", "uname", "nslookup",
+    "sh", "echo", "cat", "ls", "cp", "ln", "mv", "env", "mkdir", "touch",
+    "rm", "rmdir", "sleep", "uname", "clear", "head", "tail",
+    "nslookup", "wget",
 ]
 
 
@@ -28,10 +30,24 @@ class Busybox(Package):
         self.set_kconfig("STATIC", True)
         self.set_kconfig("ECHO", True)
         self.set_kconfig("CAT", True)
+        self.set_kconfig("LS", True)
+        self.set_kconfig("CP", True)
+        self.set_kconfig("LN", True)
+        self.set_kconfig("MV", True)
+        self.set_kconfig("ENV", True)
+        self.set_kconfig("MKDIR", True)
+        self.set_kconfig("TOUCH", True)
+        self.set_kconfig("RM", True)
+        self.set_kconfig("RMDIR", True)
+        self.set_kconfig("SLEEP", True)
+        self.set_kconfig("CLEAR", True)
+        self.set_kconfig("HEAD", True)
+        self.set_kconfig("TAIL", True)
         self.set_kconfig("UNAME", True)
         self.set_kconfig("ASH", True)
         self.set_kconfig("ASH_OPTIMIZE_FOR_SIZE", True)
         self.set_kconfig("NSLOOKUP", True)
         self.set_kconfig("VERBOSE_RESOLUTION_ERRORS", True)
+        self.set_kconfig("WGET", True)
         self.set_kconfig("DEBUG", True)
         self.make()
