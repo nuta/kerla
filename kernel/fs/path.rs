@@ -18,6 +18,9 @@ impl Path {
 
     pub fn is_absolute(&self) -> bool {
         self.path.starts_with('/')
+            && !self
+                .components()
+                .any(|comp| matches!(comp, ".." | "." | ""))
     }
 
     pub fn components(&self) -> Components<'_> {
@@ -28,6 +31,18 @@ impl Path {
         };
 
         Components { path }
+    }
+}
+
+impl AsRef<Path> for Path {
+    fn as_ref(&self) -> &Path {
+        self
+    }
+}
+
+impl AsRef<Path> for str {
+    fn as_ref(&self) -> &Path {
+        Path::new(self)
     }
 }
 
@@ -63,14 +78,71 @@ pub struct PathBuf {
 }
 
 impl PathBuf {
+    pub fn new() -> PathBuf {
+        PathBuf {
+            path: String::new(),
+        }
+    }
+
     pub fn as_path(&self) -> &Path {
         Path::new(&self.path)
+    }
+
+    pub fn pop(&mut self) {
+        if let Some((index, _)) = self.path.char_indices().rfind(|(_, ch)| *ch == '/') {
+            self.path.truncate(index);
+        }
+    }
+
+    pub fn push<P: AsRef<Path>>(&mut self, path: P) {
+        let path = path.as_ref();
+        let path_str = if path.as_str() == "/" {
+            "/"
+        } else {
+            path.as_str().trim_end_matches('/')
+        };
+
+        if path.is_absolute() {
+            self.path = path_str.to_string();
+        } else {
+            if self.path != "/" {
+                self.path.push('/');
+            }
+            self.path.push_str(path_str);
+        }
+    }
+
+    pub fn resolve(path: &Path, current_dir: &Path) -> PathBuf {
+        debug_assert!(current_dir.is_absolute());
+        let mut pathbuf = PathBuf::new();
+        for (i, comp) in path.components().enumerate() {
+            match comp {
+                ".." => {
+                    pathbuf.pop();
+                }
+                "." if i == 0 => {
+                    pathbuf.push(current_dir);
+                }
+                "." => {}
+                _ => {
+                    pathbuf.push(comp);
+                }
+            }
+        }
+
+        pathbuf
     }
 }
 
 impl Deref for PathBuf {
     type Target = Path;
     fn deref(&self) -> &Path {
+        self.as_path()
+    }
+}
+
+impl AsRef<Path> for PathBuf {
+    fn as_ref(&self) -> &Path {
         self.as_path()
     }
 }
