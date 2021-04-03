@@ -18,7 +18,7 @@ impl<'a> SyscallDispatcher<'a> {
         &mut self,
         path: &Path,
         argv_uaddr: UserVAddr,
-        _envp_uaddr: UserVAddr,
+        envp_uaddr: UserVAddr,
     ) -> Result<isize> {
         let current = current_process();
         let executable = current.root_fs.lock().lookup_file(path.as_str())?;
@@ -35,7 +35,7 @@ impl<'a> SyscallDispatcher<'a> {
 
         let mut envp = Vec::new();
         for i in 0..ENV_MAX {
-            let ptr = argv_uaddr.add(i * size_of::<usize>())?;
+            let ptr = envp_uaddr.add(i * size_of::<usize>())?;
             let str_ptr = ptr.read::<UserVAddr>()?;
             if str_ptr.is_null() {
                 break;
