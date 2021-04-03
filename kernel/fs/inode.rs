@@ -51,7 +51,7 @@ pub struct DirEntry {
 
 pub trait Directory: Send + Sync {
     fn stat(&self) -> Result<Stat>;
-    fn lookup(&self, name: &str) -> Result<DirEntry>;
+    fn lookup(&self, name: &str) -> Result<INode>;
 }
 
 pub trait Symlink: Send + Sync {

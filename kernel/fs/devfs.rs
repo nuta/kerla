@@ -44,14 +44,10 @@ impl DevRootDir {
 }
 
 impl Directory for DevRootDir {
-    fn lookup(&self, name: &str) -> Result<DirEntry> {
+    fn lookup(&self, name: &str) -> Result<INode> {
         match name {
-            "null" => Ok(DirEntry {
-                inode: INode::FileLike(NULL_FILE.clone()),
-            }),
-            "console" => Ok(DirEntry {
-                inode: INode::FileLike(CONSOLE_FILE.clone()),
-            }),
+            "null" => Ok(INode::FileLike(NULL_FILE.clone())),
+            "console" => Ok(INode::FileLike(CONSOLE_FILE.clone())),
             _ => Err(Error::new(Errno::ENOENT)),
         }
     }

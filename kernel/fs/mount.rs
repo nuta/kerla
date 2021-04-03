@@ -42,9 +42,14 @@ impl RootFs {
         self.root.fs.root_dir()
     }
 
+    /// Resolves a path into an inode.
+    pub fn lookup(&self, path: &str) -> Result<INode> {
+        self.lookup_inode(&self.root_dir()?, Path::new(path), true)
+    }
+
     /// Resolves a path into an file.
     pub fn lookup_file(&self, path: &str) -> Result<Arc<dyn FileLike>> {
-        match self.lookup_inode(&self.root_dir()?, Path::new(path), true)? {
+        match self.lookup(path)? {
             INode::Directory(_) => Err(Error::new(Errno::EISDIR)),
             INode::FileLike(file) => Ok(file),
             // Symbolic links should be already resolved.
@@ -54,7 +59,7 @@ impl RootFs {
 
     /// Resolves a path into an directory.
     pub fn lookup_dir(&self, path: &str) -> Result<Arc<dyn Directory>> {
-        match self.lookup_inode(&self.root_dir()?, Path::new(path), true)? {
+        match self.lookup(path)? {
             INode::Directory(dir) => Ok(dir),
             INode::FileLike(_) => Err(Error::new(Errno::EISDIR)),
             // Symbolic links should be already resolved.
@@ -88,8 +93,7 @@ impl RootFs {
         let mut current_dir = lookup_from;
         let mut components = path.components().peekable();
         while let Some(name) = components.next() {
-            let entry = current_dir.lookup(name)?;
-            match (components.peek(), entry.inode) {
+            match (components.peek(), current_dir.lookup(name)?) {
                 // Found the matching file.
                 (None, INode::Symlink(symlink)) if follow_symlink => {
                     if symlink_follow_limit == 0 {

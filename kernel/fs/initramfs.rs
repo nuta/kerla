@@ -67,18 +67,16 @@ impl Directory for InitramFsDir {
         Ok(self.stat)
     }
 
-    fn lookup(&self, name: &str) -> Result<DirEntry> {
+    fn lookup(&self, name: &str) -> Result<INode> {
         let initramfs_inode = self
             .files
             .get(name)
             .ok_or_else(|| Error::new(Errno::ENOENT))?;
-        let inode = match initramfs_inode {
+        Ok(match initramfs_inode {
             InitramFsINode::File(file) => INode::FileLike(file.clone() as Arc<dyn FileLike>),
             InitramFsINode::Directory(dir) => INode::Directory(dir.clone() as Arc<dyn Directory>),
             InitramFsINode::Symlink(path) => INode::Symlink(path.clone()),
-        };
-
-        Ok(DirEntry { inode })
+        })
     }
 }
 
