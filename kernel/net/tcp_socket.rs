@@ -2,6 +2,7 @@ use crate::{
     arch::SpinLock,
     fs::inode::FileLike,
     result::{Errno, Error, Result},
+    user_buffer::UserBuffer,
     user_buffer::UserBufferMut,
 };
 use alloc::{collections::BTreeSet, sync::Arc};
@@ -81,14 +82,29 @@ impl FileLike for TcpSocket {
         Ok(())
     }
 
-    fn write(&self, _offset: usize, buf: &[u8]) -> Result<usize> {
-        let written_len = SOCKETS
-            .lock()
-            .get::<smoltcp::socket::TcpSocket>(self.handle)
-            .send_slice(buf)?;
+    fn write(&self, _offset: usize, mut buf: UserBuffer<'_>) -> Result<usize> {
+        let mut total_len = 0;
+        loop {
+            let copied_len = SOCKETS
+                .lock()
+                .get::<smoltcp::socket::TcpSocket>(self.handle)
+                .send(|dst| {
+                    let copied_len = buf.read_bytes(dst).unwrap_or(0);
+                    (copied_len, copied_len)
+                });
 
-        process_packets();
-        Ok(written_len)
+            match copied_len {
+                Ok(0) => {
+                    process_packets();
+                    return Ok(total_len);
+                }
+                Ok(copied_len) => {
+                    // Continue writing.
+                    total_len += copied_len;
+                }
+                Err(err) => return Err(err.into()),
+            }
+        }
     }
 
     fn read(&self, _offset: usize, mut buf: UserBufferMut<'_>) -> Result<usize> {
@@ -103,7 +119,7 @@ impl FileLike for TcpSocket {
                 });
 
             match copied_len {
-                    Ok(copied_len) if copied_len == 0 => {
+                Ok(0) => {
                     return Ok(total_len);
                 }
                 Ok(copied_len) => {

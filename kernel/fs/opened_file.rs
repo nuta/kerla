@@ -75,7 +75,7 @@ impl OpenedFile {
     }
 
     pub fn write(&mut self, buf: &[u8]) -> Result<usize> {
-        let written_len = self.as_file()?.write(self.pos, buf)?;
+        let written_len = self.as_file()?.write(self.pos, buf.into())?;
         self.pos += written_len;
         Ok(written_len)
     }

@@ -7,6 +7,7 @@ use crate::{
     arch::print_str,
     process::WaitQueue,
     result::{Errno, Error, Result},
+    user_buffer::UserBuffer,
     user_buffer::UserBufferMut,
 };
 use alloc::sync::Arc;
@@ -84,8 +85,8 @@ impl FileLike for NullFile {
         Ok(0)
     }
 
-    fn write(&self, _offset: usize, buf: &[u8]) -> Result<usize> {
-        Ok(buf.len())
+    fn write(&self, _offset: usize, buf: UserBuffer<'_>) -> Result<usize> {
+        Ok(buf.remaining_len())
     }
 }
 
@@ -104,7 +105,7 @@ impl ConsoleFile {
     }
 
     pub fn input_char(&self, ch: char) {
-        self.write(0, &[ch as u8]).ok();
+        self.write(0, [ch as u8].as_slice().into()).ok();
         self.input.push(ch as u8).ok();
         self.wait_queue.wake_one();
     }
@@ -130,11 +131,17 @@ impl FileLike for ConsoleFile {
         }
     }
 
-    fn write(&self, _offset: usize, buf: &[u8]) -> Result<usize> {
+    fn write(&self, _offset: usize, mut buf: UserBuffer<'_>) -> Result<usize> {
         print_str(b"\x1b[1m");
-        print_str(buf);
+        let mut tmp = [0; 32];
+        let mut total_len = 0;
+        while buf.remaining_len() > 0 {
+            let copied_len = buf.read_bytes(&mut tmp)?;
+            print_str(&tmp.as_slice()[..copied_len]);
+            total_len += copied_len;
+        }
         print_str(b"\x1b[0m");
-        Ok(buf.len())
+        Ok(total_len)
     }
 }
 

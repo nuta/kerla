@@ -1,6 +1,9 @@
 //! Initramfs parser.
 //! https://www.kernel.org/doc/html/latest/driver-api/early-userspace/buffer-format.html
-use crate::{alloc::string::ToString, user_buffer::UserBufferMut};
+use crate::{
+    alloc::string::ToString,
+    user_buffer::{UserBuffer, UserBufferMut},
+};
 use crate::{
     fs::{
         file_system::FileSystem,
@@ -41,7 +44,7 @@ impl FileLike for InitramFsFile {
         buf.write_bytes(&self.data[offset..])
     }
 
-    fn write(&self, _offset: usize, _buf: &[u8]) -> Result<usize> {
+    fn write(&self, _offset: usize, _buf: UserBuffer<'_>) -> Result<usize> {
         Err(Error::new(Errno::EROFS))
     }
 

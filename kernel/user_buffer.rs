@@ -2,6 +2,62 @@ use crate::arch::UserVAddr;
 use crate::result::Result;
 use core::{cmp::min, mem::size_of, slice};
 
+enum Inner<'a> {
+    Slice(&'a [u8]),
+    User { base: UserVAddr, len: usize },
+}
+
+pub struct UserBuffer<'a> {
+    inner: Inner<'a>,
+    pos: usize,
+}
+
+impl<'a> UserBuffer<'a> {
+    fn from_uaddr(uaddr: UserVAddr, len: usize) -> UserBuffer<'static> {
+        UserBuffer {
+            inner: Inner::User { base: uaddr, len },
+            pos: 0,
+        }
+    }
+
+    pub fn remaining_len(&self) -> usize {
+        let len = match &self.inner {
+            Inner::Slice(slice) => slice.len(),
+            Inner::User { len, .. } => *len,
+        };
+
+        len - self.pos
+    }
+
+    pub fn read_bytes(&mut self, dst: &mut [u8]) -> Result<usize> {
+        let copy_len = min(self.remaining_len(), dst.len());
+        if copy_len == 0 {
+            return Ok(0);
+        }
+
+        match &self.inner {
+            Inner::Slice(src) => {
+                dst[..copy_len].copy_from_slice(&src[self.pos..(self.pos + copy_len)]);
+            }
+            Inner::User { base, .. } => {
+                base.add(self.pos)?.read_bytes(&mut dst[..copy_len])?;
+            }
+        }
+
+        self.pos += copy_len;
+        Ok(copy_len)
+    }
+}
+
+impl<'a> From<&'a [u8]> for UserBuffer<'a> {
+    fn from(slice: &'a [u8]) -> UserBuffer<'a> {
+        UserBuffer {
+            inner: Inner::Slice(slice),
+            pos: 0,
+        }
+    }
+}
+
 enum InnerMut<'a> {
     Slice(&'a mut [u8]),
     User { base: UserVAddr, len: usize },

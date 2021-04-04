@@ -35,7 +35,7 @@ impl<'a> SyscallDispatcher<'a> {
 
             let mut buf = vec![0; iov.len]; // TODO: deny too long len
             iov.base.read_bytes(&mut buf)?;
-            total_len += file.write(open_file.pos(), buf.as_slice())?;
+            total_len += file.write(open_file.pos(), buf.as_slice().into())?;
         }
 
         // MAX_READ_WRITE_LEN limit guarantees total_len is in the range of isize.
