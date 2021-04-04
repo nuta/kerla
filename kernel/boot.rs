@@ -3,6 +3,7 @@
 use crate::{
     arch::{self, idle, PAddr, SpinLock},
     drivers,
+    fs::tmpfs,
     fs::{
         devfs::{self, DEV_FS},
         initramfs::{self, INITRAM_FS},
@@ -16,6 +17,7 @@ use crate::{
 };
 use alloc::sync::Arc;
 use penguin_utils::once::Once;
+use tmpfs::TMP_FS;
 
 #[cfg(test)]
 use crate::test_runner::end_tests;
@@ -63,6 +65,7 @@ pub fn boot_kernel(bootinfo: &BootInfo) -> ! {
     // Initialize kernel subsystems.
     arch::init();
     devfs::init();
+    tmpfs::init();
     initramfs::init();
     drivers::init();
     net::init();
@@ -71,9 +74,13 @@ pub fn boot_kernel(bootinfo: &BootInfo) -> ! {
     let mut root_fs = RootFs::new(INITRAM_FS.clone());
     let root_dir = root_fs.root_dir().expect("failed to open the root dir");
     let dev_dir = root_fs.lookup_dir("/dev").expect("failed to locate /dev");
+    let tmp_dir = root_fs.lookup_dir("/tmp").expect("failed to locate /tmp");
     root_fs
         .mount(dev_dir, DEV_FS.clone())
         .expect("failed to mount devfs");
+    root_fs
+        .mount(tmp_dir, TMP_FS.clone())
+        .expect("failed to mount tmpfs");
 
     // Open /dev/console for the init process.
     let console = root_fs

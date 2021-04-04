@@ -41,6 +41,7 @@ struct InitramFsFile {
 
 impl FileLike for InitramFsFile {
     fn read(&self, offset: usize, mut buf: UserBufferMut<'_>) -> Result<usize> {
+        // FIXME: What if the offset is beyond data?
         buf.write_bytes(&self.data[offset..])
     }
 
