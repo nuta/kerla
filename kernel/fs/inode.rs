@@ -41,11 +41,15 @@ pub trait FileLike: Send + Sync {
         Err(Error::new(Errno::EBADF))
     }
 
-    fn sendto(&self, _buf: &[u8], _endpoint: Endpoint) -> Result<()> {
+    fn sendto(&self, _buf: UserBuffer<'_>, _endpoint: Endpoint) -> Result<()> {
         Err(Error::new(Errno::EBADF))
     }
 
-    fn recvfrom(&self, _buf: &mut [u8], _flags: RecvFromFlags) -> Result<(usize, Endpoint)> {
+    fn recvfrom(
+        &self,
+        _buf: UserBufferMut<'_>,
+        _flags: RecvFromFlags,
+    ) -> Result<(usize, Endpoint)> {
         Err(Error::new(Errno::EBADF))
     }
 }

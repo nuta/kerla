@@ -2,6 +2,8 @@ use crate::{
     arch::SpinLock,
     fs::inode::FileLike,
     result::{Errno, Error, Result},
+    user_buffer::UserBuffer,
+    user_buffer::UserBufferMut,
 };
 use alloc::{collections::BTreeSet, sync::Arc};
 use smoltcp::socket::{UdpPacketMetadata, UdpSocketBuffer};
@@ -80,28 +82,30 @@ impl FileLike for UdpSocket {
         Ok(())
     }
 
-    fn sendto(&self, buf: &[u8], endpoint: Endpoint) -> Result<()> {
-        SOCKETS
-            .lock()
-            .get::<smoltcp::socket::UdpSocket>(self.handle)
-            .send_slice(buf, endpoint.into())?;
+    fn sendto(&self, mut buf: UserBuffer<'_>, endpoint: Endpoint) -> Result<()> {
+        let mut sockets = SOCKETS.lock();
+        let mut socket = sockets.get::<smoltcp::socket::UdpSocket>(self.handle);
+        let dst = socket.send(buf.remaining_len(), endpoint.into())?;
+        buf.read_bytes(dst)?;
 
+        drop(socket);
+        drop(sockets);
         process_packets();
         Ok(())
     }
 
-    fn recvfrom(&self, buf: &mut [u8], _flags: RecvFromFlags) -> Result<(usize, Endpoint)> {
+    fn recvfrom(
+        &self,
+        mut buf: UserBufferMut<'_>,
+        _flags: RecvFromFlags,
+    ) -> Result<(usize, Endpoint)> {
+        let mut sockets = SOCKETS.lock();
+        let mut socket = sockets.get::<smoltcp::socket::UdpSocket>(self.handle);
         loop {
-            let result = SOCKETS
-                .lock()
-                .get::<smoltcp::socket::UdpSocket>(self.handle)
-                .recv_slice(buf)
-                .map(|(len, endpoint)| (len, endpoint.into()));
-
-            match result {
-                Ok(result) => {
-                    info!("recv: filled {}", result.0);
-                    return Ok(result);
+            match socket.recv() {
+                Ok((payload, endpoint)) => {
+                    let written_len = buf.write_bytes(payload)?;
+                    return Ok((written_len, endpoint.into()));
                 }
                 Err(smoltcp::Error::Exhausted) if true /* FIXME: if noblock */ => {
                     warn!("recv: EAGAIN");

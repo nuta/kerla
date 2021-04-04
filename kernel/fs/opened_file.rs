@@ -89,11 +89,11 @@ impl OpenedFile {
     }
 
     pub fn sendto(&mut self, buf: &[u8], endpoint: Endpoint) -> Result<()> {
-        self.as_file()?.sendto(buf, endpoint)
+        self.as_file()?.sendto(buf.into(), endpoint)
     }
 
     pub fn recvfrom(&mut self, buf: &mut [u8], flags: RecvFromFlags) -> Result<(usize, Endpoint)> {
-        self.as_file()?.recvfrom(buf, flags)
+        self.as_file()?.recvfrom(buf.into(), flags)
     }
 
     pub fn readdir(&mut self) -> Result<Option<DirEntry>> {
