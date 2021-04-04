@@ -1,8 +1,9 @@
 use crate::{
+    arch::SpinLock,
     fs::inode::FileLike,
     result::{Errno, Error, Result},
 };
-use alloc::sync::Arc;
+use alloc::{collections::BTreeSet, sync::Arc};
 use smoltcp::socket::{UdpPacketMetadata, UdpSocketBuffer};
 
 use super::{process_packets, socket::*, SOCKETS, SOCKET_WAIT_QUEUE};
@@ -34,6 +35,8 @@ impl From<smoltcp::wire::IpEndpoint> for Endpoint {
     }
 }
 
+static INUSE_ENDPOINTS: SpinLock<BTreeSet<u16>> = SpinLock::new(BTreeSet::new());
+
 pub struct UdpSocket {
     handle: smoltcp::socket::SocketHandle,
 }
@@ -52,17 +55,28 @@ impl FileLike for UdpSocket {
     fn bind(&self, mut endpoint: Endpoint) -> Result<()> {
         // TODO: Reject if the endpoint is already in use -- IIUC smoltcp
         //       does not check that.
+        let mut inuse_endpoints = INUSE_ENDPOINTS.lock();
 
         if endpoint.port == 0 {
-            // Assign a random unused port.
-            // FIXME:
-            endpoint.port = 6767;
+            // Assign a unused port.
+            // TODO: Assign a *random* port instead.
+            let mut port = 50000;
+            while inuse_endpoints.contains(&port) {
+                if port == u16::MAX {
+                    return Err(errno!(EAGAIN));
+                }
+
+                port += 1;
+            }
+            endpoint.port = port;
         }
 
         SOCKETS
             .lock()
             .get::<smoltcp::socket::UdpSocket>(self.handle)
             .bind(endpoint)?;
+        inuse_endpoints.insert(endpoint.port);
+
         Ok(())
     }
 

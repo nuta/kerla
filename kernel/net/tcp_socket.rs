@@ -1,12 +1,15 @@
 use crate::{
+    arch::SpinLock,
     fs::inode::FileLike,
     result::{Errno, Error, Result},
 };
-use alloc::sync::Arc;
+use alloc::{collections::BTreeSet, sync::Arc};
 use crossbeam::atomic::AtomicCell;
 use smoltcp::socket::TcpSocketBuffer;
 
 use super::{process_packets, socket::*, SOCKETS, SOCKET_WAIT_QUEUE};
+
+static INUSE_ENDPOINTS: SpinLock<BTreeSet<u16>> = SpinLock::new(BTreeSet::new());
 
 pub struct TcpSocket {
     handle: smoltcp::socket::SocketHandle,
@@ -37,21 +40,32 @@ impl FileLike for TcpSocket {
     fn connect(&self, endpoint: Endpoint) -> Result<()> {
         // TODO: Reject if the endpoint is already in use -- IIUC smoltcp
         //       does not check that.
+        let mut inuse_endpoints = INUSE_ENDPOINTS.lock();
+
         let mut local_endpoint = self.local_endpoint.load().unwrap_or(Endpoint {
             addr: IpAddress::Unspecified,
             port: 0,
         });
-
         if local_endpoint.port == 0 {
-            // Assign a random unused port.
-            // FIXME:
-            local_endpoint.port = 6768;
+            // Assign a unused port.
+            // TODO: Assign a *random* port instead.
+            let mut port = 50000;
+            while inuse_endpoints.contains(&port) {
+                if port == u16::MAX {
+                    return Err(errno!(EAGAIN));
+                }
+
+                port += 1;
+            }
+            local_endpoint.port = port;
         }
 
         SOCKETS
             .lock()
             .get::<smoltcp::socket::TcpSocket>(self.handle)
             .connect(endpoint, local_endpoint)?;
+        inuse_endpoints.insert(endpoint.port);
+        drop(inuse_endpoints);
 
         process_packets();
         while !SOCKETS
