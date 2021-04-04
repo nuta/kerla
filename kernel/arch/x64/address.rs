@@ -128,6 +128,7 @@ extern "C" {
     fn copy_from_user(dst: *mut u8, src: *const u8, len: usize);
     fn strncpy_from_user(dst: *mut u8, src: *const u8, max_len: usize) -> usize;
     fn copy_to_user(dst: *mut u8, src: *const u8, len: usize);
+    fn memset_user(dst: *mut u8, value: u8, len: usize);
 }
 
 /// Represents a user virtual memory address.
@@ -213,6 +214,14 @@ impl UserVAddr {
             copy_to_user(self.value() as *mut u8, buf.as_ptr(), buf.len());
         }
         Ok(buf.len())
+    }
+
+    pub fn fill(self, value: u8, len: usize) -> Result<usize> {
+        self.access_ok(len)?;
+        unsafe {
+            memset_user(self.value() as *mut u8, value, len);
+        }
+        Ok(len)
     }
 }
 

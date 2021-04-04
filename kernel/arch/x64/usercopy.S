@@ -46,3 +46,20 @@ usercopy2:
     sub rdx, rcx
     mov rax, rdx
     ret
+
+/// void memset_user(void *dst, uint8_t value, size_t len);
+///
+/// Fills a memory buffer in the user space. We don't check the validity
+/// of the user's addresses; instead, we handles a page fault occurred at
+/// `usercopy` as a user's fault.
+///
+/// Note that caller MUST check that the memory range does not overlaps with the
+/// kernel sapce!
+.global memset_user, usercopy3
+memset_user:
+    mov rcx, rdx
+    cld
+usercopy3:
+    mov al, sil
+    rep stosb
+    ret

@@ -3,6 +3,7 @@ use crate::{
     arch::UserVAddr,
     net::{Endpoint, IpAddress, Ipv4Address},
 };
+use core::cmp::min;
 use core::mem::size_of;
 use penguin_utils::{alignment::align_up, endian::NetworkEndianExt};
 
@@ -169,6 +170,11 @@ impl UserBufWriter {
         self.offset = align_up(self.offset, align);
     }
 
+    pub fn fill(&mut self, value: u8, len: usize) -> Result<()> {
+        self.offset += self.base.add(self.offset)?.fill(value, len)?;
+        Ok(())
+    }
+
     pub fn write<T: Copy>(&mut self, value: T) -> Result<()> {
         let written_len = self.base.add(self.offset)?.write(&value)?;
         self.offset += written_len;
@@ -178,6 +184,13 @@ impl UserBufWriter {
     pub fn write_bytes(&mut self, buf: &[u8]) -> Result<()> {
         let written_len = self.base.add(self.offset)?.write_bytes(buf)?;
         self.offset += written_len;
+        Ok(())
+    }
+
+    pub fn write_bytes_or_zeroes(&mut self, buf: &[u8], max_copy_len: usize) -> Result<()> {
+        let zeroed_after = min(buf.len(), max_copy_len);
+        self.write_bytes(&buf[..zeroed_after])?;
+        self.fill(0, max_copy_len - zeroed_after)?;
         Ok(())
     }
 }
