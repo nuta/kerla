@@ -32,6 +32,7 @@ const SYS_FORK: usize = 57;
 const SYS_EXECVE: usize = 59;
 const SYS_EXIT: usize = 60;
 const SYS_WAIT4: usize = 61;
+const SYS_UNAME: usize = 63;
 const SYS_CHDIR: usize = 80;
 const SYS_ARCH_PRCTL: usize = 158;
 const SYS_GETDENTS64: usize = 217;
@@ -153,6 +154,7 @@ impl<'a> SyscallDispatcher<'a> {
                 UserVAddr::new(a5)?,
                 UserVAddr::new(a6)?,
             ),
+            SYS_UNAME => self.sys_uname(UserVAddr::new(a1)?),
             SYS_CLOCK_GETTIME => self.sys_clock_gettime(a1 as c_clockid, UserVAddr::new(a2)?),
             _ => {
                 debug_warn!(
