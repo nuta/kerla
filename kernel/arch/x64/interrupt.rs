@@ -1,10 +1,7 @@
 use super::{
     apic::ack_interrupt, ioapic::VECTOR_IRQ_BASE, serial::SERIAL_IRQ, PageFaultReason, UserVAddr,
 };
-use crate::{
-    interrupt::{handle_irq, handle_timer_irq},
-    mm::page_fault::handle_page_fault,
-};
+use crate::{interrupt::handle_irq, mm::page_fault::handle_page_fault, timer::handle_timer_irq};
 
 use x86::{controlregs::cr2, current::rflags::RFlags, irq::*};
 

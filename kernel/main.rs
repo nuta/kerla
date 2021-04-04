@@ -32,3 +32,4 @@ mod process;
 mod result;
 mod syscalls;
 mod test_runner;
+mod timer;
