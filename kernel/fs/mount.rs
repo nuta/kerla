@@ -42,9 +42,15 @@ impl RootFs {
         self.root.fs.root_dir()
     }
 
-    /// Resolves a path into an inode.
+    /// Resolves a path into an inode. This method resolves symbolic links: it
+    /// will never return `INode::Symlink`.
     pub fn lookup(&self, path: &str) -> Result<INode> {
         self.lookup_inode(&self.root_dir()?, Path::new(path), true)
+    }
+
+    /// Resolves a path into an inode without following symlinks.
+    pub fn lookup_no_symlink_follow(&self, path: &str) -> Result<INode> {
+        self.lookup_inode(&self.root_dir()?, Path::new(path), false)
     }
 
     /// Resolves a path into an file.

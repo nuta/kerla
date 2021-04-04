@@ -7,7 +7,6 @@ impl<'a> SyscallDispatcher<'a> {
         let inode = current_process().root_fs.lock().lookup(path.as_str())?;
         let stat = match inode {
             INode::FileLike(file) => file.stat()?,
-            // TODO: Follow the symlink.
             INode::Symlink(file) => file.stat()?,
             INode::Directory(dir) => dir.stat()?,
         };
