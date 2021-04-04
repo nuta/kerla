@@ -98,10 +98,7 @@ impl FileLike for TcpSocket {
                 .lock()
                 .get::<smoltcp::socket::TcpSocket>(self.handle)
                 .recv(|src| {
-                    let copied_len = match buf.write_bytes(src) {
-                        Ok(len) => len,
-                        Err(_) => 0,
-                    };
+                    let copied_len = buf.write_bytes(src).unwrap_or(0);
                     (copied_len, copied_len)
                 });
 

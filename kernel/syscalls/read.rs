@@ -11,7 +11,7 @@ impl<'a> SyscallDispatcher<'a> {
         let mut open_file = current.get(fd)?.lock();
 
         let mut buf = vec![0; len]; // TODO: deny too long len
-        let len = open_file.read(buf.as_mut_slice().into())?;
+        let len = open_file.read(buf.as_mut_slice())?;
 
         uaddr.write_bytes(&buf[..len])?;
 

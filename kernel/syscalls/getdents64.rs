@@ -11,12 +11,7 @@ impl<'a> SyscallDispatcher<'a> {
         let opened_files = current_process().opened_files.lock();
         let mut dir = opened_files.get(fd)?.lock();
         let mut writer = UserBufWriter::new(dirp);
-        loop {
-            let entry = match dir.readdir()? {
-                Some(entry) => entry,
-                None => break,
-            };
-
+        while let Some(entry) = dir.readdir()? {
             let alignment = size_of::<u64>();
             let reclen = align_up(
                 size_of::<u64>() * 2 + size_of::<u16>() + 1 + entry.name.len() + 1,
