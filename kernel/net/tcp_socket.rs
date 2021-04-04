@@ -91,7 +91,7 @@ impl FileLike for TcpSocket {
         Ok(written_len)
     }
 
-    fn read(&self, _offset: usize, mut buf: UserBufferMut) -> Result<usize> {
+    fn read(&self, _offset: usize, mut buf: UserBufferMut<'_>) -> Result<usize> {
         let mut total_len = 0;
         loop {
             let copied_len = SOCKETS

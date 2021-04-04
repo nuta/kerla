@@ -37,7 +37,7 @@ struct InitramFsFile {
 }
 
 impl FileLike for InitramFsFile {
-    fn read(&self, offset: usize, mut buf: UserBufferMut) -> Result<usize> {
+    fn read(&self, offset: usize, mut buf: UserBufferMut<'_>) -> Result<usize> {
         buf.write_bytes(&self.data[offset..])
     }
 

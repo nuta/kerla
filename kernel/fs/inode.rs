@@ -25,7 +25,7 @@ pub trait FileLike: Send + Sync {
         Err(Error::new(Errno::EBADF))
     }
 
-    fn read(&self, _offset: usize, _buf: UserBufferMut) -> Result<usize> {
+    fn read(&self, _offset: usize, _buf: UserBufferMut<'_>) -> Result<usize> {
         Err(Error::new(Errno::EBADF))
     }
 

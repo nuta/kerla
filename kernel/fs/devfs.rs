@@ -80,7 +80,7 @@ impl FileLike for NullFile {
         unimplemented!()
     }
 
-    fn read(&self, _offset: usize, _buf: UserBufferMut) -> Result<usize> {
+    fn read(&self, _offset: usize, _buf: UserBufferMut<'_>) -> Result<usize> {
         Ok(0)
     }
 
@@ -116,7 +116,7 @@ impl FileLike for ConsoleFile {
         unimplemented!()
     }
 
-    fn read(&self, _offset: usize, mut buf: UserBufferMut) -> Result<usize> {
+    fn read(&self, _offset: usize, mut buf: UserBufferMut<'_>) -> Result<usize> {
         loop {
             while let Some(ch) = self.input.pop() {
                 buf.write(ch as u8)?;
