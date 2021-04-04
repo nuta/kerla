@@ -149,3 +149,26 @@ pub fn write_endpoint_as_sockaddr(
 
     Ok(())
 }
+
+pub struct UserBufWriter {
+    base: UserVAddr,
+    offset: usize,
+}
+
+impl UserBufWriter {
+    pub const fn new(base: UserVAddr) -> UserBufWriter {
+        UserBufWriter { base, offset: 0 }
+    }
+
+    pub fn write<T: Copy>(&mut self, value: T) -> Result<()> {
+        let written_len = self.base.add(self.offset)?.write(&value)?;
+        self.offset += written_len;
+        Ok(())
+    }
+
+    pub fn write_bytes(&mut self, buf: &[u8]) -> Result<()> {
+        let written_len = self.base.add(self.offset)?.write_bytes(buf)?;
+        self.offset += written_len;
+        Ok(())
+    }
+}
