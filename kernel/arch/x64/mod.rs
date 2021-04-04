@@ -27,6 +27,7 @@ mod tss;
 pub const KERNEL_STACK_SIZE: usize = PAGE_SIZE * 256;
 pub const USER_STACK_TOP: UserVAddr = unsafe { UserVAddr::new_unchecked(0x0000_0c00_0000_0000) };
 pub const PAGE_SIZE: usize = 4096;
+pub const TICK_HZ: usize = 1000;
 
 pub use address::{PAddr, UserVAddr, VAddr};
 pub use arch_prctl::arch_prctl;
