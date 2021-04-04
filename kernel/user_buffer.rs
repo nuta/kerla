@@ -113,6 +113,35 @@ impl<'a> UserBufferMut<'a> {
             unsafe { slice::from_raw_parts(&value as *const T as *const u8, size_of::<T>()) };
         self.write_bytes(bytes)
     }
+
+    pub fn write_with<F>(&mut self, mut f: F) -> Result<usize>
+    where
+        F: FnMut(&mut [u8]) -> Result<usize>,
+    {
+        match &mut self.inner {
+            InnerMut::Slice(slice) => {
+                let written_len = f(slice)?;
+                self.pos += written_len;
+                return Ok(written_len);
+            }
+            InnerMut::User { base, len } => {
+                let mut total_len = 0;
+                let mut buf = [0; 256];
+                loop {
+                    let copy_len = min(buf.len(), *len - total_len);
+                    let written_len = f(&mut buf.as_mut_slice()[..copy_len])?;
+                    if written_len == 0 {
+                        return Ok(total_len);
+                    }
+
+                    base.add(self.pos)?
+                        .write_bytes(&buf.as_slice()[..copy_len])?;
+                    self.pos += written_len;
+                    total_len += written_len;
+                }
+            }
+        }
+    }
 }
 
 impl<'a> From<&'a mut [u8]> for UserBufferMut<'a> {

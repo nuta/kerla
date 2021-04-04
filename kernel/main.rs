@@ -33,6 +33,7 @@ mod lang_items;
 mod mm;
 mod net;
 mod process;
+mod random;
 mod syscalls;
 mod test_runner;
 mod timer;

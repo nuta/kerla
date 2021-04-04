@@ -61,6 +61,23 @@ macro_rules! debug_warn {
     };
 }
 
+/// Prints a warning message only once.
+#[macro_export]
+macro_rules! warn_once {
+    ($fmt:expr) => {{
+        static ONCE: ::spin::Once<()> = ::spin::Once::new();
+        ONCE.call_once(|| {
+            $crate::println!(concat!("\x1b[1;33mWARN: ", $fmt, "\x1b[0m"));
+        });
+    }};
+    ($fmt:expr, $($arg:tt)*) => {{
+        static ONCE: ::spin::Once<()> = ::spin::Once::new();
+        ONCE.call_once(|| {
+            $crate::println!(concat!("\x1b[1;33mWARN: ", $fmt, "\x1b[0m"), $($arg)*);
+        });
+    }};
+}
+
 /// Prints a warning message if it is `Err`.
 #[macro_export]
 macro_rules! warn_if_err {

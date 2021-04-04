@@ -1,6 +1,7 @@
+use super::getrandom::GetRandomFlags;
 use crate::{
     arch::{SyscallFrame, UserVAddr},
-    ctypes::c_clockid,
+    ctypes::{c_clockid, c_uint},
     fs::path::PathBuf,
     fs::{
         opened_file::{Fd, OpenFlags},
@@ -38,6 +39,7 @@ const SYS_ARCH_PRCTL: usize = 158;
 const SYS_GETDENTS64: usize = 217;
 const SYS_SET_TID_ADDRESS: usize = 218;
 const SYS_CLOCK_GETTIME: usize = 228;
+const SYS_GETRANDOM: usize = 318;
 
 const PATH_MAX: usize = 512;
 
@@ -156,6 +158,11 @@ impl<'a> SyscallDispatcher<'a> {
             ),
             SYS_UNAME => self.sys_uname(UserVAddr::new(a1)?),
             SYS_CLOCK_GETTIME => self.sys_clock_gettime(a1 as c_clockid, UserVAddr::new(a2)?),
+            SYS_GETRANDOM => self.sys_getrandom(
+                UserVAddr::new(a1)?,
+                a2,
+                GetRandomFlags::from_bits(a3 as c_uint).ok_or_else(|| Error::new(Errno::ENOSYS))?,
+            ),
             _ => {
                 debug_warn!(
                     "unimplemented system call: {} (n={})",
