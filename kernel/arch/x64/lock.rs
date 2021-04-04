@@ -2,6 +2,8 @@ use core::mem::ManuallyDrop;
 use core::ops::{Deref, DerefMut};
 use x86::current::rflags::{self, RFlags};
 
+use crate::printk::backtrace;
+
 pub struct SpinLock<T: ?Sized> {
     pub inner: spin::mutex::SpinMutex<T>,
 }
@@ -16,6 +18,12 @@ impl<T> SpinLock<T> {
 
 impl<T: ?Sized> SpinLock<T> {
     pub fn lock(&self) -> SpinLockGuard<'_, T> {
+        if self.inner.is_locked() {
+            // TODO: Remove when we got SMP support.
+            debug_warn!("already locked");
+            backtrace();
+        }
+
         let rflags = unsafe { rflags::read() };
         unsafe {
             asm!("cli");
