@@ -88,6 +88,16 @@ pub enum INode {
     Symlink(Arc<dyn Symlink>),
 }
 
+impl INode {
+    pub fn stat(&self) -> Result<Stat> {
+        match self {
+            INode::FileLike(file) => file.stat(),
+            INode::Symlink(file) => file.stat(),
+            INode::Directory(dir) => dir.stat(),
+        }
+    }
+}
+
 impl From<Arc<dyn FileLike>> for INode {
     fn from(file: Arc<dyn FileLike>) -> Self {
         INode::FileLike(file)

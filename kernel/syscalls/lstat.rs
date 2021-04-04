@@ -1,19 +1,14 @@
-use crate::fs::{inode::INode, path::Path};
+use crate::fs::path::Path;
 use crate::{arch::UserVAddr, result::Result};
 use crate::{process::current_process, syscalls::SyscallDispatcher};
 
 impl<'a> SyscallDispatcher<'a> {
     pub fn sys_lstat(&mut self, path: &Path, buf: UserVAddr) -> Result<isize> {
-        let inode = current_process()
+        let stat = current_process()
             .root_fs
             .lock()
-            .lookup_no_symlink_follow(path.as_str())?;
-        let stat = match inode {
-            INode::FileLike(file) => file.stat()?,
-            INode::Symlink(file) => file.stat()?,
-            INode::Directory(dir) => dir.stat()?,
-        };
-
+            .lookup_no_symlink_follow(path.as_str())?
+            .stat()?;
         buf.write(&stat)?;
         Ok(0)
     }
