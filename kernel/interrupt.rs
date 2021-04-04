@@ -1,6 +1,6 @@
 use crate::{
     arch::{enable_irq, SpinLock},
-    net::iterate_event_loop,
+    net::process_packets,
     process::{self, ProcessState},
 };
 use alloc::boxed::Box;
@@ -29,11 +29,6 @@ pub fn attach_irq<F: FnMut() + Send + Sync + 'static>(irq: u8, f: F) {
 pub fn handle_irq(irq: u8) {
     if let Some(handler) = IRQ_HANDLERS.lock().get_mut(&irq) {
         (*handler)();
+        process_packets();
     }
-
-    // FIXME:
-    // We need to release the driver lock.
-    iterate_event_loop();
-
-    debug_warn!("unhandled IRQ #{}", irq);
 }

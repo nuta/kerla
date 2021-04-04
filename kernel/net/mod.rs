@@ -53,7 +53,7 @@ static INTERFACE: Once<SpinLock<EthernetInterface<OurDevice>>> = Once::new();
 static DHCP_CLIENT: Once<SpinLock<Dhcpv4Client>> = Once::new();
 pub(self) static SOCKET_WAIT_QUEUE: WaitQueue = WaitQueue::new();
 
-pub fn iterate_event_loop() {
+pub fn process_packets() {
     let mut sockets = SOCKETS.lock();
     let mut iface = INTERFACE.lock();
     let mut dhcp = DHCP_CLIENT.lock();
@@ -206,5 +206,5 @@ pub fn init() {
     DHCP_CLIENT.init(|| SpinLock::new(dhcp));
     DRIVER.init(|| driver);
 
-    iterate_event_loop();
+    process_packets();
 }

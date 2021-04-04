@@ -6,7 +6,7 @@ use alloc::sync::Arc;
 use crossbeam::atomic::AtomicCell;
 use smoltcp::socket::TcpSocketBuffer;
 
-use super::{iterate_event_loop, socket::*, SOCKETS, SOCKET_WAIT_QUEUE};
+use super::{process_packets, socket::*, SOCKETS, SOCKET_WAIT_QUEUE};
 
 pub struct TcpSocket {
     handle: smoltcp::socket::SocketHandle,
@@ -53,7 +53,7 @@ impl FileLike for TcpSocket {
             .get::<smoltcp::socket::TcpSocket>(self.handle)
             .connect(endpoint, local_endpoint)?;
 
-        iterate_event_loop();
+        process_packets();
         while !SOCKETS
             .lock()
             .get::<smoltcp::socket::TcpSocket>(self.handle)
@@ -72,7 +72,7 @@ impl FileLike for TcpSocket {
             .get::<smoltcp::socket::TcpSocket>(self.handle)
             .send_slice(buf)?;
 
-        iterate_event_loop();
+        process_packets();
         Ok(written_len)
     }
 

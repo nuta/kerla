@@ -5,7 +5,7 @@ use crate::{
 use alloc::sync::Arc;
 use smoltcp::socket::{UdpPacketMetadata, UdpSocketBuffer};
 
-use super::{iterate_event_loop, socket::*, SOCKETS, SOCKET_WAIT_QUEUE};
+use super::{process_packets, socket::*, SOCKETS, SOCKET_WAIT_QUEUE};
 
 impl From<Endpoint> for smoltcp::wire::IpEndpoint {
     fn from(endpoint: Endpoint) -> smoltcp::wire::IpEndpoint {
@@ -72,7 +72,7 @@ impl FileLike for UdpSocket {
             .get::<smoltcp::socket::UdpSocket>(self.handle)
             .send_slice(buf, endpoint.into())?;
 
-        iterate_event_loop();
+        process_packets();
         Ok(())
     }
 
