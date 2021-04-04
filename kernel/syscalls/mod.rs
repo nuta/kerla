@@ -4,7 +4,7 @@ use crate::{
     net::{Endpoint, IpAddress, Ipv4Address},
 };
 use core::mem::size_of;
-use penguin_utils::endian::NetworkEndianExt;
+use penguin_utils::{alignment::align_up, endian::NetworkEndianExt};
 
 pub(self) mod arch_prctl;
 pub(self) mod bind;
@@ -159,6 +159,14 @@ pub struct UserBufWriter {
 impl UserBufWriter {
     pub const fn new(base: UserVAddr) -> UserBufWriter {
         UserBufWriter { base, offset: 0 }
+    }
+
+    pub fn written_len(&self) -> usize {
+        self.offset
+    }
+
+    pub fn skip_until_alignment(&mut self, align: usize) {
+        self.offset = align_up(self.offset, align);
     }
 
     pub fn write<T: Copy>(&mut self, value: T) -> Result<()> {
