@@ -47,8 +47,7 @@ export CARGO_FROM_MAKE=1
 #
 .PHONY: build
 build:
-	$(MAKE) initramfs
-	$(CARGO) build $(CARGOFLAGS) --manifest-path kernel/Cargo.toml
+	$(MAKE) build-crate
 	cp target/$(ARCH)/$(build_mode)/penguin-kernel $(kernel_elf)
 
 	$(PROGRESS) "NM" $(kernel_symbols)
@@ -60,12 +59,17 @@ build:
 	$(PROGRESS) "STRIP" $(stripped_kernel_elf)
 	$(STRIP) $(kernel_elf) -o $(stripped_kernel_elf)
 
+.PHONY: build-crate
+build-crate:
+	$(MAKE) initramfs
+	$(CARGO) build $(CARGOFLAGS) --manifest-path kernel/Cargo.toml
+
 .PHONY: initramfs
 initramfs: initramfs.bin
 
 .PHONY: buildw
 buildw:
-	$(CARGO) watch -s "$(MAKE) build"
+	$(CARGO) watch -s "$(MAKE) build-crate"
 
 .PHONY: iso
 iso: build
