@@ -69,7 +69,7 @@ impl OpenedFile {
     }
 
     pub fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
-        let read_len = self.as_file()?.read(self.pos, buf)?;
+        let read_len = self.as_file()?.read(self.pos, buf.into())?;
         self.pos += read_len;
         Ok(read_len)
     }

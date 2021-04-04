@@ -7,6 +7,7 @@ use crate::{
     arch::print_str,
     process::WaitQueue,
     result::{Errno, Error, Result},
+    user_buffer::UserBufferMut,
 };
 use alloc::sync::Arc;
 use crossbeam::queue::ArrayQueue;
@@ -79,7 +80,7 @@ impl FileLike for NullFile {
         unimplemented!()
     }
 
-    fn read(&self, _offset: usize, _buf: &mut [u8]) -> Result<usize> {
+    fn read(&self, _offset: usize, _buf: UserBufferMut) -> Result<usize> {
         Ok(0)
     }
 
@@ -115,16 +116,14 @@ impl FileLike for ConsoleFile {
         unimplemented!()
     }
 
-    fn read(&self, _offset: usize, buf: &mut [u8]) -> Result<usize> {
+    fn read(&self, _offset: usize, mut buf: UserBufferMut) -> Result<usize> {
         loop {
-            let mut read_len = 0;
             while let Some(ch) = self.input.pop() {
-                buf[read_len] = ch as u8;
-                read_len += 1;
+                buf.write(ch as u8)?;
             }
 
-            if read_len > 0 {
-                return Ok(read_len);
+            if buf.pos() > 0 {
+                return Ok(buf.pos());
             }
 
             self.wait_queue.sleep();

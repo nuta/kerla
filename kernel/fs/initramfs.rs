@@ -1,6 +1,6 @@
 //! Initramfs parser.
 //! https://www.kernel.org/doc/html/latest/driver-api/early-userspace/buffer-format.html
-use crate::alloc::string::ToString;
+use crate::{alloc::string::ToString, user_buffer::UserBufferMut};
 use crate::{
     fs::{
         file_system::FileSystem,
@@ -12,7 +12,6 @@ use crate::{
     result::{Errno, Error, Result},
 };
 use alloc::sync::Arc;
-use core::cmp::min;
 use core::str::from_utf8_unchecked;
 use hashbrown::HashMap;
 use penguin_utils::byte_size::ByteSize;
@@ -38,11 +37,8 @@ struct InitramFsFile {
 }
 
 impl FileLike for InitramFsFile {
-    fn read(&self, offset: usize, buf: &mut [u8]) -> Result<usize> {
-        let end = min(offset + buf.len(), self.data.len());
-        let copy_len = end - offset;
-        buf[0..copy_len].copy_from_slice(&self.data[offset..end]);
-        Ok(copy_len)
+    fn read(&self, offset: usize, mut buf: UserBufferMut) -> Result<usize> {
+        buf.write_bytes(&self.data[offset..])
     }
 
     fn write(&self, _offset: usize, _buf: &[u8]) -> Result<usize> {

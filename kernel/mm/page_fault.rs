@@ -64,7 +64,7 @@ pub fn handle_page_fault(unaligned_vaddr: UserVAddr, _reason: PageFaultReason) {
             if copy_len > 0 {
                 file.read(
                     offset_in_file,
-                    &mut buf[offset_in_page..(offset_in_page + copy_len)],
+                    (&mut buf[offset_in_page..(offset_in_page + copy_len)]).into(),
                 )
                 .expect("failed to read file");
             }

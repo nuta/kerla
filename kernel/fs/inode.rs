@@ -1,6 +1,6 @@
-use crate::fs::stat::Stat;
 use crate::net::*;
 use crate::result::{Errno, Error, Result};
+use crate::{fs::stat::Stat, user_buffer::UserBufferMut};
 use alloc::string::String;
 use alloc::sync::Arc;
 
@@ -25,7 +25,7 @@ pub trait FileLike: Send + Sync {
         Err(Error::new(Errno::EBADF))
     }
 
-    fn read(&self, _offset: usize, _buf: &mut [u8]) -> Result<usize> {
+    fn read(&self, _offset: usize, _buf: UserBufferMut) -> Result<usize> {
         Err(Error::new(Errno::EBADF))
     }
 

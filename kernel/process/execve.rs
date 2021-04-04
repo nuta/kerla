@@ -22,7 +22,7 @@ pub fn execve(
         .into_error(Errno::ENOMEM)?;
     let buf =
         unsafe { core::slice::from_raw_parts_mut(file_header_pages.as_mut_ptr(), file_header_len) };
-    executable.read(0, buf)?;
+    executable.read(0, buf.into())?;
 
     let elf = Elf::parse(&buf);
     let ip = elf.entry()?;
