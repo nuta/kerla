@@ -16,9 +16,14 @@ impl<T> SpinLock<T> {
 
 impl<T: ?Sized> SpinLock<T> {
     pub fn lock(&self) -> SpinLockGuard<'_, T> {
+        let rflags = unsafe { rflags::read() };
+        unsafe {
+            asm!("cli");
+        }
+
         SpinLockGuard {
             inner: ManuallyDrop::new(self.inner.lock()),
-            rflags: unsafe { rflags::read() },
+            rflags,
         }
     }
 
