@@ -153,12 +153,6 @@ impl VirtQueue {
 
         let head_index = self.free_head;
         let mut desc_index = self.free_head;
-        trace!(
-            "Queue {}: desc_index={}, free_head={}",
-            self.index,
-            desc_index,
-            self.free_head
-        );
         for (i, buffer) in chain.iter().enumerate() {
             let desc = self.desc_mut(desc_index);
             let (addr, len, flags) = match buffer {
@@ -168,13 +162,6 @@ impl VirtQueue {
                 }
             };
 
-            trace!(
-                "desc: {:x?}, desc.addr = {:x}, len={}, flags={:x}",
-                desc as *const _,
-                addr.value(),
-                len,
-                flags
-            );
             desc.addr = addr.value() as u64;
             desc.len = len.try_into().unwrap();
             desc.flags = flags;

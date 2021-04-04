@@ -88,7 +88,11 @@ impl<'a> SyscallDispatcher<'a> {
         a6: usize,
         n: usize,
     ) -> Result<isize> {
-        if !((n == 0 && a1 == 0) || (n == 1) && (a1 == 1)) {
+        if !((n == 0 && a1 == 0)
+            || (n == 1) && (a1 == 1)
+            || (n == 1) && (a1 == 2)
+            || (n == 20) && (a1 == 2))
+        {
             trace!(
                 "syscall: {}({:x}, {:x}, {:x}, {:x}, {:x}, {:x})",
                 syscall_name_by_number(n),
