@@ -29,8 +29,23 @@ macro_rules! print {
 /// Prints a string and a newline.
 #[macro_export]
 macro_rules! println {
-    ($fmt:expr) => { $crate::print!(concat!($fmt, "\n")); };
-    ($fmt:expr, $($arg:tt)*) => { $crate::print!(concat!($fmt, "\n"), $($arg)*); };
+    ($fmt:expr) => {{
+        let now = crate::timer::read_monotonic_clock();
+        $crate::print!(
+            concat!("[{:>4}.{:03}] ", $fmt),
+            now.secs(),
+            now.msecs() % 1000,
+        );
+    }};
+    ($fmt:expr, $($arg:tt)*) => {{
+        let now = crate::timer::read_monotonic_clock();
+        $crate::print!(
+            concat!("[{:>4}.{:03}] ", $fmt, "\n"),
+            now.secs(),
+            now.msecs() % 1000,
+            $($arg)*
+        );
+    }};
 }
 
 /// Prints a warning message only in the debug build.

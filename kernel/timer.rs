@@ -34,6 +34,27 @@ pub fn read_wall_clock() -> WallClock {
     }
 }
 
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub struct MonotonicClock {
+    ticks: usize,
+}
+
+impl MonotonicClock {
+    pub fn secs(self) -> usize {
+        self.ticks / TICK_HZ
+    }
+
+    pub fn msecs(self) -> usize {
+        self.ticks / (TICK_HZ / 1000)
+    }
+}
+
+pub fn read_monotonic_clock() -> MonotonicClock {
+    MonotonicClock {
+        ticks: MONOTONIC_TICKS.load(Ordering::Relaxed),
+    }
+}
+
 pub fn handle_timer_irq() {
     WALLCLOCK_TICKS.fetch_add(1, Ordering::Relaxed);
     let ticks = MONOTONIC_TICKS.fetch_add(1, Ordering::Relaxed);
