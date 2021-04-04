@@ -1,5 +1,5 @@
 use super::MAX_READ_WRITE_LEN;
-use crate::{arch::UserVAddr, fs::opened_file::Fd, result::Result};
+use crate::{arch::UserVAddr, fs::opened_file::Fd, result::Result, user_buffer::UserBufferMut};
 use crate::{process::current_process, syscalls::SyscallDispatcher};
 use core::cmp::min;
 
@@ -9,13 +9,9 @@ impl<'a> SyscallDispatcher<'a> {
 
         let current = current_process().opened_files.lock();
         let mut open_file = current.get(fd)?.lock();
-
-        let mut buf = vec![0; len]; // TODO: deny too long len
-        let len = open_file.read(buf.as_mut_slice())?;
-
-        uaddr.write_bytes(&buf[..len])?;
+        let read_len = open_file.read(UserBufferMut::from_uaddr(uaddr, len))?;
 
         // MAX_READ_WRITE_LEN limit guarantees total_len is in the range of isize.
-        Ok(len as isize)
+        Ok(read_len as isize)
     }
 }

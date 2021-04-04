@@ -13,7 +13,7 @@ pub struct UserBuffer<'a> {
 }
 
 impl<'a> UserBuffer<'a> {
-    fn from_uaddr(uaddr: UserVAddr, len: usize) -> UserBuffer<'static> {
+    pub fn from_uaddr(uaddr: UserVAddr, len: usize) -> UserBuffer<'static> {
         UserBuffer {
             inner: Inner::User { base: uaddr, len },
             pos: 0,
@@ -69,7 +69,7 @@ pub struct UserBufferMut<'a> {
 }
 
 impl<'a> UserBufferMut<'a> {
-    fn from_uaddr(uaddr: UserVAddr, len: usize) -> UserBufferMut<'static> {
+    pub fn from_uaddr(uaddr: UserVAddr, len: usize) -> UserBufferMut<'static> {
         UserBufferMut {
             inner: InnerMut::User { base: uaddr, len },
             pos: 0,

@@ -1,7 +1,7 @@
 use super::inode::{DirEntry, Directory, FileLike, INode};
-use crate::arch::SpinLock;
-use crate::net::*;
 use crate::result::{Errno, Error, Result};
+use crate::{arch::SpinLock, user_buffer::UserBufferMut};
+use crate::{net::*, user_buffer::UserBuffer};
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use bitflags::bitflags;
@@ -68,14 +68,14 @@ impl OpenedFile {
         self.pos
     }
 
-    pub fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
-        let read_len = self.as_file()?.read(self.pos, buf.into())?;
+    pub fn read(&mut self, buf: UserBufferMut<'_>) -> Result<usize> {
+        let read_len = self.as_file()?.read(self.pos, buf)?;
         self.pos += read_len;
         Ok(read_len)
     }
 
-    pub fn write(&mut self, buf: &[u8]) -> Result<usize> {
-        let written_len = self.as_file()?.write(self.pos, buf.into())?;
+    pub fn write(&mut self, buf: UserBuffer<'_>) -> Result<usize> {
+        let written_len = self.as_file()?.write(self.pos, buf)?;
         self.pos += written_len;
         Ok(written_len)
     }
@@ -88,12 +88,16 @@ impl OpenedFile {
         self.as_file()?.connect(endpoint)
     }
 
-    pub fn sendto(&mut self, buf: &[u8], endpoint: Endpoint) -> Result<()> {
-        self.as_file()?.sendto(buf.into(), endpoint)
+    pub fn sendto(&mut self, buf: UserBuffer<'_>, endpoint: Endpoint) -> Result<()> {
+        self.as_file()?.sendto(buf, endpoint)
     }
 
-    pub fn recvfrom(&mut self, buf: &mut [u8], flags: RecvFromFlags) -> Result<(usize, Endpoint)> {
-        self.as_file()?.recvfrom(buf.into(), flags)
+    pub fn recvfrom(
+        &mut self,
+        buf: UserBufferMut<'_>,
+        flags: RecvFromFlags,
+    ) -> Result<(usize, Endpoint)> {
+        self.as_file()?.recvfrom(buf, flags)
     }
 
     pub fn readdir(&mut self) -> Result<Option<DirEntry>> {
