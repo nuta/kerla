@@ -1,9 +1,10 @@
 use x86::io::{inb, outb};
 
-use crate::fs::devfs::{CONSOLE_FILE};
+use crate::fs::devfs::CONSOLE_FILE;
 
 use super::ioapic::enable_irq;
 
+pub const SERIAL_IRQ: u8 = 4;
 const IOPORT_SERIAL: u16 = 0x3f8;
 const DLL: u16 = 0;
 const RBR: u16 = 0;

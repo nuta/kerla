@@ -1,6 +1,5 @@
 //! A virtio-net device driver.
 use super::{
-    attach_irq,
     pci::PciDevice,
     register_ethernet_driver,
     virtio::{IsrStatus, Virtio},
@@ -9,6 +8,7 @@ use super::{
 use super::{Driver, EthernetDriver};
 use crate::{
     arch::{SpinLock, VAddr, PAGE_SIZE},
+    interrupt::attach_irq,
     mm::page_allocator::{alloc_pages, AllocPageFlags},
     result::{Errno, Error, Result},
 };

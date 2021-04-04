@@ -4,7 +4,7 @@ use core::ptr::{read_volatile, write_volatile};
 use x86::io::outb;
 
 /// The base index of interrupt vectors.
-const VECTOR_IRQ_BASE: u32 = 32;
+pub const VECTOR_IRQ_BASE: u8 = 32;
 
 static IO_APIC: SpinLock<IoApic> = SpinLock::new(IoApic::new(PAddr::new(0xfec0_0000)));
 
