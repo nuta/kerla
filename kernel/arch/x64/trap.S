@@ -28,6 +28,9 @@ syscall_entry:
     mov gs:[GS_RSP3], rsp
     mov rsp, gs:[GS_RSP0]
 
+    // Start accepting interrupts.
+    sti
+
     // Save SYSRET context and registers onto the kernel stack.
     push gs:[GS_RSP3] // User RSP.
     push r11 // User RFLAGS.
