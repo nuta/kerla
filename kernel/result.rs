@@ -131,3 +131,9 @@ impl From<smoltcp::Error> for Error {
         }
     }
 }
+
+macro_rules! errno {
+    ($ident:tt) => {
+        crate::result::Error::new(crate::result::Errno::$ident)
+    };
+}

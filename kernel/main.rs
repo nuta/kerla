@@ -20,6 +20,8 @@ extern crate log;
 #[macro_use]
 mod printk;
 #[macro_use]
+mod result;
+#[macro_use]
 mod arch;
 mod boot;
 mod drivers;
@@ -29,7 +31,6 @@ mod lang_items;
 mod mm;
 mod net;
 mod process;
-mod result;
 mod syscalls;
 mod test_runner;
 mod timer;
