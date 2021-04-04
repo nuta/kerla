@@ -1,5 +1,6 @@
 use crate::{
     arch::{SyscallFrame, UserVAddr},
+    ctypes::c_clockid,
     fs::path::PathBuf,
     fs::{
         opened_file::{Fd, OpenFlags},
@@ -35,6 +36,7 @@ const SYS_CHDIR: usize = 80;
 const SYS_ARCH_PRCTL: usize = 158;
 const SYS_GETDENTS64: usize = 217;
 const SYS_SET_TID_ADDRESS: usize = 218;
+const SYS_CLOCK_GETTIME: usize = 228;
 
 const PATH_MAX: usize = 512;
 
@@ -147,6 +149,7 @@ impl<'a> SyscallDispatcher<'a> {
                 UserVAddr::new(a5)?,
                 UserVAddr::new(a6)?,
             ),
+            SYS_CLOCK_GETTIME => self.sys_clock_gettime(a1 as c_clockid, UserVAddr::new(a2)?),
             _ => {
                 debug_warn!(
                     "unimplemented system call: {} (n={})",

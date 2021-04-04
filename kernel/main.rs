@@ -24,6 +24,7 @@ mod result;
 #[macro_use]
 mod arch;
 mod boot;
+mod ctypes;
 mod drivers;
 mod fs;
 mod interrupt;
