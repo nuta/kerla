@@ -1,4 +1,5 @@
 use super::inode::{DirEntry, Directory, FileLike, INode};
+use crate::ctypes::c_int;
 use crate::result::{Errno, Error, Result};
 use crate::{arch::SpinLock, user_buffer::UserBufferMut};
 use crate::{net::*, user_buffer::UserBuffer};
@@ -6,7 +7,7 @@ use alloc::sync::Arc;
 use alloc::vec::Vec;
 use bitflags::bitflags;
 
-const FD_MAX: i32 = 1024;
+const FD_MAX: c_int = 1024;
 
 bitflags! {
     pub struct OpenFlags: i32 {
@@ -28,11 +29,15 @@ bitflags! {
 
 /// A file descriptor.
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub struct Fd(i32);
+pub struct Fd(c_int);
 
 impl Fd {
     pub const fn new(value: i32) -> Fd {
         Fd(value)
+    }
+
+    pub const fn as_int(self) -> c_int {
+        self.0
     }
 
     pub const fn as_usize(self) -> usize {
@@ -168,8 +173,10 @@ impl OpenedFileTable {
             Some(entry @ None) => {
                 *entry = Some(opened_file);
             }
+            None if fd.as_int() >= FD_MAX => {
+                return Err(errno!(EBADF));
+            }
             None => {
-                // FIXME: Deny too big fd
                 self.files.resize(fd.as_usize() + 1, None);
                 self.files[fd.as_usize()] = Some(opened_file);
             }
