@@ -1,7 +1,7 @@
 use crate::{
     arch::SpinLock,
     fs::inode::{FileLike, PollStatus},
-    result::{Errno, Error, Result},
+    result::{Errno, Result},
     user_buffer::UserBuffer,
     user_buffer::UserBufferMut,
 };
@@ -65,7 +65,7 @@ impl FileLike for UdpSocket {
             let mut port = 50000;
             while inuse_endpoints.contains(&port) {
                 if port == u16::MAX {
-                    return Err(errno!(EAGAIN));
+                    return Err(Errno::EAGAIN.into());
                 }
 
                 port += 1;
@@ -109,7 +109,7 @@ impl FileLike for UdpSocket {
                 }
                 Err(smoltcp::Error::Exhausted) if true /* FIXME: if noblock */ => {
                     warn!("recv: EAGAIN");
-                    return Err(Error::new(Errno::EAGAIN))
+                    return Err(Errno::EAGAIN.into())
                 }
                 Err(smoltcp::Error::Exhausted) => {
                     // The receive buffer is empty. Try again later...

@@ -17,7 +17,7 @@ pub fn arch_prctl(current: &Arc<Process>, code: i32, uaddr: UserVAddr) -> Result
             }
         }
         _ => {
-            return Err(Error::new(Errno::EINVAL));
+            return Err(Errno::EINVAL.into());
         }
     }
 

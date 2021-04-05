@@ -107,7 +107,7 @@ impl RootFs {
                 // Found the matching file.
                 (None, INode::Symlink(symlink)) if follow_symlink => {
                     if symlink_follow_limit == 0 {
-                        return Err(Error::new(Errno::ELOOP));
+                        return Err(Errno::ELOOP.into());
                     }
 
                     let linked_to = symlink.linked_to()?;
@@ -149,7 +149,7 @@ impl RootFs {
                     // it's not the last one of the path components.
 
                     if symlink_follow_limit == 0 {
-                        return Err(Error::new(Errno::ELOOP));
+                        return Err(Errno::ELOOP.into());
                     }
 
                     let linked_to = symlink.linked_to()?;
@@ -168,13 +168,13 @@ impl RootFs {
 
                     current_dir = match linked_inode {
                         INode::Directory(dir) => dir,
-                        _ => return Err(Error::new(Errno::ENOTDIR)),
+                        _ => return Err(Errno::ENOTDIR.into()),
                     }
                 }
                 // The next level must be an directory since the current component
                 // is not the last one.
                 (Some(_), INode::FileLike(_)) => {
-                    return Err(Error::new(Errno::ENOTDIR));
+                    return Err(Errno::ENOTDIR.into());
                 }
             }
         }

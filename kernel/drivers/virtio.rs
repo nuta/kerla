@@ -1,9 +1,9 @@
 //! A virtio device driver library.
 use crate::drivers::ioport::IoPort;
+use crate::result::{Errno, Result};
 use crate::{
     arch::{PAddr, VAddr, PAGE_SIZE},
     mm::page_allocator::{alloc_pages, AllocPageFlags},
-    result::{Errno, Error, Result},
 };
 use alloc::vec::Vec;
 use bitflags::bitflags;
@@ -148,7 +148,7 @@ impl VirtQueue {
 
         // Check if we have the enough number of free descriptors.
         if (self.num_free_descs as usize) < chain.len() {
-            return Err(Error::new(Errno::ENOMEM));
+            return Err(Errno::ENOMEM.into());
         }
 
         let head_index = self.free_head;
@@ -309,14 +309,14 @@ impl Virtio {
         self.write_device_status(self.read_device_status() | VIRTIO_STATUS_DRIVER);
 
         if (self.read_device_features() & features) != features {
-            return Err(Error::new(Errno::EINVAL));
+            return Err(Errno::EINVAL.into());
         }
 
         self.write_driver_features(features);
         self.write_device_status(self.read_device_status() | VIRTIO_STATUS_FEAT_OK);
 
         if (self.read_device_status() & VIRTIO_STATUS_FEAT_OK) == 0 {
-            return Err(Error::new(Errno::EINVAL));
+            return Err(Errno::EINVAL.into());
         }
 
         // Initialize virtqueues.

@@ -94,27 +94,6 @@ impl From<Errno> for Error {
     }
 }
 
-pub trait ErrorExt<T> {
-    fn into_error(self, errno: Errno) -> Result<T>;
-    fn into_error_with_message(self, errno: Errno, message: &'static str) -> Result<T>;
-}
-
-impl<T> ErrorExt<T> for Option<T> {
-    fn into_error(self, errno: Errno) -> Result<T> {
-        match self {
-            Some(value) => Ok(value),
-            None => Err(Error::new(errno)),
-        }
-    }
-
-    fn into_error_with_message(self, errno: Errno, message: &'static str) -> Result<T> {
-        match self {
-            Some(value) => Ok(value),
-            None => Err(Error::with_message(errno, message)),
-        }
-    }
-}
-
 impl From<smoltcp::Error> for Error {
     fn from(error: smoltcp::Error) -> Error {
         debug_warn!("smoltcp: {}", error);
@@ -136,10 +115,4 @@ impl From<smoltcp::Error> for Error {
             _ => unreachable!(),
         }
     }
-}
-
-macro_rules! errno {
-    ($ident:tt) => {
-        crate::result::Error::new(crate::result::Errno::$ident)
-    };
 }

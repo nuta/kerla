@@ -1,6 +1,9 @@
 use super::UserBufWriter;
 use crate::syscalls::SyscallDispatcher;
-use crate::{arch::UserVAddr, result::Result};
+use crate::{
+    arch::UserVAddr,
+    result::{Errno, Result},
+};
 use crate::{
     ctypes::{c_clockid, c_long, c_time, CLOCK_REALTIME},
     timer::read_wall_clock,
@@ -16,7 +19,7 @@ impl<'a> SyscallDispatcher<'a> {
             }
             _ => {
                 debug_warn!("clock_gettime: unsupported clock id: {}", clock);
-                return Err(errno!(ENOSYS));
+                return Err(Errno::ENOSYS.into());
             }
         };
 

@@ -1,4 +1,4 @@
-use crate::result::{Errno, Error, Result};
+use crate::result::{Errno, Result};
 use crate::{
     arch::UserVAddr,
     net::{Endpoint, IpAddress, Ipv4Address},
@@ -115,7 +115,7 @@ pub(self) fn parse_sockaddr(uaddr: UserVAddr, _len: usize) -> Result<SockAddr> {
         }
         _ => {
             // FIXME: Is EINVAL correct error code?
-            return Err(Error::new(Errno::EINVAL));
+            return Err(Errno::EINVAL.into());
         }
     };
 

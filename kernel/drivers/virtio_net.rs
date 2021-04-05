@@ -6,11 +6,11 @@ use super::{
     DriverBuilder, MacAddress,
 };
 use super::{Driver, EthernetDriver};
+use crate::result::{Errno, Result};
 use crate::{
     arch::{SpinLock, VAddr, PAGE_SIZE},
     interrupt::attach_irq,
     mm::page_allocator::{alloc_pages, AllocPageFlags},
-    result::{Errno, Error, Result},
 };
 use crate::{drivers::ioport::IoPort, net::receive_ethernet_frame};
 use alloc::sync::Arc;
@@ -206,14 +206,14 @@ impl VirtioNetBuilder {
 impl DriverBuilder for VirtioNetBuilder {
     fn attach_pci(&self, pci_device: &PciDevice) -> Result<()> {
         if pci_device.config().vendor_id() != 0x1af4 && pci_device.config().device_id() != 0x1000 {
-            return Err(Error::new(Errno::EINVAL));
+            return Err(Errno::EINVAL.into());
         }
 
         let ioport = match pci_device.config().bar0() {
             super::pci::Bar::IOMapped { port } => IoPort::new(port),
             bar0 => {
                 warn!("virtio: unsupported type of BAR#0: {:x?}", bar0);
-                return Err(Error::new(Errno::EINVAL));
+                return Err(Errno::EINVAL.into());
             }
         };
 

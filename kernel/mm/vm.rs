@@ -116,7 +116,7 @@ impl Vm {
     pub fn expand_heap_to(&mut self, new_heap_end: UserVAddr) -> Result<()> {
         let current_heap_end = self.heap_vma().end();
         if new_heap_end < current_heap_end {
-            return Err(Error::new(Errno::EINVAL));
+            return Err(Errno::EINVAL.into());
         }
 
         self.expand_heap_by(new_heap_end.value() - current_heap_end.value())
@@ -132,7 +132,7 @@ impl Vm {
             .map_err(|_| Error::new(Errno::ENOMEM))?;
 
         if new_heap_top >= stack_bottom {
-            return Err(Error::new(Errno::ENOMEM));
+            return Err(Errno::ENOMEM.into());
         }
 
         heap_vma.len += increment;

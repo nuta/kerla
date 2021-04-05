@@ -1,9 +1,6 @@
+use crate::result::{Errno, Result};
 use crate::{
-    arch::SpinLock,
-    fs::inode::FileLike,
-    result::{Errno, Error, Result},
-    user_buffer::UserBuffer,
-    user_buffer::UserBufferMut,
+    arch::SpinLock, fs::inode::FileLike, user_buffer::UserBuffer, user_buffer::UserBufferMut,
 };
 use alloc::{collections::BTreeSet, sync::Arc};
 use crossbeam::atomic::AtomicCell;
@@ -54,7 +51,7 @@ impl FileLike for TcpSocket {
             let mut port = 50000;
             while inuse_endpoints.contains(&port) {
                 if port == u16::MAX {
-                    return Err(errno!(EAGAIN));
+                    return Err(Errno::EAGAIN.into());
                 }
 
                 port += 1;
@@ -128,7 +125,7 @@ impl FileLike for TcpSocket {
                 }
                 Err(smoltcp::Error::Exhausted) if true /* FIXME: if noblock */ => {
                     warn!("recv: EAGAIN");
-                    return Err(Error::new(Errno::EAGAIN))
+                    return Err(Errno::EAGAIN.into())
                 }
                 Err(smoltcp::Error::Exhausted) => {
                     // The receive buffer is empty. Try again later...

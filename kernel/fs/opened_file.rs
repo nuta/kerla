@@ -136,7 +136,7 @@ impl OpenedFileTable {
     pub fn close(&mut self, fd: Fd) -> Result<()> {
         match self.files.get_mut(fd.as_usize()) {
             Some(opened_file) => *opened_file = None,
-            _ => return Err(Error::new(Errno::EBADF)),
+            _ => return Err(Errno::EBADF.into()),
         }
 
         Ok(())
@@ -174,7 +174,7 @@ impl OpenedFileTable {
                 *entry = Some(opened_file);
             }
             None if fd.as_int() >= FD_MAX => {
-                return Err(errno!(EBADF));
+                return Err(Errno::EBADF.into());
             }
             None => {
                 self.files.resize(fd.as_usize() + 1, None);

@@ -2,7 +2,7 @@ use super::elf::{Elf, ProgramHeader};
 use crate::fs::{mount::RootFs, opened_file::OpenedFileTable, path::PathBuf};
 use crate::mm::page_allocator::{alloc_pages, AllocPageFlags};
 use crate::process::*;
-use crate::result::{Errno, Error, ErrorExt, Result};
+use crate::result::{Errno, Result};
 use alloc::sync::Weak;
 use goblin::elf64::program_header::PT_LOAD;
 
@@ -18,8 +18,7 @@ pub fn execve(
     // Read the ELF header in the executable file.
     let file_header_len = PAGE_SIZE;
     let file_header_top = USER_STACK_TOP;
-    let file_header_pages = alloc_pages(file_header_len / PAGE_SIZE, AllocPageFlags::KERNEL)
-        .into_error(Errno::ENOMEM)?;
+    let file_header_pages = alloc_pages(file_header_len / PAGE_SIZE, AllocPageFlags::KERNEL)?;
     let buf =
         unsafe { core::slice::from_raw_parts_mut(file_header_pages.as_mut_ptr(), file_header_len) };
     executable.read(0, buf.into())?;
@@ -52,11 +51,10 @@ pub fn execve(
     let user_heap_bottom = align_up(end_of_image, PAGE_SIZE);
     let init_stack_len = align_up(estimate_user_init_stack_size(argv, envp, auxv), PAGE_SIZE);
     if user_heap_bottom >= user_stack_bottom || init_stack_len >= USER_STACK_LEN {
-        return Err(Error::new(Errno::E2BIG));
+        return Err(Errno::E2BIG.into());
     }
 
-    let init_stack_pages = alloc_pages(init_stack_len / PAGE_SIZE, AllocPageFlags::KERNEL)
-        .into_error(Errno::ENOMEM)?;
+    let init_stack_pages = alloc_pages(init_stack_len / PAGE_SIZE, AllocPageFlags::KERNEL)?;
     let user_sp = init_user_stack(
         init_stack_top,
         init_stack_pages.as_vaddr().add(init_stack_len),
@@ -111,9 +109,7 @@ pub fn execve(
         );
     }
 
-    let stack_bottom = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
-        .into_error_with_message(Errno::ENOMEM, "failed to allocate kernel stack")?;
-
+    let stack_bottom = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)?;
     let kernel_sp = stack_bottom.as_vaddr().add(KERNEL_STACK_SIZE);
 
     let process = Arc::new(Process {

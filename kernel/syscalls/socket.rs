@@ -1,7 +1,7 @@
 use super::{AF_INET, IPPROTO_TCP, IPPROTO_UDP, SOCK_DGRAM, SOCK_STREAM};
 use crate::fs::inode::{FileLike, INode};
 use crate::net::{TcpSocket, UdpSocket};
-use crate::result::{Errno, Error, Result};
+use crate::result::{Errno, Result};
 use crate::{process::current_process, syscalls::SyscallDispatcher};
 use alloc::sync::Arc;
 
@@ -25,7 +25,7 @@ impl<'a> SyscallDispatcher<'a> {
                     type_,
                     protocol
                 );
-                return Err(Error::new(Errno::ENOSYS));
+                return Err(Errno::ENOSYS.into());
             }
         };
 

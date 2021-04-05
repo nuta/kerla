@@ -1,6 +1,7 @@
 use crate::{
     arch::{PAddr, SpinLock, PAGE_SIZE},
     boot::RamArea,
+    result::{Errno, Result},
 };
 use arrayvec::ArrayVec;
 use bitflags::bitflags;
@@ -37,7 +38,7 @@ bitflags! {
     }
 }
 
-pub fn alloc_pages(num_pages: usize, flags: AllocPageFlags) -> Option<PAddr> {
+pub fn alloc_pages(num_pages: usize, flags: AllocPageFlags) -> Result<PAddr> {
     let order = num_pages_to_order(num_pages);
     let mut zones = ZONES.lock();
     for i in 0..zones.len() {
@@ -49,11 +50,11 @@ pub fn alloc_pages(num_pages: usize, flags: AllocPageFlags) -> Option<PAddr> {
                         .write_bytes(0, num_pages * PAGE_SIZE);
                 }
             }
-            return Some(paddr);
+            return Ok(paddr);
         }
     }
 
-    None
+    Err(Errno::ENOMEM.into())
 }
 
 pub fn init(areas: &[RamArea]) {
