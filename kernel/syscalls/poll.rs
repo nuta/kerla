@@ -1,25 +1,65 @@
-use crate::syscalls::SyscallDispatcher;
-use crate::{arch::UserVAddr, fs::opened_file::Fd, result::Result};
+use core::mem::size_of;
 
-struct _PollFd {
-    /// The target file.
-    fd: Fd,
-    /// Requested events.
-    events: i16,
-    /// Returned events.
-    revents: i16,
-}
+use crate::{
+    arch::UserVAddr,
+    ctypes::{c_int, c_nfds, c_short},
+    fs::{inode::PollStatus, opened_file::Fd},
+    result::Result,
+    timer::{read_monotonic_clock, sleep_ms},
+};
+use crate::{process::current_process, syscalls::SyscallDispatcher};
+
+use super::UserBufReader;
 
 impl<'a> SyscallDispatcher<'a> {
-    pub fn sys_poll(&mut self, _fds: UserVAddr, _nfds: usize, _timeout: i32) -> Result<isize> {
-        // TODO:
-        for _ in 0..0x300000u64 {
-            unsafe {
-                asm!("in al, 0x80", out("rax") _);
+    // TODO: Rewrite in a scalable way using something like wait queue.
+    pub fn sys_poll(&mut self, fds: UserVAddr, nfds: c_nfds, timeout: c_int) -> Result<isize> {
+        let started_at = read_monotonic_clock();
+        loop {
+            if timeout > 0 && started_at.elapsed_msecs() >= (timeout as usize) {
+                break;
             }
+
+            // Check the statuses of all specified files one by one.
+            let mut ready_fds = 0;
+            let mut reader = UserBufReader::new(fds);
+            for _ in 0..nfds {
+                let fd = reader.read::<Fd>()?;
+                let events = bitflags_from_user!(PollStatus, reader.read::<c_short>()?)?;
+
+                let revents = if fd.as_int() < 0 || events.is_empty() {
+                    0
+                } else {
+                    let status = current_process()
+                        .opened_files
+                        .lock()
+                        .get(fd)?
+                        .lock()
+                        .poll()?;
+
+                    let revents = events & status;
+                    if !revents.is_empty() {
+                        ready_fds += 1;
+                    }
+
+                    revents.bits()
+                };
+
+                // Update revents.
+                fds.add(reader.pos())?.write::<c_short>(&revents)?;
+
+                // Skip revents in the reader.
+                reader.skip(size_of::<c_short>());
+            }
+
+            if ready_fds > 0 {
+                return Ok(ready_fds);
+            }
+
+            // Try again in a millisecond.
+            sleep_ms(1);
         }
 
-        warn!("poll: not yet implemented");
-        Ok(1)
+        Ok(0)
     }
 }

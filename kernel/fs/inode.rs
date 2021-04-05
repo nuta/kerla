@@ -1,10 +1,11 @@
+use super::path::PathBuf;
+use crate::ctypes::c_short;
 use crate::result::{Errno, Error, Result};
 use crate::{fs::stat::Stat, user_buffer::UserBufferMut};
 use crate::{net::*, user_buffer::UserBuffer};
 use alloc::string::String;
 use alloc::sync::Arc;
-
-use super::path::PathBuf;
+use bitflags::bitflags;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
@@ -20,8 +21,25 @@ impl INodeNo {
     }
 }
 
+bitflags! {
+    pub struct PollStatus: c_short {
+        const POLLIN     = 0x001;
+        const POLLPRI    = 0x002;
+        const POLLOUT    = 0x004;
+        const POLLERR    = 0x008;
+        const POLLHUP    = 0x010;
+        const POLLNVAL   = 0x020;
+        const POLLRDNORM = 0x040;
+        const POLLRDBAND = 0x080;
+    }
+}
+
 pub trait FileLike: Send + Sync {
     fn stat(&self) -> Result<Stat> {
+        Err(Error::new(Errno::EBADF))
+    }
+
+    fn poll(&self) -> Result<PollStatus> {
         Err(Error::new(Errno::EBADF))
     }
 

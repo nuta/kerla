@@ -1,7 +1,7 @@
 use super::getrandom::GetRandomFlags;
 use crate::{
     arch::{SyscallFrame, UserVAddr},
-    ctypes::{c_clockid, c_uint},
+    ctypes::*,
     fs::path::PathBuf,
     fs::{
         opened_file::{Fd, OpenFlags},
@@ -120,7 +120,7 @@ impl<'a> SyscallDispatcher<'a> {
             SYS_STAT => self.sys_stat(&resolve_path(a1)?, UserVAddr::new(a2)?),
             SYS_LSTAT => self.sys_lstat(&resolve_path(a1)?, UserVAddr::new(a2)?),
             SYS_GETDENTS64 => self.sys_getdents64(Fd::new(a1 as i32), UserVAddr::new(a2)?, a3),
-            SYS_POLL => self.sys_poll(UserVAddr::new(a1)?, a2, a3 as i32),
+            SYS_POLL => self.sys_poll(UserVAddr::new(a1)?, a2 as c_ulong, a3 as c_int),
             SYS_CHDIR => self.sys_chdir(&resolve_path(a1)?),
             SYS_ARCH_PRCTL => self.sys_arch_prctl(a1 as i32, UserVAddr::new(a2)?),
             SYS_BRK => self.sys_brk(UserVAddr::new(a1)?),

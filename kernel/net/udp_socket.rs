@@ -1,6 +1,6 @@
 use crate::{
     arch::SpinLock,
-    fs::inode::FileLike,
+    fs::inode::{FileLike, PollStatus},
     result::{Errno, Error, Result},
     user_buffer::UserBuffer,
     user_buffer::UserBufferMut,
@@ -118,5 +118,20 @@ impl FileLike for UdpSocket {
                 Err(err) => return Err(err.into()),
             }
         }
+    }
+
+    fn poll(&self) -> Result<PollStatus> {
+        let sockets = SOCKETS.lock();
+        let socket = sockets.get::<smoltcp::socket::UdpSocket>(self.handle);
+
+        let mut status = PollStatus::empty();
+        if socket.can_recv() {
+            status |= PollStatus::POLLIN;
+        }
+        if socket.can_send() {
+            status |= PollStatus::POLLOUT;
+        }
+
+        Ok(status)
     }
 }

@@ -1,5 +1,6 @@
 use super::inode::{DirEntry, Directory, FileLike, INode};
 use crate::ctypes::c_int;
+use crate::fs::inode::PollStatus;
 use crate::result::{Errno, Error, Result};
 use crate::{arch::SpinLock, user_buffer::UserBufferMut};
 use crate::{net::*, user_buffer::UserBuffer};
@@ -103,6 +104,10 @@ impl OpenedFile {
         flags: RecvFromFlags,
     ) -> Result<(usize, Endpoint)> {
         self.as_file()?.recvfrom(buf, flags)
+    }
+
+    pub fn poll(&mut self) -> Result<PollStatus> {
+        self.as_file()?.poll()
     }
 
     pub fn readdir(&mut self) -> Result<Option<DirEntry>> {
