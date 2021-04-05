@@ -21,7 +21,12 @@ fn open_file(path: &Path, flags: OpenFlags) -> Result<INode> {
 }
 
 fn create_file(path: &Path, flags: OpenFlags) -> Result<INode> {
-    let (parent_dir_path, name) = match path.parent_and_basename() {
+    if flags.contains(OpenFlags::O_DIRECTORY) {
+        // A directory should be created through mkdir(2).
+        return Err(Errno::EINVAL.into());
+    }
+
+    let (parent_dir, name) = match path.parent_and_basename() {
         Some((parent_dir, name)) => (parent_dir, name),
         None => {
             // Tried to create the root directory.
@@ -29,13 +34,11 @@ fn create_file(path: &Path, flags: OpenFlags) -> Result<INode> {
         }
     };
 
-    let root_fs = current_process().root_fs.lock();
-    let parent_dir = root_fs.lookup_dir(parent_dir_path.as_str())?;
-    if flags.contains(OpenFlags::O_DIRECTORY) {
-        parent_dir.create_dir(name)
-    } else {
-        parent_dir.create_file(name)
-    }
+    current_process()
+        .root_fs
+        .lock()
+        .lookup_dir(parent_dir.as_str())?
+        .create_file(name)
 }
 
 impl<'a> SyscallDispatcher<'a> {

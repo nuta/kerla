@@ -36,6 +36,7 @@ pub(self) mod getdents64;
 pub(self) mod getrandom;
 pub(self) mod ioctl;
 pub(self) mod lstat;
+pub(self) mod mkdir;
 pub(self) mod open;
 pub(self) mod poll;
 pub(self) mod read;

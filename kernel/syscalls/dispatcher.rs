@@ -6,6 +6,7 @@ use crate::{
     fs::{
         opened_file::{Fd, OpenFlags},
         path::Path,
+        stat::FileMode,
     },
     net::{RecvFromFlags, SendToFlags},
     process::current_process,
@@ -35,6 +36,7 @@ const SYS_EXIT: usize = 60;
 const SYS_WAIT4: usize = 61;
 const SYS_UNAME: usize = 63;
 const SYS_CHDIR: usize = 80;
+const SYS_MKDIR: usize = 83;
 const SYS_ARCH_PRCTL: usize = 158;
 const SYS_GETDENTS64: usize = 217;
 const SYS_SET_TID_ADDRESS: usize = 218;
@@ -124,6 +126,7 @@ impl<'a> SyscallDispatcher<'a> {
             SYS_GETDENTS64 => self.sys_getdents64(Fd::new(a1 as i32), UserVAddr::new(a2)?, a3),
             SYS_POLL => self.sys_poll(UserVAddr::new(a1)?, a2 as c_ulong, a3 as c_int),
             SYS_CHDIR => self.sys_chdir(&resolve_path(a1)?),
+            SYS_MKDIR => self.sys_mkdir(&resolve_path(a1)?, FileMode::new(a2 as u32)),
             SYS_ARCH_PRCTL => self.sys_arch_prctl(a1 as i32, UserVAddr::new(a2)?),
             SYS_BRK => self.sys_brk(UserVAddr::new(a1)?),
             SYS_IOCTL => self.sys_ioctl(Fd::new(a1 as i32), a2, a3),
