@@ -124,6 +124,12 @@ impl RootFs {
                         symlink_follow_limit - 1,
                     );
                 }
+                (None, INode::Directory(dir)) => {
+                    return match self.lookup_mount_point(&dir)? {
+                        Some(mount_point) => Ok(mount_point.fs.root_dir()?.into()),
+                        None => Ok(dir.into()),
+                    }
+                }
                 (None, inode) => {
                     return Ok(inode);
                 }
