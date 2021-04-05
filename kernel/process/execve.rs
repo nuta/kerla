@@ -106,7 +106,7 @@ pub fn execve(
             UserVAddr::new(phdr.p_vaddr as usize)?,
             phdr.p_memsz as usize,
             area_type,
-        );
+        )?;
     }
 
     let stack_bottom = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)?;

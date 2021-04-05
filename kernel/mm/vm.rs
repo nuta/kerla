@@ -1,4 +1,7 @@
-use crate::{arch::PageTable, arch::UserVAddr, arch::PAGE_SIZE, fs::inode::FileLike};
+use crate::{
+    arch::PageTable, arch::UserVAddr, arch::PAGE_SIZE, arch::USER_VALLOC_BASE,
+    arch::USER_VALLOC_END, fs::inode::FileLike,
+};
 use crate::{
     arch::USER_STACK_TOP,
     result::{Errno, Error, Result},
@@ -45,11 +48,16 @@ impl VmArea {
     pub fn contains(&self, vaddr: UserVAddr) -> bool {
         self.start.value() <= vaddr.value() && vaddr.value() < self.start.value() + self.len
     }
+
+    pub fn overlaps(&self, other: UserVAddr, len: usize) -> bool {
+        self.start.value() <= other.value() + len && other.value() < self.start.value() + self.len
+    }
 }
 
 pub struct Vm {
     page_table: PageTable,
     vm_areas: Vec<VmArea>,
+    valloc_next: UserVAddr,
 }
 
 impl Vm {
@@ -74,6 +82,7 @@ impl Vm {
             // The order of elements must be unchanged because `stack_vma_mut()`
             // and `heap_vma_mut` depends on it.
             vm_areas: vec![stack_vma, heap_vma],
+            valloc_next: USER_VALLOC_BASE,
         })
     }
 
@@ -101,12 +110,27 @@ impl Vm {
         &mut self.vm_areas[1]
     }
 
-    pub fn add_vm_area(&mut self, start: UserVAddr, len: usize, area_type: VmAreaType) {
+    pub fn add_vm_area(
+        &mut self,
+        start: UserVAddr,
+        len: usize,
+        area_type: VmAreaType,
+    ) -> Result<()> {
+        if !start.access_ok(len).is_ok() {
+            return Err(Errno::EINVAL.into());
+        }
+
+        if !self.is_free_vaddr_range(start, len) {
+            return Err(Errno::EINVAL.into());
+        }
+
         self.vm_areas.push(VmArea {
             start,
             len,
             area_type,
         });
+
+        Ok(())
     }
 
     pub fn heap_end(&self) -> UserVAddr {
@@ -143,6 +167,21 @@ impl Vm {
         Ok(Vm {
             page_table: PageTable::duplicate_from(&self.page_table)?,
             vm_areas: self.vm_areas.clone(),
+            valloc_next: self.valloc_next,
         })
+    }
+
+    pub fn is_free_vaddr_range(&mut self, start: UserVAddr, len: usize) -> bool {
+        self.vm_areas.iter().all(|area| !area.overlaps(start, len))
+    }
+
+    pub fn alloc_vaddr_range(&mut self, len: usize) -> Result<UserVAddr> {
+        let next = self.valloc_next;
+        self.valloc_next = self.valloc_next.add(align_up(len, PAGE_SIZE))?;
+        if self.valloc_next >= USER_VALLOC_END {
+            return Err(Errno::ENOMEM.into());
+        }
+
+        Ok(next)
     }
 }

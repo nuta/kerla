@@ -22,6 +22,7 @@ const SYS_CLOSE: usize = 3;
 const SYS_STAT: usize = 4;
 const SYS_LSTAT: usize = 6;
 const SYS_POLL: usize = 7;
+const SYS_MMAP: usize = 9;
 const SYS_BRK: usize = 12;
 const SYS_IOCTL: usize = 16;
 const SYS_WRITEV: usize = 20;
@@ -121,6 +122,14 @@ impl<'a> SyscallDispatcher<'a> {
             SYS_READ => self.sys_read(Fd::new(a1 as i32), UserVAddr::new(a2)?, a3),
             SYS_WRITE => self.sys_write(Fd::new(a1 as i32), UserVAddr::new(a2)?, a3),
             SYS_WRITEV => self.sys_writev(Fd::new(a1 as i32), UserVAddr::new(a2)?, a3),
+            SYS_MMAP => self.sys_mmap(
+                UserVAddr::new(a1)?,
+                a2 as c_size,
+                bitflags_from_user!(MMapProt, a3 as c_int)?,
+                bitflags_from_user!(MMapFlags, a4 as c_int)?,
+                Fd::new(a5 as i32),
+                a6 as c_off,
+            ),
             SYS_STAT => self.sys_stat(&resolve_path(a1)?, UserVAddr::new(a2)?),
             SYS_LSTAT => self.sys_lstat(&resolve_path(a1)?, UserVAddr::new(a2)?),
             SYS_UTIMES => self.sys_utimes(&resolve_path(a1)?, UserVAddr::new(a2)?),
