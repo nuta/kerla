@@ -121,7 +121,7 @@ impl FileLike for UdpSocket {
     }
 
     fn poll(&self) -> Result<PollStatus> {
-        let sockets = SOCKETS.lock();
+        let mut sockets = SOCKETS.lock();
         let socket = sockets.get::<smoltcp::socket::UdpSocket>(self.handle);
 
         let mut status = PollStatus::empty();
