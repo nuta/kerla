@@ -115,7 +115,7 @@ impl<'a> SyscallDispatcher<'a> {
         match n {
             SYS_OPEN => self.sys_open(
                 &resolve_path(a1)?,
-                OpenFlags::from_bits(a2 as i32).ok_or_else(|| Error::new(Errno::ENOSYS))?,
+                bitflags_from_user!(OpenFlags, a2 as i32)?,
                 FileMode::new(a3 as u32),
             ),
             SYS_CLOSE => self.sys_close(Fd::new(a1 as i32)),
@@ -159,7 +159,7 @@ impl<'a> SyscallDispatcher<'a> {
                 Fd::new(a1 as i32),
                 UserVAddr::new(a2)?,
                 a3 as usize,
-                SendToFlags::from_bits(a4 as i32).ok_or_else(|| Error::new(Errno::ENOSYS))?,
+                bitflags_from_user!(SendToFlags, a4 as i32)?,
                 UserVAddr::new(a5)?,
                 a6,
             ),
@@ -167,7 +167,7 @@ impl<'a> SyscallDispatcher<'a> {
                 Fd::new(a1 as i32),
                 UserVAddr::new(a2)?,
                 a3 as usize,
-                RecvFromFlags::from_bits(a4 as i32).ok_or_else(|| Error::new(Errno::ENOSYS))?,
+                bitflags_from_user!(RecvFromFlags, a4 as i32)?,
                 UserVAddr::new(a5)?,
                 UserVAddr::new(a6)?,
             ),
@@ -176,7 +176,7 @@ impl<'a> SyscallDispatcher<'a> {
             SYS_GETRANDOM => self.sys_getrandom(
                 UserVAddr::new(a1)?,
                 a2,
-                GetRandomFlags::from_bits(a3 as c_uint).ok_or_else(|| Error::new(Errno::ENOSYS))?,
+                bitflags_from_user!(GetRandomFlags, a3 as c_uint)?,
             ),
             _ => {
                 debug_warn!(
