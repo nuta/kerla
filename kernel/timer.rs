@@ -15,7 +15,6 @@ static TIMERS: SpinLock<Vec<Timer>> = SpinLock::new(Vec::new());
 
 struct Timer {
     current: usize,
-    reset: Option<usize>,
     process: Arc<Process>,
 }
 

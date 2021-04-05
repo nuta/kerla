@@ -191,12 +191,6 @@ impl UserBufReader {
         self.pos += size_of::<T>();
         Ok(value)
     }
-
-    pub fn write_bytes(&mut self, buf: &mut [u8]) -> Result<()> {
-        self.base.add(self.pos)?.read_bytes(buf)?;
-        self.pos += buf.len();
-        Ok(())
-    }
 }
 
 pub struct UserBufWriter {
