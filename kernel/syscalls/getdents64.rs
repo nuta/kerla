@@ -18,7 +18,7 @@ impl<'a> SyscallDispatcher<'a> {
                 alignment,
             );
 
-            if writer.written_len() + reclen > len {
+            if writer.pos() + reclen > len {
                 break;
             }
 
@@ -39,6 +39,6 @@ impl<'a> SyscallDispatcher<'a> {
             writer.skip_until_alignment(alignment);
         }
 
-        Ok(writer.written_len() as isize)
+        Ok(writer.pos() as isize)
     }
 }

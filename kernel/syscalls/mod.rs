@@ -168,38 +168,69 @@ pub fn write_endpoint_as_sockaddr(
     Ok(())
 }
 
+pub struct UserBufReader {
+    base: UserVAddr,
+    pos: usize,
+}
+
+impl UserBufReader {
+    pub const fn new(base: UserVAddr) -> UserBufReader {
+        UserBufReader { base, pos: 0 }
+    }
+
+    pub fn pos(&mut self) -> usize {
+        self.pos
+    }
+
+    pub fn skip(&mut self, len: usize) {
+        self.pos += len;
+    }
+
+    pub fn read<T: Copy>(&mut self) -> Result<T> {
+        let value = self.base.add(self.pos)?.read()?;
+        self.pos += size_of::<T>();
+        Ok(value)
+    }
+
+    pub fn write_bytes(&mut self, buf: &mut [u8]) -> Result<()> {
+        self.base.add(self.pos)?.read_bytes(buf)?;
+        self.pos += buf.len();
+        Ok(())
+    }
+}
+
 pub struct UserBufWriter {
     base: UserVAddr,
-    offset: usize,
+    pos: usize,
 }
 
 impl UserBufWriter {
     pub const fn new(base: UserVAddr) -> UserBufWriter {
-        UserBufWriter { base, offset: 0 }
+        UserBufWriter { base, pos: 0 }
     }
 
-    pub fn written_len(&self) -> usize {
-        self.offset
+    pub fn pos(&self) -> usize {
+        self.pos
     }
 
     pub fn skip_until_alignment(&mut self, align: usize) {
-        self.offset = align_up(self.offset, align);
+        self.pos = align_up(self.pos, align);
     }
 
     pub fn fill(&mut self, value: u8, len: usize) -> Result<()> {
-        self.offset += self.base.add(self.offset)?.fill(value, len)?;
+        self.pos += self.base.add(self.pos)?.fill(value, len)?;
         Ok(())
     }
 
     pub fn write<T: Copy>(&mut self, value: T) -> Result<()> {
-        let written_len = self.base.add(self.offset)?.write(&value)?;
-        self.offset += written_len;
+        let written_len = self.base.add(self.pos)?.write(&value)?;
+        self.pos += written_len;
         Ok(())
     }
 
     pub fn write_bytes(&mut self, buf: &[u8]) -> Result<()> {
-        let written_len = self.base.add(self.offset)?.write_bytes(buf)?;
-        self.offset += written_len;
+        let written_len = self.base.add(self.pos)?.write_bytes(buf)?;
+        self.pos += written_len;
         Ok(())
     }
 
