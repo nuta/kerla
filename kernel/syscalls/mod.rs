@@ -7,6 +7,20 @@ use core::cmp::min;
 use core::mem::size_of;
 use penguin_utils::{alignment::align_up, endian::NetworkEndianExt};
 
+macro_rules! bitflags_from_user {
+    ($st:tt, $input:expr) => {{
+        let bits = $input;
+        $st::from_bits(bits).ok_or_else(|| {
+            warn_once!(
+                concat!("unsupported bitflags for ", stringify!($st), ": {:x}"),
+                bits
+            );
+
+            crate::result::Error::new(crate::result::Errno::ENOSYS)
+        })
+    }};
+}
+
 pub(self) mod arch_prctl;
 pub(self) mod bind;
 pub(self) mod brk;
