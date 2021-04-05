@@ -1,3 +1,5 @@
+use core::sync::atomic::{AtomicI32, Ordering};
+
 use super::*;
 use crate::{
     arch::{self, SpinLock},
@@ -6,7 +8,7 @@ use crate::{
     fs::{mount::RootFs, opened_file, path::Path, path::PathBuf},
     mm::vm::Vm,
     process::execve,
-    result::Result,
+    result::{Errno, Result},
 };
 
 use alloc::collections::BTreeMap;
@@ -17,6 +19,28 @@ use arch::SpinLockGuard;
 use opened_file::OpenedFileTable;
 
 pub static PROCESSES: SpinLock<BTreeMap<PId, Arc<Process>>> = SpinLock::new(BTreeMap::new());
+
+pub fn alloc_pid() -> Result<PId> {
+    static NEXT_PID: AtomicI32 = AtomicI32::new(2);
+
+    let last_pid = NEXT_PID.load(Ordering::SeqCst);
+    let processes = PROCESSES.lock();
+    loop {
+        // Note: `fetch_add` may wrap around.
+        let pid = NEXT_PID.fetch_add(1, Ordering::SeqCst);
+        if pid <= 1 {
+            continue;
+        }
+
+        if !processes.contains_key(&PId::new(pid)) {
+            return Ok(PId::new(pid));
+        }
+
+        if pid == last_pid {
+            return Err(Errno::EAGAIN.into());
+        }
+    }
+}
 
 pub fn get_process_by_pid(pid: PId) -> Option<Arc<Process>> {
     PROCESSES.lock().get(&pid).cloned()

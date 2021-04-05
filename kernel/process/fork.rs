@@ -5,7 +5,7 @@ use crate::{
 use crate::{arch::SyscallFrame, result::Result};
 use alloc::sync::Arc;
 
-use super::{MutableFields, PId, PROCESSES, SCHEDULER};
+use super::{alloc_pid, MutableFields, PROCESSES, SCHEDULER};
 
 /// Creates a new process. The calling process (`self`) will be the parent
 /// process of the created process. Returns the created child process.
@@ -16,7 +16,7 @@ pub fn fork(parent: &Arc<Process>, parent_frame: &SyscallFrame) -> Result<Arc<Pr
     let opened_files = parent.opened_files.lock().fork();
 
     let child = Arc::new(Process {
-        pid: PId::new(2), // TODO:
+        pid: alloc_pid()?,
         parent: Some(Arc::downgrade(parent)),
         vm: Some(Arc::new(SpinLock::new(vm))),
         opened_files: Arc::new(SpinLock::new(opened_files)),
