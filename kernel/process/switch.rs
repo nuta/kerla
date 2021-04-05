@@ -12,6 +12,11 @@ cpu_local! {
     static ref HELD_LOCKS: ArrayVec<[Arc<Process>; 2]> = ArrayVec::new();
 }
 
+pub fn resume(process: &Arc<Process>) {
+    process.lock().state = ProcessState::Runnable;
+    SCHEDULER.lock().enqueue(process.clone());
+}
+
 /// Yields execution to another thread. When the currently running thread is resumed
 // in future, it will be
 pub fn switch(new_state: ProcessState) {

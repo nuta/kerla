@@ -1,13 +1,34 @@
 use crate::{
-    arch::TICK_HZ,
-    process::{self, ProcessState},
+    arch::{SpinLock, TICK_HZ},
+    process::{self, Process, ProcessState},
 };
+use alloc::sync::Arc;
+use alloc::vec::Vec;
 use core::sync::atomic::{AtomicUsize, Ordering};
+use process::{current_process, resume, switch};
 
 const PREEMPT_PER_TICKS: usize = 30;
 static MONOTONIC_TICKS: AtomicUsize = AtomicUsize::new(0);
 /// Ticks from the epoch (00:00:00 on 1 January 1970, UTC).
 static WALLCLOCK_TICKS: AtomicUsize = AtomicUsize::new(0);
+static TIMERS: SpinLock<Vec<Timer>> = SpinLock::new(Vec::new());
+
+struct Timer {
+    current: usize,
+    reset: Option<usize>,
+    process: Arc<Process>,
+}
+
+/// Suspends the current process at least `ms` milliseconds.
+pub fn sleep_ms(ms: usize) {
+    TIMERS.lock().push(Timer {
+        current: ms * TICK_HZ / 1000,
+        reset: None,
+        process: current_process().clone(),
+    });
+
+    switch(ProcessState::Sleeping);
+}
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct WallClock {
@@ -56,6 +77,21 @@ pub fn read_monotonic_clock() -> MonotonicClock {
 }
 
 pub fn handle_timer_irq() {
+    {
+        let mut timers = TIMERS.lock();
+        for timer in timers.iter_mut() {
+            timer.current -= 1;
+        }
+
+        timers.retain(|timer| {
+            if timer.current == 0 {
+                resume(&timer.process);
+            }
+
+            timer.current > 0
+        })
+    }
+
     WALLCLOCK_TICKS.fetch_add(1, Ordering::Relaxed);
     let ticks = MONOTONIC_TICKS.fetch_add(1, Ordering::Relaxed);
     if ticks % PREEMPT_PER_TICKS == 0 {
