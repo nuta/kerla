@@ -65,6 +65,14 @@ impl Directory for DevRootDir {
             ..Stat::zeroed()
         })
     }
+
+    fn create_file(&self, _name: &str) -> Result<INode> {
+        Err(Errno::ENOSYS.into())
+    }
+
+    fn create_dir(&self, _name: &str) -> Result<INode> {
+        Err(Errno::ENOSYS.into())
+    }
 }
 
 /// The `/dev/null` file.

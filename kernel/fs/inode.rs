@@ -92,6 +92,8 @@ pub trait Directory: Send + Sync {
     fn stat(&self) -> Result<Stat>;
     fn readdir(&self, index: usize) -> Result<Option<DirEntry>>;
     fn lookup(&self, name: &str) -> Result<INode>;
+    fn create_file(&self, _name: &str) -> Result<INode>;
+    fn create_dir(&self, _name: &str) -> Result<INode>;
 }
 
 pub trait Symlink: Send + Sync {

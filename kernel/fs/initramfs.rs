@@ -103,6 +103,14 @@ impl Directory for InitramFsDir {
             InitramFsINode::Symlink(path) => INode::Symlink(path.clone()),
         })
     }
+
+    fn create_file(&self, _name: &str) -> Result<INode> {
+        Err(Errno::ENOSYS.into())
+    }
+
+    fn create_dir(&self, _name: &str) -> Result<INode> {
+        Err(Errno::ENOSYS.into())
+    }
 }
 
 struct InitramFsSymlink {

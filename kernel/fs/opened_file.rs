@@ -12,19 +12,14 @@ const FD_MAX: c_int = 1024;
 
 bitflags! {
     pub struct OpenFlags: i32 {
+        const O_RDONLY = 0o0;
+        const O_WRONLY = 0o1;
+        const O_RDWR = 0o2;
         const O_CREAT = 0o100;
         const O_TRUNC = 0o1000;
         const O_APPEND = 0o2000;
         const O_DIRECTORY = 0o200000;
         const O_CLOEXEC  = 0o2000000;
-    }
-}
-
-bitflags! {
-    pub struct OpenMode: u32 {
-        const O_RDONLY = 0o0;
-        const O_WRONLY = 0o1;
-        const O_RDWR = 0o2;
     }
 }
 
@@ -52,7 +47,7 @@ pub struct OpenedFile {
 }
 
 impl OpenedFile {
-    pub fn new(inode: INode, _mode: OpenMode, pos: usize) -> OpenedFile {
+    pub fn new(inode: INode, _flags: OpenFlags, pos: usize) -> OpenedFile {
         OpenedFile { inode, pos }
     }
 

@@ -4,11 +4,19 @@ use core::ops::Deref;
 
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct Path {
+    /// A path string. Trailing slashes are removed unless it points to the root
+    /// directory (`"/"`).
     path: str,
 }
 
 impl Path {
     pub fn new(path: &str) -> &Path {
+        let path = if path == "/" {
+            path
+        } else {
+            path.trim_end_matches('/')
+        };
+
         unsafe { &*(path as *const str as *const Path) }
     }
 
@@ -31,6 +39,26 @@ impl Path {
         };
 
         Components { path }
+    }
+
+    pub fn parent_and_basename(&self) -> Option<(&Path, &str)> {
+        if &self.path == "/" {
+            return None;
+        }
+
+        if let Some(slash_index) = self.path.rfind('/') {
+            let parent_dir = if slash_index == 0 {
+                Path::new("/")
+            } else {
+                Path::new(&self.path[..slash_index])
+            };
+
+            let basename = &self.path[(slash_index + 1)..];
+            Some((parent_dir, basename))
+        } else {
+            // A relative path without any slashes.
+            None
+        }
     }
 }
 
