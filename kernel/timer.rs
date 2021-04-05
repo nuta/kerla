@@ -22,7 +22,6 @@ struct Timer {
 pub fn sleep_ms(ms: usize) {
     TIMERS.lock().push(Timer {
         current: ms * TICK_HZ / 1000,
-        reset: None,
         process: current_process().clone(),
     });
 
