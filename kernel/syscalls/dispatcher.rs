@@ -112,6 +112,23 @@ impl<'a> SyscallDispatcher<'a> {
             );
         }
 
+        self.do_dispatch(a1, a2, a3, a4, a5, a6, n).map_err(|err| {
+            debug_warn!("{}: error: {:?}", syscall_name_by_number(n), err);
+            err
+        })
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn do_dispatch(
+        &mut self,
+        a1: usize,
+        a2: usize,
+        a3: usize,
+        a4: usize,
+        a5: usize,
+        a6: usize,
+        n: usize,
+    ) -> Result<isize> {
         match n {
             SYS_OPEN => self.sys_open(
                 &resolve_path(a1)?,
