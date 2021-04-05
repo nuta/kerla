@@ -4,7 +4,7 @@ use x86::io::outb;
 const DIVISOR: u16 = (1193182u32 / 1000) as u16;
 
 pub unsafe fn init() {
-    println!("enabling PIT (i8254) timer: divisor={}", DIVISOR);
+    trace!("enabling PIT (i8254) timer: divisor={}", DIVISOR);
     outb(0x43, 0x35);
     outb(0x40, (DIVISOR & 0xff) as u8);
     outb(0x40, (DIVISOR >> 8) as u8);

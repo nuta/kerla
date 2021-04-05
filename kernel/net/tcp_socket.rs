@@ -72,7 +72,6 @@ impl FileLike for TcpSocket {
             .get::<smoltcp::socket::TcpSocket>(self.handle)
             .may_send()
         {
-            trace!("tcp: wait queue");
             SOCKET_WAIT_QUEUE.sleep();
         }
 
@@ -124,7 +123,6 @@ impl FileLike for TcpSocket {
                     total_len += copied_len;
                 }
                 Err(smoltcp::Error::Exhausted) if true /* FIXME: if noblock */ => {
-                    warn!("recv: EAGAIN");
                     return Err(Errno::EAGAIN.into())
                 }
                 Err(smoltcp::Error::Exhausted) => {

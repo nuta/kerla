@@ -64,37 +64,22 @@ pub fn process_packets() {
         if let Some(config) = dhcp
             .poll(&mut iface, &mut sockets, timestamp)
             .unwrap_or_else(|e| {
-                println!("DHCP: {:?}", e);
+                info!("DHCP: {:?}", e);
                 None
             })
         {
-            info!("DHCP config: {:?}", config);
             if let Some(cidr) = config.address {
                 iface.update_ip_addrs(|addrs| {
                     if let Some(addr) = addrs.iter_mut().next() {
                         *addr = IpCidr::Ipv4(cidr);
                     }
                 });
-                println!("Assigned a new IPv4 address: {}", cidr);
+                info!("DHCP: got a IPv4 address: {}", cidr);
             }
 
             config
                 .router
                 .map(|router| iface.routes_mut().add_default_ipv4_route(router).unwrap());
-            iface.routes_mut().update(|routes_map| {
-                if let Some(default_route) =
-                    routes_map.get(&IpCidr::new(wire::Ipv4Address::UNSPECIFIED.into(), 0))
-                {
-                    println!("Default gateway: {}", default_route.via_router);
-                }
-            });
-
-            if config.dns_servers.iter().any(|s| s.is_some()) {
-                println!("DNS servers:");
-                for dns_server in config.dns_servers.iter().filter_map(|s| *s) {
-                    println!("- {}", dns_server);
-                }
-            }
         }
 
         do_again = match iface.poll(&mut sockets, timestamp) {
@@ -108,8 +93,6 @@ pub fn process_packets() {
         if do_again {
             SOCKET_WAIT_QUEUE.wake_all();
         }
-
-        trace!("smotcp: poll, do_again={}", do_again);
     }
 
     let mut _timeout = dhcp.next_poll(timestamp);
@@ -159,7 +142,6 @@ impl<'a> Device<'a> for OurDevice {
     type TxToken = OurTxToken;
 
     fn receive(&'a mut self) -> Option<(Self::RxToken, Self::TxToken)> {
-        info!("receive token: {:?}", !RX_PACKET_QUEUE.lock().is_empty());
         RX_PACKET_QUEUE
             .lock()
             .pop()

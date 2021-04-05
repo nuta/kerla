@@ -60,7 +60,7 @@ pub fn alloc_pages(num_pages: usize, flags: AllocPageFlags) -> Result<PAddr> {
 pub fn init(areas: &[RamArea]) {
     let mut zones = ZONES.lock();
     for area in areas {
-        println!(
+        info!(
             "available RAM: base={:x}, size={}",
             area.base.value(),
             ByteSize::new(area.len)

@@ -112,7 +112,6 @@ impl VirtQueue {
         )
         .expect("failed to allocate virtuqeue");
 
-        info!("virtqueue_addr: {}", virtqueue_paddr);
         ioport.write32(
             VIRTIO_REG_QUEUE_ADDR_PFN,
             (virtqueue_paddr.value() / PAGE_SIZE) as u32,

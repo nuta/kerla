@@ -45,7 +45,7 @@ unsafe extern "C" fn x64_handle_interrupt(vec: u8, frame: *const InterruptFrame)
     // FIXME: Check "Legacy replacement" mapping
     const TIMER_IRQ: u8 = 2;
     if vec != VECTOR_IRQ_BASE + TIMER_IRQ && vec != 14 && vec != 36 {
-        println!(
+        trace!(
             "interrupt({}): rip={:x}, rsp={:x}, err={:x}, cr2={:x}",
             vec,
             frame.rip,

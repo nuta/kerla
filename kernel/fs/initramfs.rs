@@ -137,6 +137,8 @@ impl InitramFs {
     pub fn new(fs_image: &'static [u8]) -> InitramFs {
         let mut image = BytesParser::new(fs_image);
         let mut root_files = HashMap::new();
+        let mut num_files = 0;
+        let mut loaded_size = 0;
         loop {
             let magic = parse_hex_field(image.consume_bytes(6).unwrap());
             if magic != 0x070701 {
@@ -174,7 +176,7 @@ impl InitramFs {
             }
 
             assert!(!path.is_empty());
-            println!("initramfs: \"{}\" ({})", path, ByteSize::new(filesize));
+            trace!("initramfs: \"{}\" ({})", path, ByteSize::new(filesize));
 
             // Skip the trailing '\0'.
             image.skip(1).unwrap();
@@ -256,7 +258,15 @@ impl InitramFs {
             }
 
             image.skip_until_alignment(4).unwrap();
+            num_files += 1;
+            loaded_size += data.len();
         }
+
+        info!(
+            "initramfs: loaded {} files and directories ({})",
+            num_files,
+            ByteSize::new(loaded_size)
+        );
 
         InitramFs {
             root_dir: Arc::new(InitramFsDir {

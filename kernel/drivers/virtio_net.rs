@@ -113,15 +113,15 @@ impl VirtioNet {
         }
 
         let rx_virtq = self.virtio.virtq_mut(VIRTIO_NET_QUEUE_RX);
-        info!("virtio IRQ: entering");
 
         while let Some(used) = rx_virtq.pop_used() {
-            info!("virtio IRQ: pop a desc, len={}", used.total_len);
             debug_assert!(used.descs.len() == 1);
             let (addr, len) = match used.descs[0] {
                 super::virtio::VirtqDescBuffer::WritableFromDevice { addr, len } => (addr, len),
                 super::virtio::VirtqDescBuffer::ReadOnlyFromDevice { .. } => unreachable!(),
             };
+
+            trace!("virtio-net: received {} octets (paddr={})", len, addr);
 
             let buffer = unsafe {
                 core::slice::from_raw_parts(
@@ -156,8 +156,8 @@ impl EthernetDriver for VirtioNet {
         let i = self.tx_ring_index % self.tx_ring_len;
         let addr = self.tx_buffer.add(i * PACKET_LEN_MAX);
 
-        info!(
-            "virtio-net: transmit {} octets (tx_ring={}, paddr={})",
+        trace!(
+            "virtio-net: transmitting {} octets (tx_ring={}, paddr={})",
             frame.len(),
             i,
             addr.as_paddr()
