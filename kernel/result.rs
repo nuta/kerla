@@ -88,6 +88,12 @@ impl fmt::Debug for Error {
     }
 }
 
+impl From<Errno> for Error {
+    fn from(errno: Errno) -> Error {
+        Error::new(errno)
+    }
+}
+
 pub trait ErrorExt<T> {
     fn into_error(self, errno: Errno) -> Result<T>;
     fn into_error_with_message(self, errno: Errno, message: &'static str) -> Result<T>;
