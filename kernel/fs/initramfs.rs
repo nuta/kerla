@@ -104,12 +104,12 @@ impl Directory for InitramFsDir {
         })
     }
 
-    fn create_file(&self, _name: &str) -> Result<INode> {
-        Err(Errno::ENOSYS.into())
+    fn create_file(&self, _name: &str, _mode: FileMode) -> Result<INode> {
+        Err(Errno::EROFS.into())
     }
 
-    fn create_dir(&self, _name: &str) -> Result<INode> {
-        Err(Errno::ENOSYS.into())
+    fn create_dir(&self, _name: &str, _mode: FileMode) -> Result<INode> {
+        Err(Errno::EROFS.into())
     }
 }
 

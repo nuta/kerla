@@ -110,7 +110,7 @@ impl Directory for Dir {
         Ok(self.0.lock().stat)
     }
 
-    fn create_file(&self, name: &str) -> Result<INode> {
+    fn create_file(&self, name: &str, _mode: FileMode) -> Result<INode> {
         let inode = Arc::new(File::new(name.to_owned(), alloc_inode_no()));
         self.0
             .lock()
@@ -120,7 +120,7 @@ impl Directory for Dir {
         Ok((inode as Arc<dyn FileLike>).into())
     }
 
-    fn create_dir(&self, name: &str) -> Result<INode> {
+    fn create_dir(&self, name: &str, _mode: FileMode) -> Result<INode> {
         let inode = Arc::new(Dir::new(name.to_owned(), alloc_inode_no()));
         self.0
             .lock()

@@ -73,8 +73,12 @@ pub fn boot_kernel(bootinfo: &BootInfo) -> ! {
     // Prepare the root file system.
     let mut root_fs = RootFs::new(INITRAM_FS.clone());
     let root_dir = root_fs.root_dir().expect("failed to open the root dir");
-    let dev_dir = root_fs.lookup_dir("/dev").expect("failed to locate /dev");
-    let tmp_dir = root_fs.lookup_dir("/tmp").expect("failed to locate /tmp");
+    let dev_dir = root_fs
+        .lookup_dir(Path::new("/dev"))
+        .expect("failed to locate /dev");
+    let tmp_dir = root_fs
+        .lookup_dir(Path::new("/tmp"))
+        .expect("failed to locate /tmp");
     root_fs
         .mount(dev_dir, DEV_FS.clone())
         .expect("failed to mount devfs");
@@ -90,7 +94,7 @@ pub fn boot_kernel(bootinfo: &BootInfo) -> ! {
     // Open the init's executable.
     // FIXME: We use /bin/sh for now.
     let executable = root_fs
-        .lookup_file("/bin/sh")
+        .lookup_file(Path::new("/bin/sh"))
         .expect("failed to open /sbin/init");
 
     // We cannot initialize the process subsystem until INITIAL_ROOT_FS is initialized.

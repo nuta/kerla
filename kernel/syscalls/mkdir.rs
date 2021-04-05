@@ -15,8 +15,8 @@ impl<'a> SyscallDispatcher<'a> {
         let created_dir = current_process()
             .root_fs
             .lock()
-            .lookup_dir(parent_dir.as_str())?
-            .create_dir(name)?;
+            .lookup_dir(parent_dir)?
+            .create_dir(name, mode)?;
 
         let fd = current_process().opened_files.lock().open(created_dir)?;
         Ok(fd.as_usize() as isize)

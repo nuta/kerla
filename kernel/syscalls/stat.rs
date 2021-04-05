@@ -4,11 +4,7 @@ use crate::{process::current_process, syscalls::SyscallDispatcher};
 
 impl<'a> SyscallDispatcher<'a> {
     pub fn sys_stat(&mut self, path: &Path, buf: UserVAddr) -> Result<isize> {
-        let stat = current_process()
-            .root_fs
-            .lock()
-            .lookup(path.as_str())?
-            .stat()?;
+        let stat = current_process().root_fs.lock().lookup(path)?.stat()?;
         buf.write(&stat)?;
         Ok(0)
     }

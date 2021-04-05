@@ -7,7 +7,7 @@ impl<'a> SyscallDispatcher<'a> {
         let stat = current_process()
             .root_fs
             .lock()
-            .lookup_no_symlink_follow(path.as_str())?
+            .lookup_no_symlink_follow(path)?
             .stat()?;
         buf.write(&stat)?;
         Ok(0)

@@ -44,17 +44,17 @@ impl RootFs {
 
     /// Resolves a path into an inode. This method resolves symbolic links: it
     /// will never return `INode::Symlink`.
-    pub fn lookup(&self, path: &str) -> Result<INode> {
-        self.lookup_inode(&self.root_dir()?, Path::new(path), true)
+    pub fn lookup(&self, path: &Path) -> Result<INode> {
+        self.lookup_inode(&self.root_dir()?, path, true)
     }
 
     /// Resolves a path into an inode without following symlinks.
-    pub fn lookup_no_symlink_follow(&self, path: &str) -> Result<INode> {
-        self.lookup_inode(&self.root_dir()?, Path::new(path), false)
+    pub fn lookup_no_symlink_follow(&self, path: &Path) -> Result<INode> {
+        self.lookup_inode(&self.root_dir()?, path, false)
     }
 
     /// Resolves a path into an file.
-    pub fn lookup_file(&self, path: &str) -> Result<Arc<dyn FileLike>> {
+    pub fn lookup_file(&self, path: &Path) -> Result<Arc<dyn FileLike>> {
         match self.lookup(path)? {
             INode::Directory(_) => Err(Error::new(Errno::EISDIR)),
             INode::FileLike(file) => Ok(file),
@@ -64,7 +64,7 @@ impl RootFs {
     }
 
     /// Resolves a path into an directory.
-    pub fn lookup_dir(&self, path: &str) -> Result<Arc<dyn Directory>> {
+    pub fn lookup_dir(&self, path: &Path) -> Result<Arc<dyn Directory>> {
         match self.lookup(path)? {
             INode::Directory(dir) => Ok(dir),
             INode::FileLike(_) => Err(Error::new(Errno::EISDIR)),

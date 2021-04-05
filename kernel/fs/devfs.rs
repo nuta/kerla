@@ -66,11 +66,11 @@ impl Directory for DevRootDir {
         })
     }
 
-    fn create_file(&self, _name: &str) -> Result<INode> {
+    fn create_file(&self, _name: &str, _mode: FileMode) -> Result<INode> {
         Err(Errno::ENOSYS.into())
     }
 
-    fn create_dir(&self, _name: &str) -> Result<INode> {
+    fn create_dir(&self, _name: &str, _mode: FileMode) -> Result<INode> {
         Err(Errno::ENOSYS.into())
     }
 }

@@ -115,6 +115,7 @@ impl<'a> SyscallDispatcher<'a> {
             SYS_OPEN => self.sys_open(
                 &resolve_path(a1)?,
                 OpenFlags::from_bits(a2 as i32).ok_or_else(|| Error::new(Errno::ENOSYS))?,
+                FileMode::new(a3 as u32),
             ),
             SYS_CLOSE => self.sys_close(Fd::new(a1 as i32)),
             SYS_READ => self.sys_read(Fd::new(a1 as i32), UserVAddr::new(a2)?, a3),

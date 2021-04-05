@@ -1,4 +1,4 @@
-use super::path::PathBuf;
+use super::{path::PathBuf, stat::FileMode};
 use crate::ctypes::c_short;
 use crate::result::{Errno, Error, Result};
 use crate::{fs::stat::Stat, user_buffer::UserBufferMut};
@@ -92,8 +92,8 @@ pub trait Directory: Send + Sync {
     fn stat(&self) -> Result<Stat>;
     fn readdir(&self, index: usize) -> Result<Option<DirEntry>>;
     fn lookup(&self, name: &str) -> Result<INode>;
-    fn create_file(&self, _name: &str) -> Result<INode>;
-    fn create_dir(&self, _name: &str) -> Result<INode>;
+    fn create_file(&self, _name: &str, _mode: FileMode) -> Result<INode>;
+    fn create_dir(&self, _name: &str, _mode: FileMode) -> Result<INode>;
 }
 
 pub trait Symlink: Send + Sync {
