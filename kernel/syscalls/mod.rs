@@ -45,6 +45,7 @@ pub(self) mod set_tid_address;
 pub(self) mod socket;
 pub(self) mod stat;
 pub(self) mod uname;
+pub(self) mod utimes;
 pub(self) mod wait4;
 pub(self) mod write;
 pub(self) mod writev;
