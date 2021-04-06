@@ -3,7 +3,7 @@ from . import Package
 COMMANDS = [
     "sh", "echo", "cat", "ls", "cp", "ln", "mv", "env", "mkdir", "touch",
     "rm", "rmdir", "sleep", "uname", "clear", "head", "tail",
-    "nslookup", "wget",
+    "nslookup", "wget", "httpd",
 ]
 
 
@@ -49,5 +49,6 @@ class Busybox(Package):
         self.set_kconfig("NSLOOKUP", True)
         self.set_kconfig("VERBOSE_RESOLUTION_ERRORS", True)
         self.set_kconfig("WGET", True)
+        self.set_kconfig("HTTPD", True)
         self.set_kconfig("DEBUG", True)
         self.make()
