@@ -106,6 +106,14 @@ impl OpenedFile {
         Ok(written_len)
     }
 
+    pub fn listen(&mut self, backlog: i32) -> Result<()> {
+        self.as_file()?.listen(backlog)
+    }
+
+    pub fn accept(&mut self) -> Result<(Arc<dyn FileLike>, Endpoint)> {
+        self.as_file()?.accept(&self.options)
+    }
+
     pub fn bind(&mut self, endpoint: Endpoint) -> Result<()> {
         self.as_file()?.bind(endpoint)
     }

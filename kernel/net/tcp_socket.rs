@@ -15,11 +15,14 @@ use smoltcp::socket::{SocketRef, SocketSet, TcpSocketBuffer};
 
 use super::{process_packets, socket::*, SOCKETS, SOCKET_WAIT_QUEUE};
 
+const BACKLOG_MAX: usize = 8;
 static INUSE_ENDPOINTS: SpinLock<BTreeSet<u16>> = SpinLock::new(BTreeSet::new());
 
 pub struct TcpSocket {
     handle: smoltcp::socket::SocketHandle,
     local_endpoint: AtomicCell<Option<Endpoint>>,
+    backlogs: SpinLock<Vec<Arc<TcpSocket>>>,
+    num_backlogs: AtomicCell<usize>,
 }
 
 impl TcpSocket {
@@ -31,11 +34,78 @@ impl TcpSocket {
         Arc::new(TcpSocket {
             handle,
             local_endpoint: AtomicCell::new(None),
+            backlogs: SpinLock::new(Vec::new()),
+            num_backlogs: AtomicCell::new(0),
         })
+    }
+
+    fn refill_backlog_sockets(
+        &self,
+        sockets: &mut SpinLockGuard<'_, SocketSet>,
+        backlogs: &mut SpinLockGuard<'_, Vec<Arc<TcpSocket>>>,
+    ) -> Result<()> {
+        let local_endpoint = match self.local_endpoint.load() {
+            Some(local_endpoint) => local_endpoint,
+            None => return Err(Errno::EINVAL.into()),
+        };
+
+        for _ in 0..(self.num_backlogs.load() - backlogs.len()) {
+            let socket = TcpSocket::new();
+            sockets
+                .get::<smoltcp::socket::TcpSocket>(socket.handle)
+                .listen(local_endpoint)?;
+            backlogs.push(socket);
+        }
+
+        Ok(())
     }
 }
 
 impl FileLike for TcpSocket {
+    fn listen(&self, backlog: i32) -> Result<()> {
+        let mut sockets = SOCKETS.lock();
+        let mut backlogs = self.backlogs.lock();
+
+        let new_num_backlogs = min(backlog as usize, BACKLOG_MAX);
+        self.backlogs.lock().truncate(new_num_backlogs);
+        self.num_backlogs.store(new_num_backlogs);
+
+        self.refill_backlog_sockets(&mut sockets, &mut backlogs)
+    }
+
+    fn accept(&self, _options: &OpenOptions) -> Result<(Arc<dyn FileLike>, Endpoint)> {
+        loop {
+            let mut sockets = SOCKETS.lock();
+            let mut backlogs = self.backlogs.lock();
+
+            // Look for an accept'able socket in the backlog....
+            let index = backlogs.iter().position(|sock| {
+                let smol_socket: SocketRef<'_, smoltcp::socket::TcpSocket> =
+                    sockets.get(sock.handle);
+                smol_socket.may_recv() || smol_socket.may_send()
+            });
+
+            match index {
+                Some(index) => {
+                    // Pop the client socket and add a new socket into the backlog.
+                    let socket = backlogs.remove(index);
+                    self.refill_backlog_sockets(&mut sockets, &mut backlogs)?;
+
+                    // Extract the remote endpoint.
+                    let smol_socket: SocketRef<'_, smoltcp::socket::TcpSocket> =
+                        sockets.get(socket.handle);
+                    let endpoint = smol_socket.remote_endpoint().into();
+                    return Ok((socket as Arc<dyn FileLike>, endpoint));
+                }
+                None => {
+                    // No accept'able sockets.
+                    SOCKET_WAIT_QUEUE.sleep();
+                    continue;
+                }
+            };
+        }
+    }
+
     fn bind(&self, endpoint: Endpoint) -> Result<()> {
         // TODO: Reject if the endpoint is already in use -- IIUC smoltcp
         //       does not check that.

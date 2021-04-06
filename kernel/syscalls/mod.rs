@@ -21,6 +21,7 @@ macro_rules! bitflags_from_user {
     }};
 }
 
+pub(self) mod accept;
 pub(self) mod arch_prctl;
 pub(self) mod bind;
 pub(self) mod brk;
@@ -35,6 +36,7 @@ pub(self) mod fork;
 pub(self) mod getdents64;
 pub(self) mod getrandom;
 pub(self) mod ioctl;
+pub(self) mod listen;
 pub(self) mod lstat;
 pub(self) mod mkdir;
 pub(self) mod mmap;

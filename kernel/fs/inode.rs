@@ -60,6 +60,11 @@ pub trait FileLike: Send + Sync {
         Err(Error::new(Errno::EBADF))
     }
 
+    fn listen(&self, _backlog: i32) -> Result<()> {
+        Err(Error::new(Errno::EBADF))
+    }
+
+    fn accept(&self, _options: &OpenOptions) -> Result<(Arc<dyn FileLike>, Endpoint)> {
         Err(Error::new(Errno::EBADF))
     }
 
