@@ -2,6 +2,7 @@ use super::elf::{Elf, ProgramHeader};
 use crate::fs::{
     mount::RootFs,
     opened_file::{OpenOptions, OpenedFileTable},
+    path::PathBuf,
 };
 use crate::mm::page_allocator::{alloc_pages, AllocPageFlags};
 use crate::process::*;
@@ -24,7 +25,7 @@ pub fn execve(
     let file_header_pages = alloc_pages(file_header_len / PAGE_SIZE, AllocPageFlags::KERNEL)?;
     let buf =
         unsafe { core::slice::from_raw_parts_mut(file_header_pages.as_mut_ptr(), file_header_len) };
-    executable.read(0, buf.into())?;
+    executable.read(0, buf.into(), &OpenOptions::readwrite())?;
 
     let elf = Elf::parse(&buf);
     let ip = elf.entry()?;
