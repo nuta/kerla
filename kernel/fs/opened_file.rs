@@ -69,11 +69,7 @@ pub struct OpenedFile {
 
 impl OpenedFile {
     pub fn new(inode: INode, options: OpenOptions, pos: usize) -> OpenedFile {
-        OpenedFile {
-            inode,
-            options,
-            pos,
-        }
+        OpenedFile { inode, pos, options }
     }
 
     pub fn as_file(&self) -> Result<&Arc<dyn FileLike>> {

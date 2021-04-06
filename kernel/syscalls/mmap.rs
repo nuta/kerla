@@ -50,16 +50,14 @@ impl<'a> SyscallDispatcher<'a> {
         let mut vm = current_process().vm();
         let mapped_uaddr = if addr_hint.is_null() {
             vm.alloc_vaddr_range(len as usize)?
+        } else if vm.is_free_vaddr_range(addr_hint, len as usize) {
+            addr_hint
         } else {
-            if vm.is_free_vaddr_range(addr_hint, len as usize) {
-                addr_hint
+            // [addr_hint, addr_hint + len) is already in use or invalid.
+            if flags.contains(MMapFlags::MAP_FIXED) {
+                return Err(Errno::EINVAL.into());
             } else {
-                // [addr_hint, addr_hint + len) is already in use or invalid.
-                if flags.contains(MMapFlags::MAP_FIXED) {
-                    return Err(Errno::EINVAL.into());
-                } else {
-                    vm.alloc_vaddr_range(len as usize)?
-                }
+                vm.alloc_vaddr_range(len as usize)?
             }
         };
 

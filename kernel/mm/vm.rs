@@ -116,7 +116,7 @@ impl Vm {
         len: usize,
         area_type: VmAreaType,
     ) -> Result<()> {
-        if !start.access_ok(len).is_ok() {
+        if start.access_ok(len).is_err() {
             return Err(Errno::EINVAL.into());
         }
 

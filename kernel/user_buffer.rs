@@ -122,7 +122,7 @@ impl<'a> UserBufferMut<'a> {
             InnerMut::Slice(slice) => {
                 let written_len = f(slice)?;
                 self.pos += written_len;
-                return Ok(written_len);
+                Ok(written_len)
             }
             InnerMut::User { base, len } => {
                 let mut total_len = 0;
