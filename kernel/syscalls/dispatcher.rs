@@ -1,4 +1,4 @@
-use super::getrandom::GetRandomFlags;
+use super::{getrandom::GetRandomFlags, wait4::WaitOptions};
 use crate::{
     arch::{SyscallFrame, UserVAddr},
     ctypes::*,
@@ -167,7 +167,7 @@ impl<'a> SyscallDispatcher<'a> {
             SYS_WAIT4 => self.sys_wait4(
                 PId::new(a1 as i32),
                 UserVAddr::new(a2)?,
-                a3 as i32,
+                bitflags_from_user!(WaitOptions, a3 as c_int)?,
                 UserVAddr::new(a4)?,
             ),
             SYS_EXIT => self.sys_exit(a1 as i32),
