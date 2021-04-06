@@ -39,7 +39,7 @@ CARGOFLAGS += --target $(target_json)
 CARGOFLAGS += $(if $(RELEASE),--release,)
 TESTCARGOFLAGS += --package penguin-kernel -Z unstable-options
 TESTCARGOFLAGS += --config "target.$(ARCH).runner = '$(PYTHON3) $(topdir)/tools/run-qemu.py --arch $(ARCH)'"
-
+WATCHFLAGS += --clear
 export CARGO_FROM_MAKE=1
 
 #
@@ -69,7 +69,7 @@ initramfs: initramfs.bin
 
 .PHONY: buildw
 buildw:
-	$(CARGO) watch -s "$(MAKE) build-crate"
+	$(CARGO) watch $(WATCHFLAGS) -s "$(MAKE) build-crate"
 
 .PHONY: iso
 iso: build
@@ -99,7 +99,7 @@ test:
 
 .PHONY: testw
 testw:
-	$(CARGO) watch -s "$(MAKE) test"
+	$(CARGO) watch $(WATCHFLAGS) -s "$(MAKE) test"
 
 .PHONY: check
 check:
@@ -107,7 +107,7 @@ check:
 
 .PHONY: checkw
 checkw:
-	$(CARGO) watch -s "$(MAKE) check"
+	$(CARGO) watch $(WATCHFLAGS) -s "$(MAKE) check"
 
 .PHONY: docs
 docs:
