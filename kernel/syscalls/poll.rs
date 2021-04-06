@@ -4,15 +4,15 @@ use crate::{
     arch::UserVAddr,
     ctypes::{c_int, c_nfds, c_short},
     fs::{inode::PollStatus, opened_file::Fd},
+    poll::POLL_WAIT_QUEUE,
     result::Result,
-    timer::{read_monotonic_clock, sleep_ms},
+    timer::read_monotonic_clock,
 };
 use crate::{process::current_process, syscalls::SyscallDispatcher};
 
 use super::UserBufReader;
 
 impl<'a> SyscallDispatcher<'a> {
-    // TODO: Rewrite in a scalable way using something like wait queue.
     pub fn sys_poll(&mut self, fds: UserVAddr, nfds: c_nfds, timeout: c_int) -> Result<isize> {
         let started_at = read_monotonic_clock();
         loop {
@@ -56,8 +56,8 @@ impl<'a> SyscallDispatcher<'a> {
                 return Ok(ready_fds);
             }
 
-            // Try again in a millisecond.
-            sleep_ms(1);
+            // Sleep until any changes in files or sockets occur...
+            POLL_WAIT_QUEUE.sleep();
         }
 
         Ok(0)

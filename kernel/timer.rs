@@ -19,7 +19,7 @@ struct Timer {
 }
 
 /// Suspends the current process at least `ms` milliseconds.
-pub fn sleep_ms(ms: usize) {
+pub fn _sleep_ms(ms: usize) {
     TIMERS.lock().push(Timer {
         current: ms * TICK_HZ / 1000,
         process: current_process().clone(),

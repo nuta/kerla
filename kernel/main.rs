@@ -32,6 +32,7 @@ mod interrupt;
 mod lang_items;
 mod mm;
 mod net;
+mod poll;
 mod process;
 mod random;
 mod syscalls;

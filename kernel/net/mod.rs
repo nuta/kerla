@@ -1,6 +1,7 @@
 use crate::{
     arch::SpinLock,
     drivers::{get_ethernet_driver, EthernetDriver},
+    poll::POLL_WAIT_QUEUE,
     process::WaitQueue,
     timer::read_monotonic_clock,
     timer::MonotonicClock,
@@ -101,6 +102,7 @@ pub fn process_packets() {
         };
         if do_again {
             SOCKET_WAIT_QUEUE.wake_all();
+            POLL_WAIT_QUEUE.wake_all();
         }
     }
 
