@@ -41,7 +41,10 @@ impl<'a> SyscallDispatcher<'a> {
             open_file(path, flags)?
         };
 
-        let fd = current_process().opened_files.lock().open(inode)?;
+        let fd = current_process()
+            .opened_files
+            .lock()
+            .open(inode, flags.into())?;
         Ok(fd.as_usize() as isize)
     }
 }

@@ -1,6 +1,9 @@
 use crate::{
     arch::SpinLock,
-    fs::inode::{FileLike, PollStatus},
+    fs::{
+        inode::{FileLike, PollStatus},
+        opened_file::OpenOptions,
+    },
     result::{Errno, Result},
     user_buffer::UserBuffer,
     user_buffer::UserBufferMut,
@@ -82,7 +85,12 @@ impl FileLike for UdpSocket {
         Ok(())
     }
 
-    fn sendto(&self, mut buf: UserBuffer<'_>, endpoint: Endpoint) -> Result<()> {
+    fn sendto(
+        &self,
+        mut buf: UserBuffer<'_>,
+        endpoint: Endpoint,
+        _options: &OpenOptions,
+    ) -> Result<()> {
         let mut sockets = SOCKETS.lock();
         let mut socket = sockets.get::<smoltcp::socket::UdpSocket>(self.handle);
         let dst = socket.send(buf.remaining_len(), endpoint.into())?;
@@ -98,6 +106,7 @@ impl FileLike for UdpSocket {
         &self,
         mut buf: UserBufferMut<'_>,
         _flags: RecvFromFlags,
+        options: &OpenOptions,
     ) -> Result<(usize, Endpoint)> {
         let mut sockets = SOCKETS.lock();
         let mut socket = sockets.get::<smoltcp::socket::UdpSocket>(self.handle);
@@ -107,8 +116,7 @@ impl FileLike for UdpSocket {
                     let written_len = buf.write_bytes(payload)?;
                     return Ok((written_len, endpoint.into()));
                 }
-                Err(smoltcp::Error::Exhausted) if true /* FIXME: if noblock */ => {
-                    warn!("recv: EAGAIN");
+                Err(smoltcp::Error::Exhausted) if options.nonblock => {
                     return Err(Errno::EAGAIN.into())
                 }
                 Err(smoltcp::Error::Exhausted) => {

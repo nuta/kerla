@@ -21,7 +21,7 @@ use penguin_utils::byte_size::ByteSize;
 use penguin_utils::bytes_parser::BytesParser;
 use penguin_utils::once::Once;
 
-use super::{inode::Symlink, path::PathBuf};
+use super::{inode::Symlink, opened_file::OpenOptions, path::PathBuf};
 
 fn parse_str_field(bytes: &[u8]) -> &str {
     unsafe { from_utf8_unchecked(bytes) }
@@ -40,12 +40,17 @@ struct InitramFsFile {
 }
 
 impl FileLike for InitramFsFile {
-    fn read(&self, offset: usize, mut buf: UserBufferMut<'_>) -> Result<usize> {
+    fn read(
+        &self,
+        offset: usize,
+        mut buf: UserBufferMut<'_>,
+        _options: &OpenOptions,
+    ) -> Result<usize> {
         // FIXME: What if the offset is beyond data?
         buf.write_bytes(&self.data[offset..])
     }
 
-    fn write(&self, _offset: usize, _buf: UserBuffer<'_>) -> Result<usize> {
+    fn write(&self, _offset: usize, _buf: UserBuffer<'_>, _options: &OpenOptions) -> Result<usize> {
         Err(Error::new(Errno::EROFS))
     }
 

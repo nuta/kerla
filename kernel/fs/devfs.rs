@@ -1,6 +1,7 @@
 use super::{
     file_system::FileSystem,
     inode::{DirEntry, Directory, FileLike, INode, INodeNo},
+    opened_file::OpenOptions,
     stat::{FileMode, Stat, S_IFDIR},
 };
 use crate::{
@@ -89,11 +90,16 @@ impl FileLike for NullFile {
         unimplemented!()
     }
 
-    fn read(&self, _offset: usize, _buf: UserBufferMut<'_>) -> Result<usize> {
+    fn read(
+        &self,
+        _offset: usize,
+        _buf: UserBufferMut<'_>,
+        _options: &OpenOptions,
+    ) -> Result<usize> {
         Ok(0)
     }
 
-    fn write(&self, _offset: usize, buf: UserBuffer<'_>) -> Result<usize> {
+    fn write(&self, _offset: usize, buf: UserBuffer<'_>, _options: &OpenOptions) -> Result<usize> {
         Ok(buf.remaining_len())
     }
 }
@@ -113,7 +119,8 @@ impl ConsoleFile {
     }
 
     pub fn input_char(&self, ch: char) {
-        self.write(0, [ch as u8].as_slice().into()).ok();
+        self.write(0, [ch as u8].as_slice().into(), &OpenOptions::readwrite())
+            .ok();
         self.input.push(ch as u8).ok();
         self.wait_queue.wake_one();
     }
@@ -125,7 +132,12 @@ impl FileLike for ConsoleFile {
         unimplemented!()
     }
 
-    fn read(&self, _offset: usize, mut buf: UserBufferMut<'_>) -> Result<usize> {
+    fn read(
+        &self,
+        _offset: usize,
+        mut buf: UserBufferMut<'_>,
+        _options: &OpenOptions,
+    ) -> Result<usize> {
         loop {
             while let Some(ch) = self.input.pop() {
                 buf.write(ch as u8)?;
@@ -139,7 +151,12 @@ impl FileLike for ConsoleFile {
         }
     }
 
-    fn write(&self, _offset: usize, mut buf: UserBuffer<'_>) -> Result<usize> {
+    fn write(
+        &self,
+        _offset: usize,
+        mut buf: UserBuffer<'_>,
+        _options: &OpenOptions,
+    ) -> Result<usize> {
         print_str(b"\x1b[1m");
         let mut tmp = [0; 32];
         let mut total_len = 0;

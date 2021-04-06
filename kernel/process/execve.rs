@@ -1,5 +1,8 @@
 use super::elf::{Elf, ProgramHeader};
-use crate::fs::{mount::RootFs, opened_file::OpenedFileTable, path::PathBuf};
+use crate::fs::{
+    mount::RootFs,
+    opened_file::{OpenOptions, OpenedFileTable},
+};
 use crate::mm::page_allocator::{alloc_pages, AllocPageFlags};
 use crate::process::*;
 use crate::result::{Errno, Result};

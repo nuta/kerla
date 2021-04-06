@@ -3,7 +3,10 @@ use super::{
     inode::{Directory, FileLike, INode, INodeNo},
     path::Path,
 };
-use crate::result::{Errno, Error, Result};
+use crate::{
+    process::current_process,
+    result::{Errno, Error, Result},
+};
 use alloc::sync::Arc;
 
 use hashbrown::HashMap;

@@ -10,8 +10,7 @@ impl<'a> SyscallDispatcher<'a> {
         let iov_count = min(iov_count, IOV_MAX);
 
         let current = current_process().opened_files.lock();
-        let open_file = current.get(fd)?.lock();
-        let file = open_file.as_file()?;
+        let mut file = current.get(fd)?.lock();
 
         let mut total_len: usize = 0;
         for i in 0..iov_count {
@@ -35,7 +34,7 @@ impl<'a> SyscallDispatcher<'a> {
 
             let mut buf = vec![0; iov.len]; // TODO: deny too long len
             iov.base.read_bytes(&mut buf)?;
-            total_len += file.write(open_file.pos(), buf.as_slice().into())?;
+            total_len += file.write(buf.as_slice().into())?;
         }
 
         // MAX_READ_WRITE_LEN limit guarantees total_len is in the range of isize.

@@ -2,16 +2,35 @@ use super::{AF_INET, IPPROTO_TCP, IPPROTO_UDP, SOCK_DGRAM, SOCK_STREAM};
 use crate::fs::inode::{FileLike, INode};
 use crate::net::{TcpSocket, UdpSocket};
 use crate::result::{Errno, Result};
+use crate::{ctypes::*, fs::opened_file::OpenOptions};
 use crate::{process::current_process, syscalls::SyscallDispatcher};
 use alloc::sync::Arc;
+use bitflags::bitflags;
+
+bitflags! {
+    struct SocketFlags: c_int {
+        const SOCK_NONBLOCK = 0o4000;
+        // TODO: not implemented
+        const SOCK_CLOEXEC = 0o2000000;
+    }
+}
+
+impl From<SocketFlags> for OpenOptions {
+    fn from(flags: SocketFlags) -> OpenOptions {
+        OpenOptions {
+            nonblock: flags.contains(SocketFlags::SOCK_NONBLOCK),
+        }
+    }
+}
+
+const SOCKET_TYPE_MASK: c_int = 0xff;
 
 impl<'a> SyscallDispatcher<'a> {
     pub fn sys_socket(&mut self, domain: i32, type_: i32, protocol: i32) -> Result<isize> {
-        // Ignore SOCK_CLOEXEC and SOCK_NONBLOCK for now.
-        // FIXME:
-        let type_ = type_ & !(0o2000000 | 0o4000);
+        let socket_type = type_ & SOCKET_TYPE_MASK;
+        let flags = bitflags_from_user!(SocketFlags, type_ & !SOCKET_TYPE_MASK)?;
 
-        let socket = match (domain, type_, protocol) {
+        let socket = match (domain, socket_type, protocol) {
             (AF_INET, SOCK_DGRAM, 0) | (AF_INET, SOCK_DGRAM, IPPROTO_UDP) => {
                 UdpSocket::new() as Arc<dyn FileLike>
             }
@@ -32,7 +51,7 @@ impl<'a> SyscallDispatcher<'a> {
         let fd = current_process()
             .opened_files
             .lock()
-            .open(INode::FileLike(socket))?;
+            .open(INode::FileLike(socket), flags.into())?;
 
         Ok(fd.as_usize() as isize)
     }

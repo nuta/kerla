@@ -1,4 +1,4 @@
-use super::{path::PathBuf, stat::FileMode};
+use super::{opened_file::OpenOptions, path::PathBuf, stat::FileMode};
 use crate::ctypes::c_short;
 use crate::result::{Errno, Error, Result};
 use crate::{fs::stat::Stat, user_buffer::UserBufferMut};
@@ -43,11 +43,16 @@ pub trait FileLike: Send + Sync {
         Err(Error::new(Errno::EBADF))
     }
 
-    fn read(&self, _offset: usize, _buf: UserBufferMut<'_>) -> Result<usize> {
+    fn read(
+        &self,
+        _offset: usize,
+        _buf: UserBufferMut<'_>,
+        _options: &OpenOptions,
+    ) -> Result<usize> {
         Err(Error::new(Errno::EBADF))
     }
 
-    fn write(&self, _offset: usize, _buf: UserBuffer<'_>) -> Result<usize> {
+    fn write(&self, _offset: usize, _buf: UserBuffer<'_>, _options: &OpenOptions) -> Result<usize> {
         Err(Error::new(Errno::EBADF))
     }
 
@@ -55,11 +60,19 @@ pub trait FileLike: Send + Sync {
         Err(Error::new(Errno::EBADF))
     }
 
-    fn connect(&self, _endpoint: Endpoint) -> Result<()> {
         Err(Error::new(Errno::EBADF))
     }
 
-    fn sendto(&self, _buf: UserBuffer<'_>, _endpoint: Endpoint) -> Result<()> {
+    fn connect(&self, _endpoint: Endpoint, _options: &OpenOptions) -> Result<()> {
+        Err(Error::new(Errno::EBADF))
+    }
+
+    fn sendto(
+        &self,
+        _buf: UserBuffer<'_>,
+        _endpoint: Endpoint,
+        _options: &OpenOptions,
+    ) -> Result<()> {
         Err(Error::new(Errno::EBADF))
     }
 
@@ -67,6 +80,7 @@ pub trait FileLike: Send + Sync {
         &self,
         _buf: UserBufferMut<'_>,
         _flags: RecvFromFlags,
+        _options: &OpenOptions,
     ) -> Result<(usize, Endpoint)> {
         Err(Error::new(Errno::EBADF))
     }

@@ -143,7 +143,7 @@ impl Process {
             Fd::new(0),
             Arc::new(SpinLock::new(OpenedFile::new(
                 console.clone(),
-                OpenFlags::O_RDONLY,
+                OpenFlags::O_RDONLY.into(),
                 0,
             ))),
         )?;
@@ -152,7 +152,7 @@ impl Process {
             Fd::new(1),
             Arc::new(SpinLock::new(OpenedFile::new(
                 console.clone(),
-                OpenFlags::O_WRONLY,
+                OpenFlags::O_WRONLY.into(),
                 0,
             ))),
         )?;
@@ -161,7 +161,7 @@ impl Process {
             Fd::new(2),
             Arc::new(SpinLock::new(OpenedFile::new(
                 console,
-                OpenFlags::O_WRONLY,
+                OpenFlags::O_WRONLY.into(),
                 0,
             ))),
         )?;

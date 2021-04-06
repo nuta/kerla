@@ -1,10 +1,17 @@
-use crate::result::{Errno, Result};
 use crate::{
-    arch::SpinLock, fs::inode::FileLike, user_buffer::UserBuffer, user_buffer::UserBufferMut,
+    arch::SpinLock,
+    fs::{inode::FileLike, opened_file::OpenOptions},
+    user_buffer::UserBuffer,
+    user_buffer::UserBufferMut,
 };
-use alloc::{collections::BTreeSet, sync::Arc};
+use crate::{
+    arch::SpinLockGuard,
+    result::{Errno, Result},
+};
+use alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
+use core::cmp::min;
 use crossbeam::atomic::AtomicCell;
-use smoltcp::socket::TcpSocketBuffer;
+use smoltcp::socket::{SocketRef, SocketSet, TcpSocketBuffer};
 
 use super::{process_packets, socket::*, SOCKETS, SOCKET_WAIT_QUEUE};
 
@@ -36,7 +43,7 @@ impl FileLike for TcpSocket {
         Ok(())
     }
 
-    fn connect(&self, endpoint: Endpoint) -> Result<()> {
+    fn connect(&self, endpoint: Endpoint, _options: &OpenOptions) -> Result<()> {
         // TODO: Reject if the endpoint is already in use -- IIUC smoltcp
         //       does not check that.
         let mut inuse_endpoints = INUSE_ENDPOINTS.lock();
@@ -78,7 +85,12 @@ impl FileLike for TcpSocket {
         Ok(())
     }
 
-    fn write(&self, _offset: usize, mut buf: UserBuffer<'_>) -> Result<usize> {
+    fn write(
+        &self,
+        _offset: usize,
+        mut buf: UserBuffer<'_>,
+        _options: &OpenOptions,
+    ) -> Result<usize> {
         let mut total_len = 0;
         loop {
             let copied_len = SOCKETS
@@ -103,7 +115,12 @@ impl FileLike for TcpSocket {
         }
     }
 
-    fn read(&self, _offset: usize, mut buf: UserBufferMut<'_>) -> Result<usize> {
+    fn read(
+        &self,
+        _offset: usize,
+        mut buf: UserBufferMut<'_>,
+        options: &OpenOptions,
+    ) -> Result<usize> {
         let mut total_len = 0;
         loop {
             let copied_len = SOCKETS
@@ -122,7 +139,7 @@ impl FileLike for TcpSocket {
                     // Continue reading.
                     total_len += copied_len;
                 }
-                Err(smoltcp::Error::Exhausted) if true /* FIXME: if noblock */ => {
+                Err(smoltcp::Error::Exhausted) if options.nonblock => {
                     return Err(Errno::EAGAIN.into())
                 }
                 Err(smoltcp::Error::Exhausted) => {

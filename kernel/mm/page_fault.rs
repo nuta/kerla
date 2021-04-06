@@ -6,6 +6,7 @@ use super::{
 };
 use crate::{
     arch::{PageFaultReason, UserVAddr, PAGE_SIZE},
+    fs::opened_file::OpenOptions,
     process::current_process,
 };
 use core::cmp::min;
@@ -65,6 +66,7 @@ pub fn handle_page_fault(unaligned_vaddr: UserVAddr, _reason: PageFaultReason) {
                 file.read(
                     offset_in_file,
                     (&mut buf[offset_in_page..(offset_in_page + copy_len)]).into(),
+                    &OpenOptions::readwrite(),
                 )
                 .expect("failed to read file");
             }

@@ -3,6 +3,7 @@ use core::sync::atomic::{AtomicUsize, Ordering};
 use super::{
     file_system::FileSystem,
     inode::{DirEntry, Directory, FileLike, FileType, INode, INodeNo},
+    opened_file::OpenOptions,
     stat::{FileMode, Stat, S_IFDIR, S_IFREG},
 };
 use crate::{
@@ -156,12 +157,22 @@ impl FileLike for File {
         Ok(self.stat)
     }
 
-    fn read(&self, offset: usize, mut buf: UserBufferMut<'_>) -> Result<usize> {
+    fn read(
+        &self,
+        offset: usize,
+        mut buf: UserBufferMut<'_>,
+        _options: &OpenOptions,
+    ) -> Result<usize> {
         // FIXME: What if the offset is beyond data?
         buf.write_bytes(&self.data.lock()[offset..])
     }
 
-    fn write(&self, offset: usize, mut buf: UserBuffer<'_>) -> Result<usize> {
+    fn write(
+        &self,
+        offset: usize,
+        mut buf: UserBuffer<'_>,
+        _options: &OpenOptions,
+    ) -> Result<usize> {
         let mut data = self.data.lock();
         data.resize(offset + buf.remaining_len(), 0);
         buf.read_bytes(&mut data[offset..])

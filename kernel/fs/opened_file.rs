@@ -18,8 +18,28 @@ bitflags! {
         const O_CREAT = 0o100;
         const O_TRUNC = 0o1000;
         const O_APPEND = 0o2000;
+        const O_NONBLOCK = 0o4000;
         const O_DIRECTORY = 0o200000;
         const O_CLOEXEC  = 0o2000000;
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct OpenOptions {
+    pub nonblock: bool,
+}
+
+impl OpenOptions {
+    pub fn readwrite() -> OpenOptions {
+        OpenOptions { nonblock: false }
+    }
+}
+
+impl From<OpenFlags> for OpenOptions {
+    fn from(flags: OpenFlags) -> OpenOptions {
+        OpenOptions {
+            nonblock: flags.contains(OpenFlags::O_NONBLOCK),
+        }
     }
 }
 
@@ -44,11 +64,16 @@ impl Fd {
 pub struct OpenedFile {
     inode: INode,
     pos: usize,
+    options: OpenOptions,
 }
 
 impl OpenedFile {
-    pub fn new(inode: INode, _flags: OpenFlags, pos: usize) -> OpenedFile {
-        OpenedFile { inode, pos }
+    pub fn new(inode: INode, options: OpenOptions, pos: usize) -> OpenedFile {
+        OpenedFile {
+            inode,
+            options,
+            pos,
+        }
     }
 
     pub fn as_file(&self) -> Result<&Arc<dyn FileLike>> {
@@ -70,13 +95,13 @@ impl OpenedFile {
     }
 
     pub fn read(&mut self, buf: UserBufferMut<'_>) -> Result<usize> {
-        let read_len = self.as_file()?.read(self.pos, buf)?;
+        let read_len = self.as_file()?.read(self.pos, buf, &self.options)?;
         self.pos += read_len;
         Ok(read_len)
     }
 
     pub fn write(&mut self, buf: UserBuffer<'_>) -> Result<usize> {
-        let written_len = self.as_file()?.write(self.pos, buf)?;
+        let written_len = self.as_file()?.write(self.pos, buf, &self.options)?;
         self.pos += written_len;
         Ok(written_len)
     }
@@ -86,11 +111,11 @@ impl OpenedFile {
     }
 
     pub fn connect(&mut self, endpoint: Endpoint) -> Result<()> {
-        self.as_file()?.connect(endpoint)
+        self.as_file()?.connect(endpoint, &self.options)
     }
 
     pub fn sendto(&mut self, buf: UserBuffer<'_>, endpoint: Endpoint) -> Result<()> {
-        self.as_file()?.sendto(buf, endpoint)
+        self.as_file()?.sendto(buf, endpoint, &self.options)
     }
 
     pub fn recvfrom(
@@ -98,7 +123,7 @@ impl OpenedFile {
         buf: UserBufferMut<'_>,
         flags: RecvFromFlags,
     ) -> Result<(usize, Endpoint)> {
-        self.as_file()?.recvfrom(buf, flags)
+        self.as_file()?.recvfrom(buf, flags, &self.options)
     }
 
     pub fn poll(&mut self) -> Result<PollStatus> {
@@ -142,13 +167,20 @@ impl OpenedFileTable {
         Ok(())
     }
 
-    pub fn open(&mut self, inode: INode) -> Result<Fd> {
+    pub fn open(&mut self, inode: INode, options: OpenOptions) -> Result<Fd> {
         let mut i = (self.prev_fd + 1) % FD_MAX;
         while i != self.prev_fd {
             if matches!(self.files.get(i as usize), Some(None) | None) {
                 // It looks the fd number is not in use. Open the file at that fd.
                 let fd = Fd::new(i);
-                self.open_with_fixed_fd(fd, Arc::new(SpinLock::new(OpenedFile { inode, pos: 0 })))?;
+                self.open_with_fixed_fd(
+                    fd,
+                    Arc::new(SpinLock::new(OpenedFile {
+                        inode,
+                        options,
+                        pos: 0,
+                    })),
+                )?;
                 return Ok(fd);
             }
 
