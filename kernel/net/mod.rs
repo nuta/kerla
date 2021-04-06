@@ -2,6 +2,8 @@ use crate::{
     arch::SpinLock,
     drivers::{get_ethernet_driver, EthernetDriver},
     process::WaitQueue,
+    timer::read_monotonic_clock,
+    timer::MonotonicClock,
 };
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
@@ -48,6 +50,13 @@ pub fn receive_ethernet_frame(frame: &[u8]) {
     trace!("received {} bytes", frame.len());
 }
 
+impl From<MonotonicClock> for Instant {
+    fn from(value: MonotonicClock) -> Self {
+        // FIXME: msecs could be larger than i64
+        Instant::from_millis(value.msecs() as i64)
+    }
+}
+
 pub(self) static SOCKETS: Once<SpinLock<SocketSet>> = Once::new();
 static INTERFACE: Once<SpinLock<EthernetInterface<OurDevice>>> = Once::new();
 static DHCP_CLIENT: Once<SpinLock<Dhcpv4Client>> = Once::new();
@@ -58,7 +67,7 @@ pub fn process_packets() {
     let mut iface = INTERFACE.lock();
     let mut dhcp = DHCP_CLIENT.lock();
 
-    let timestamp = now();
+    let timestamp = read_monotonic_clock().into();
     let mut do_again = true;
     while do_again {
         if let Some(config) = dhcp
@@ -99,10 +108,6 @@ pub fn process_packets() {
     if let Some(sockets_timeout) = iface.poll_delay(&sockets, timestamp) {
         _timeout = sockets_timeout;
     }
-}
-
-pub fn uptime() -> i64 {
-    0
 }
 
 struct OurRxToken {
@@ -159,10 +164,6 @@ impl<'a> Device<'a> for OurDevice {
     }
 }
 
-pub fn now() -> Instant {
-    Instant::from_millis(uptime())
-}
-
 pub fn init() {
     let neighbor_cache = NeighborCache::new(BTreeMap::new());
     let driver = get_ethernet_driver().expect("no ethernet drivers");
@@ -180,7 +181,12 @@ pub fn init() {
     let mut sockets = SocketSet::new(vec![]);
     let dhcp_rx_buffer = RawSocketBuffer::new([RawPacketMetadata::EMPTY; 4], vec![0; 2048]);
     let dhcp_tx_buffer = RawSocketBuffer::new([RawPacketMetadata::EMPTY; 4], vec![0; 2048]);
-    let dhcp = Dhcpv4Client::new(&mut sockets, dhcp_rx_buffer, dhcp_tx_buffer, now());
+    let dhcp = Dhcpv4Client::new(
+        &mut sockets,
+        dhcp_rx_buffer,
+        dhcp_tx_buffer,
+        read_monotonic_clock().into(),
+    );
 
     RX_PACKET_QUEUE.init(|| SpinLock::new(ArrayQueue::new(128)));
     INTERFACE.init(|| SpinLock::new(iface));
