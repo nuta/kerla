@@ -1,4 +1,7 @@
-use super::inode::{DirEntry, Directory, FileLike, INode};
+use super::{
+    inode::{DirEntry, Directory, FileLike, INode},
+    path::PathBuf,
+};
 use crate::alloc::borrow::ToOwned;
 use crate::ctypes::c_int;
 use crate::fs::inode::PollStatus;
@@ -76,6 +79,29 @@ pub struct PathComponent {
     pub name: String,
     /// The referenced inode.
     pub inode: INode,
+}
+
+impl PathComponent {
+    pub fn resolve_absolute_path(&self) -> PathBuf {
+        let path = if self.parent_dir.is_some() {
+            let mut path = String::from(&self.name);
+            let mut parent_dir = &self.parent_dir;
+            while let Some(path_comp) = parent_dir {
+                path = path_comp.name.clone() + "/" + &path;
+                parent_dir = &path_comp.parent_dir;
+            }
+
+            // The last parent_dir is the root directory and its name is empty. Thus,
+            // the computed path must be an absolute path.
+            debug_assert!(path.starts_with('/'));
+            path
+        } else {
+            // `self` points to the root directory.
+            "/".to_owned()
+        };
+
+        PathBuf::from(path)
+    }
 }
 
 pub static PATH_COMPONENT_TABLE: SpinLock<BTreeMap<(usize, String), Weak<PathComponent>>> =

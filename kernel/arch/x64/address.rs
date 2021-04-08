@@ -150,6 +150,13 @@ impl UserVAddr {
     }
 
     #[inline(always)]
+    pub const fn as_isize(self) -> isize {
+        // This cast is always safe thanks to the KERNEL_BASE_ADDR check in
+        // `UserVAddr::new`.
+        self.0 as isize
+    }
+
+    #[inline(always)]
     pub const fn is_null(self) -> bool {
         self.0 == 0
     }

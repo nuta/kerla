@@ -84,6 +84,10 @@ impl RootFs {
         Ok(())
     }
 
+    pub fn cwd_path(&self) -> &PathComponent {
+        &self.cwd_path
+    }
+
     /// Resolves a path into an inode. If `follow_symlink` is `true`, symbolic
     /// linked are resolved and will never return `INode::Symlink`.
     pub fn lookup_inode(&self, path: &Path, follow_symlink: bool) -> Result<INode> {

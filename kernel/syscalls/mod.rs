@@ -33,6 +33,7 @@ pub(self) mod dispatcher;
 pub(self) mod execve;
 pub(self) mod exit;
 pub(self) mod fork;
+pub(self) mod getcwd;
 pub(self) mod getdents64;
 pub(self) mod getrandom;
 pub(self) mod ioctl;
