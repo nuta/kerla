@@ -9,7 +9,6 @@ use super::UserBufWriter;
 
 impl<'a> SyscallDispatcher<'a> {
     pub fn sys_getcwd(&mut self, buf: UserVAddr, size: c_size) -> Result<isize> {
-        info!("in getcwd");
         let cwd = current_process()
             .root_fs
             .lock()
