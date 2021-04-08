@@ -62,6 +62,7 @@ build:
 .PHONY: build-crate
 build-crate:
 	$(MAKE) initramfs
+	$(PROGRESS) "CARGO" "kernel"
 	$(CARGO) build $(CARGOFLAGS) --manifest-path kernel/Cargo.toml
 
 .PHONY: initramfs
@@ -130,7 +131,6 @@ clean:
 #  Build Rules
 #
 initramfs.bin: $(wildcard packages/*.py) Makefile
-	$(PROGRESS) "BUILD" initramfs.bin
 	$(PYTHON3) packages/__init__.py                       \
 		--build-dir build/initramfs                   \
 		-o initramfs.bin

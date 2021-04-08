@@ -117,7 +117,8 @@ def build_package(root_dir: Path, pkg):
         open("Dockerfile", "w").write(dockerfile)
 
         container_id = f"penguin-{pkg.name}-container"
-        print(f"\x1b[34m==>\x1b[0m\x1b[1m Building {pkg.name}\x1b[0m")
+        print(
+            f"  \x1b[1;96m{'DOCKER':>8}\x1b[0m  \x1b[1;m{pkg.name}\x1b[0m")
         try:
             # Build the package in Docker.
             subprocess.run(
@@ -148,8 +149,6 @@ def build_package(root_dir: Path, pkg):
                 ["docker", "cp", f"{container_id}:{src}", str(dst)], check=True)
             total_size += os.path.getsize(dst)
 
-        print(
-            f"\x1b[32m==>\x1b[0m\x1b[1m Copied {len(pkg.files.items())} files ({math.ceil(total_size / 1024)} KiB)\x1b[0m")
         subprocess.run(["docker", "rm", container_id],
                        stdout=subprocess.DEVNULL, check=True)
 
@@ -205,16 +204,20 @@ def main():
             src = src[1:]
         os.symlink(dst, root_dir / src)
 
-    print(f"\x1b[34m==>\x1b[0m\x1b[1m Creating {args.outfile}\x1b[0m")
+    print(f"  \x1b[1;96m{'CPIO':>8}\x1b[0m  \x1b[1;m{args.outfile}\x1b[0m")
     filelist = list(
         map(lambda p: "./" + str(p.relative_to(root_dir)), root_dir.glob("**/*")))
-    subprocess.run(
+    cp = subprocess.run(
         ["cpio", "--create", "--format=newc"],
         input="\n".join(filelist).encode("ascii"),
         stdout=open(args.outfile, "wb"),
+        stderr=subprocess.PIPE,
         cwd=root_dir,
+        check=True,
     )
 
+    if not cp.stderr.endswith(b" blocks\n"):
+        print(cp.stderr)
 
 if __name__ == "__main__":
     main()
