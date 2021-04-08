@@ -1,8 +1,11 @@
 use super::{
     file_system::FileSystem,
     inode::{Directory, FileLike, INode, INodeNo},
+    opened_file::resolve_path_component,
+    opened_file::PathComponent,
     path::Path,
 };
+use crate::alloc::string::String;
 use crate::result::{Errno, Error, Result};
 use alloc::sync::Arc;
 
@@ -15,16 +18,26 @@ pub struct MountPoint {
 }
 
 pub struct RootFs {
-    root: MountPoint,
+    root_path: Arc<PathComponent>,
+    cwd_path: Arc<PathComponent>,
     mount_points: HashMap<INodeNo, MountPoint>,
+    symlink_follow_limit: usize,
 }
 
 impl RootFs {
-    pub fn new(root: Arc<dyn FileSystem>) -> RootFs {
-        RootFs {
-            root: MountPoint { fs: root },
+    pub fn new(root: Arc<dyn FileSystem>) -> Result<RootFs> {
+        let root_path = Arc::new(PathComponent {
+            parent_dir: None,
+            name: String::new(),
+            inode: root.root_dir()?.into(),
+        });
+
+        Ok(RootFs {
             mount_points: HashMap::new(),
-        }
+            root_path: root_path.clone(),
+            cwd_path: root_path,
+            symlink_follow_limit: DEFAULT_SYMLINK_FOLLOW_MAX,
+        })
     }
 
     pub fn mount(&mut self, dir: Arc<dyn Directory>, fs: Arc<dyn FileSystem>) -> Result<()> {
@@ -33,27 +46,19 @@ impl RootFs {
         Ok(())
     }
 
-    pub fn lookup_mount_point(&self, dir: &Arc<dyn Directory>) -> Result<Option<&MountPoint>> {
-        let stat = dir.stat()?;
-        Ok(self.mount_points.get(unsafe { &stat.inode_no }))
-    }
-
-    pub fn root_dir(&self) -> Result<Arc<dyn Directory>> {
-        self.root.fs.root_dir()
-    }
-
-    /// Resolves a path into an inode. This method resolves symbolic links: it
-    /// will never return `INode::Symlink`.
+    /// Resolves a path (from the current working directory) into an inode.
+    /// This method resolves symbolic links: it will never return `INode::Symlink`.
     pub fn lookup(&self, path: &Path) -> Result<INode> {
-        self.lookup_inode(&self.root_dir()?, path, true)
+        self.lookup_inode(path, true)
     }
 
-    /// Resolves a path into an inode without following symlinks.
+    /// Resolves a path (from the current working directory) into an inode without
+    /// following symlinks.
     pub fn lookup_no_symlink_follow(&self, path: &Path) -> Result<INode> {
-        self.lookup_inode(&self.root_dir()?, path, false)
+        self.lookup_inode(path, false)
     }
 
-    /// Resolves a path into an file.
+    /// Resolves a path (from the current working directory) into an file.
     pub fn lookup_file(&self, path: &Path) -> Result<Arc<dyn FileLike>> {
         match self.lookup(path)? {
             INode::Directory(_) => Err(Error::new(Errno::EISDIR)),
@@ -63,7 +68,7 @@ impl RootFs {
         }
     }
 
-    /// Resolves a path into an directory.
+    /// Resolves a path (from the current working directory) into an directory.
     pub fn lookup_dir(&self, path: &Path) -> Result<Arc<dyn Directory>> {
         match self.lookup(path)? {
             INode::Directory(dir) => Ok(dir),
@@ -73,113 +78,148 @@ impl RootFs {
         }
     }
 
+    /// Changes the current working directory.
+    pub fn chdir(&mut self, path: &Path) -> Result<()> {
+        self.cwd_path = self.lookup_path(path, true)?;
+        Ok(())
+    }
+
     /// Resolves a path into an inode. If `follow_symlink` is `true`, symbolic
     /// linked are resolved and will never return `INode::Symlink`.
-    pub fn lookup_inode(
-        &self,
-        lookup_from: &Arc<dyn Directory>,
-        path: &Path,
-        follow_symlink: bool,
-    ) -> Result<INode> {
-        self.do_lookup_inode(
-            lookup_from.clone(),
+    pub fn lookup_inode(&self, path: &Path, follow_symlink: bool) -> Result<INode> {
+        self.lookup_path(path, follow_symlink)
+            .map(|path_comp| path_comp.inode.clone())
+    }
+
+    fn lookup_mount_point(&self, dir: &Arc<dyn Directory>) -> Result<Option<&MountPoint>> {
+        let stat = dir.stat()?;
+        Ok(self.mount_points.get(unsafe { &stat.inode_no }))
+    }
+
+    /// Resolves a path into `PathComponent`. If `follow_symlink` is `true`,
+    /// symbolic linked are resolved and will never return `INode::Symlink`.
+    fn lookup_path(&self, path: &Path, follow_symlink: bool) -> Result<Arc<PathComponent>> {
+        let lookup_from = if path.is_absolute() {
+            self.root_path.clone()
+        } else {
+            self.cwd_path.clone()
+        };
+
+        self.do_lookup_path(
+            &lookup_from,
             path,
             follow_symlink,
-            DEFAULT_SYMLINK_FOLLOW_MAX,
+            self.symlink_follow_limit,
         )
     }
 
-    fn do_lookup_inode(
+    fn do_lookup_path(
         &self,
-        lookup_from: Arc<dyn Directory>,
+        lookup_from: &Arc<PathComponent>,
         path: &Path,
         follow_symlink: bool,
         symlink_follow_limit: usize,
-    ) -> Result<INode> {
-        if path == Path::new("/") {
-            return Ok(INode::Directory(lookup_from));
+    ) -> Result<Arc<PathComponent>> {
+        if path.is_empty() {
+            return Err(Error::new(Errno::ENOENT));
         }
 
-        let mut current_dir = lookup_from;
+        let mut parent_dir = lookup_from.clone();
+
+        // Iterate and resolve each component (e.g. `a`, `b`, and `c` in `a/b/c`).
         let mut components = path.components().peekable();
         while let Some(name) = components.next() {
-            match (components.peek(), current_dir.lookup(name)?) {
-                // Found the matching file.
-                (None, INode::Symlink(symlink)) if follow_symlink => {
-                    if symlink_follow_limit == 0 {
-                        return Err(Errno::ELOOP.into());
+            let path_comp = match name {
+                // Handle some special cases that appear in a relative path.
+                "." => continue,
+                ".." => parent_dir
+                    .parent_dir
+                    .as_ref().unwrap_or(&self.root_path)
+                    .clone(),
+                // Look for the entry with the name in the directory.
+                _ => resolve_path_component(&parent_dir, name, |parent_dir, name| {
+                    match parent_dir.inode.as_dir()?.lookup(name)? {
+                        // If it is a directory and it's a mount point, go
+                        // into the mounted file system's root.
+                        INode::Directory(dir) => match self.lookup_mount_point(&dir)? {
+                            Some(mount_point) => Ok(mount_point.fs.root_dir()?.into()),
+                            None => Ok(dir.into()),
+                        },
+                        inode => Ok(inode),
                     }
+                })?,
+            };
 
-                    let linked_to = symlink.linked_to()?;
-                    let follow_from = if linked_to.is_absolute() {
-                        self.root_dir()?
-                    } else {
-                        current_dir
-                    };
+            if components.peek().is_some() {
+                // Ancestor components: `a` and `b` in `a/b/c`. Visit the next
+                // level directory.
+                parent_dir = match &path_comp.inode {
+                    INode::Directory(_) => path_comp,
+                    INode::Symlink(symlink) => {
+                        // Follow the symlink even if follow_symlinks is false since
+                        // it's not the last one of the path components.
 
-                    return self.do_lookup_inode(
-                        follow_from,
-                        &linked_to,
-                        follow_symlink,
-                        symlink_follow_limit - 1,
-                    );
-                }
-                (None, INode::Directory(dir)) => {
-                    return match self.lookup_mount_point(&dir)? {
-                        Some(mount_point) => Ok(mount_point.fs.root_dir()?.into()),
-                        None => Ok(dir.into()),
+                        if symlink_follow_limit == 0 {
+                            return Err(Errno::ELOOP.into());
+                        }
+
+                        let linked_to = symlink.linked_to()?;
+                        let follow_from = if linked_to.is_absolute() {
+                            &self.root_path
+                        } else {
+                            &parent_dir
+                        };
+
+                        let dst_path = self.do_lookup_path(
+                            follow_from,
+                            &linked_to,
+                            follow_symlink,
+                            symlink_follow_limit - 1,
+                        )?;
+
+                        // Check if the desitnation is a directory.
+                        match &dst_path.inode {
+                            INode::Directory(_) => dst_path,
+                            _ => return Err(Errno::ENOTDIR.into()),
+                        }
                     }
-                }
-                (None, inode) => {
-                    return Ok(inode);
-                }
-                (Some(_), INode::Directory(dir)) => match self.lookup_mount_point(&dir)? {
-                    Some(mount_point) => {
-                        // The next level directory is a mount point. Go into the root
-                        // directory of the mounted file system.
-                        current_dir = mount_point.fs.root_dir()?;
-                    }
-                    None => {
-                        // Go into the next level directory.
-                        current_dir = dir;
-                    }
-                },
-                (Some(_), INode::Symlink(symlink)) => {
-                    // Follow the symlink even if follow_symlinks is false since
-                    // it's not the last one of the path components.
-
-                    if symlink_follow_limit == 0 {
-                        return Err(Errno::ELOOP.into());
-                    }
-
-                    let linked_to = symlink.linked_to()?;
-                    let follow_from = if linked_to.is_absolute() {
-                        self.root_dir()?
-                    } else {
-                        current_dir
-                    };
-
-                    let linked_inode = self.do_lookup_inode(
-                        follow_from,
-                        &linked_to,
-                        follow_symlink,
-                        symlink_follow_limit - 1,
-                    )?;
-
-                    current_dir = match linked_inode {
-                        INode::Directory(dir) => dir,
-                        _ => return Err(Errno::ENOTDIR.into()),
+                    INode::FileLike(_) => {
+                        // The next level must be an directory since the current component
+                        // is not the last one.
+                        return Err(Errno::ENOTDIR.into());
                     }
                 }
-                // The next level must be an directory since the current component
-                // is not the last one.
-                (Some(_), INode::FileLike(_)) => {
-                    return Err(Errno::ENOTDIR.into());
+            } else {
+                // The last component: `c` in `a/b/c`.
+                match &path_comp.inode {
+                    INode::Symlink(symlink) if follow_symlink => {
+                        if symlink_follow_limit == 0 {
+                            return Err(Errno::ELOOP.into());
+                        }
+
+                        let linked_to = symlink.linked_to()?;
+                        let follow_from = if linked_to.is_absolute() {
+                            &self.root_path
+                        } else {
+                            &parent_dir
+                        };
+
+                        return self.do_lookup_path(
+                            follow_from,
+                            &linked_to,
+                            follow_symlink,
+                            symlink_follow_limit - 1,
+                        );
+                    }
+                    _ => {
+                        return Ok(path_comp);
+                    }
                 }
             }
         }
 
-        // Here is reachable if path is empty.
-        Err(Error::new(Errno::ENOENT))
+        // Here's reachable if the path points to the root (i.e. "/") or the path
+        // ends with "." (e.g. "." and "a/b/c/.").
+        Ok(parent_dir)
     }
 }

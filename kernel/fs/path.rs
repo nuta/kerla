@@ -1,3 +1,4 @@
+use crate::alloc::borrow::ToOwned;
 use alloc::string::{String, ToString};
 use core::fmt;
 use core::ops::Deref;
@@ -24,11 +25,21 @@ impl Path {
         &self.path
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.path.is_empty()
+    }
+
     pub fn is_absolute(&self) -> bool {
         self.path.starts_with('/')
             && !self
                 .components()
                 .any(|comp| matches!(comp, ".." | "." | ""))
+    }
+
+    pub fn to_path_buf(&self) -> PathBuf {
+        PathBuf {
+            path: self.path.to_owned(),
+        }
     }
 
     pub fn components(&self) -> Components<'_> {
@@ -57,7 +68,7 @@ impl Path {
             Some((parent_dir, basename))
         } else {
             // A relative path without any slashes.
-            None
+            Some((Path::new("."), &self.path))
         }
     }
 }
@@ -139,26 +150,11 @@ impl PathBuf {
             self.path.push_str(path_str);
         }
     }
+}
 
-    pub fn resolve(path: &Path, current_dir: &Path) -> PathBuf {
-        debug_assert!(current_dir.is_absolute());
-        let mut pathbuf = PathBuf::new();
-        for (i, comp) in path.components().enumerate() {
-            match comp {
-                ".." => {
-                    pathbuf.pop();
-                }
-                "." if i == 0 => {
-                    pathbuf.push(current_dir);
-                }
-                "." => {}
-                _ => {
-                    pathbuf.push(comp);
-                }
-            }
-        }
-
-        pathbuf
+impl Default for PathBuf {
+    fn default() -> PathBuf {
+        PathBuf::new()
     }
 }
 

@@ -1,16 +1,12 @@
 use crate::fs::{path::Path, stat::FileMode};
-use crate::result::{Errno, Result};
+use crate::result::{Errno, Error, Result};
 use crate::{process::current_process, syscalls::SyscallDispatcher};
 
 impl<'a> SyscallDispatcher<'a> {
     pub fn sys_mkdir(&mut self, path: &Path, mode: FileMode) -> Result<isize> {
-        let (parent_dir, name) = match path.parent_and_basename() {
-            Some((parent_dir, name)) => (parent_dir, name),
-            None => {
-                // Tried to create the root directory.
-                return Err(Errno::EEXIST.into());
-            }
-        };
+        let (parent_dir, name) = path
+            .parent_and_basename()
+            .ok_or_else::<Error, _>(|| Errno::EEXIST.into())?;
 
         current_process()
             .root_fs

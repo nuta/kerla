@@ -2,7 +2,6 @@ use super::elf::{Elf, ProgramHeader};
 use crate::fs::{
     mount::RootFs,
     opened_file::{OpenOptions, OpenedFileTable},
-    path::PathBuf,
 };
 use crate::mm::page_allocator::{alloc_pages, AllocPageFlags};
 use crate::process::*;
@@ -122,7 +121,6 @@ pub fn execve(
             arch: arch::Thread::new_user_thread(ip, user_sp, kernel_sp),
             state: ProcessState::Runnable,
             resumed_by: None,
-            working_dir: PathBuf::from("/"),
         }),
         root_fs,
         vm: Some(Arc::new(SpinLock::new(vm))),

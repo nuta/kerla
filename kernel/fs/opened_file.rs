@@ -1,10 +1,13 @@
 use super::inode::{DirEntry, Directory, FileLike, INode};
+use crate::alloc::borrow::ToOwned;
 use crate::ctypes::c_int;
 use crate::fs::inode::PollStatus;
 use crate::result::{Errno, Error, Result};
 use crate::{arch::SpinLock, user_buffer::UserBufferMut};
 use crate::{net::*, user_buffer::UserBuffer};
-use alloc::sync::Arc;
+use alloc::collections::BTreeMap;
+use alloc::string::String;
+use alloc::sync::{Arc, Weak};
 use alloc::vec::Vec;
 use bitflags::bitflags;
 
@@ -61,6 +64,51 @@ impl Fd {
     }
 }
 
+/// Represents a path component.
+///
+/// For example, in `/tmp/foo.txt`, `tmp` and `foo.txt` have separate `PathComponent`
+/// instances.
+#[derive(Clone)]
+pub struct PathComponent {
+    /// The parent directory. `None` if this is the root directory.
+    pub parent_dir: Option<Arc<PathComponent>>,
+    /// THe component name (e.g. `tmp` or `foo.txt` in `/tmp/foo.txt`).
+    pub name: String,
+    /// The referenced inode.
+    pub inode: INode,
+}
+
+pub static PATH_COMPONENT_TABLE: SpinLock<BTreeMap<(usize, String), Weak<PathComponent>>> =
+    SpinLock::new(BTreeMap::new());
+
+pub fn resolve_path_component<F>(
+    parent_dir: &Arc<PathComponent>,
+    name: &str,
+    inode_resolver: F,
+) -> Result<Arc<PathComponent>>
+where
+    F: FnOnce(&Arc<PathComponent>, &str) -> Result<INode>,
+{
+    let parent_ptr = Arc::as_ptr(parent_dir) as usize;
+
+    // FIXME: Don't copy `name` into a String until we actually need it.
+    let key = (parent_ptr, name.to_owned());
+
+    let mut table = PATH_COMPONENT_TABLE.lock();
+    if let Some(existing) = table.get(&key).and_then(|weak| weak.upgrade()) {
+        Ok(existing)
+    } else {
+        let inode = inode_resolver(parent_dir, name)?;
+        let new_path_comp = Arc::new(PathComponent {
+            name: name.to_owned(),
+            inode,
+            parent_dir: Some(parent_dir.clone()),
+        });
+        table.insert(key, Arc::downgrade(&new_path_comp));
+        Ok(new_path_comp)
+    }
+}
+
 pub struct OpenedFile {
     inode: INode,
     pos: usize,
@@ -69,21 +117,19 @@ pub struct OpenedFile {
 
 impl OpenedFile {
     pub fn new(inode: INode, options: OpenOptions, pos: usize) -> OpenedFile {
-        OpenedFile { inode, pos, options }
+        OpenedFile {
+            inode,
+            pos,
+            options,
+        }
     }
 
     pub fn as_file(&self) -> Result<&Arc<dyn FileLike>> {
-        match &self.inode {
-            INode::FileLike(file) => Ok(file),
-            _ => Err(Error::new(Errno::EBADF)),
-        }
+        self.inode.as_file()
     }
 
     pub fn as_dir(&self) -> Result<&Arc<dyn Directory>> {
-        match &self.inode {
-            INode::Directory(dir) => Ok(dir),
-            _ => Err(Error::new(Errno::EBADF)),
-        }
+        self.inode.as_dir()
     }
 
     pub fn pos(&self) -> usize {

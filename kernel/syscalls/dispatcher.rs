@@ -9,7 +9,6 @@ use crate::{
         stat::FileMode,
     },
     net::{RecvFromFlags, SendToFlags},
-    process::current_process,
     process::PId,
     result::{Errno, Error, Result},
 };
@@ -71,10 +70,7 @@ impl UserCStr {
 }
 
 fn resolve_path(uaddr: usize) -> Result<PathBuf> {
-    Ok(PathBuf::resolve(
-        Path::new(UserCStr::new(UserVAddr::new(uaddr)?, PATH_MAX)?.as_str()?),
-        &current_process().lock().working_dir,
-    ))
+    Ok(Path::new(UserCStr::new(UserVAddr::new(uaddr)?, PATH_MAX)?.as_str()?).to_path_buf())
 }
 
 pub struct SyscallDispatcher<'a> {

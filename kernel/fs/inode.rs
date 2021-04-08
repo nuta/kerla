@@ -135,6 +135,20 @@ impl INode {
             INode::Directory(dir) => dir.stat(),
         }
     }
+
+    pub fn as_file(&self) -> Result<&Arc<dyn FileLike>> {
+        match self {
+            INode::FileLike(file) => Ok(file),
+            _ => Err(Error::new(Errno::EBADF)),
+        }
+    }
+
+    pub fn as_dir(&self) -> Result<&Arc<dyn Directory>> {
+        match self {
+            INode::Directory(dir) => Ok(dir),
+            _ => Err(Error::new(Errno::EBADF)),
+        }
+    }
 }
 
 impl From<Arc<dyn FileLike>> for INode {

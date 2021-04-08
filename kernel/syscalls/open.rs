@@ -1,5 +1,5 @@
 use crate::fs::{inode::INode, opened_file::OpenFlags, path::Path, stat::FileMode};
-use crate::result::{Errno, Result};
+use crate::result::{Errno, Error, Result};
 use crate::{process::current_process, syscalls::SyscallDispatcher};
 
 fn open_file(path: &Path, flags: OpenFlags) -> Result<INode> {
@@ -18,13 +18,9 @@ fn create_file(path: &Path, flags: OpenFlags, mode: FileMode) -> Result<INode> {
         return Err(Errno::EINVAL.into());
     }
 
-    let (parent_dir, name) = match path.parent_and_basename() {
-        Some((parent_dir, name)) => (parent_dir, name),
-        None => {
-            // Tried to create the root directory.
-            return Err(Errno::EEXIST.into());
-        }
-    };
+    let (parent_dir, name) = path
+        .parent_and_basename()
+        .ok_or_else::<Error, _>(|| Errno::EEXIST.into())?;
 
     current_process()
         .root_fs

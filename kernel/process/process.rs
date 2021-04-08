@@ -5,7 +5,7 @@ use crate::{
     arch::{self, SpinLock},
     boot::INITIAL_ROOT_FS,
     fs::inode::{FileLike, INode},
-    fs::{mount::RootFs, opened_file, path::Path, path::PathBuf},
+    fs::{mount::RootFs, opened_file},
     mm::vm::Vm,
     process::execve,
     result::{Errno, Result},
@@ -71,13 +71,6 @@ pub struct MutableFields {
     pub arch: arch::Thread,
     pub state: ProcessState,
     pub resumed_by: Option<PId>,
-    pub working_dir: PathBuf,
-}
-
-impl MutableFields {
-    pub fn chdir(&mut self, dir: &Path) {
-        self.working_dir = dir.into();
-    }
 }
 
 /// The process control block.
@@ -118,7 +111,6 @@ impl Process {
                 arch: arch::Thread::new_idle_thread(),
                 state: ProcessState::Runnable,
                 resumed_by: None,
-                working_dir: PathBuf::from("/"),
             }),
             parent: None,
             vm: None,

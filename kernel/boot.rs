@@ -71,8 +71,7 @@ pub fn boot_kernel(bootinfo: &BootInfo) -> ! {
     net::init();
 
     // Prepare the root file system.
-    let mut root_fs = RootFs::new(INITRAM_FS.clone());
-    let root_dir = root_fs.root_dir().expect("failed to open the root dir");
+    let mut root_fs = RootFs::new(INITRAM_FS.clone()).unwrap();
     let dev_dir = root_fs
         .lookup_dir(Path::new("/dev"))
         .expect("failed to locate /dev");
@@ -88,8 +87,9 @@ pub fn boot_kernel(bootinfo: &BootInfo) -> ! {
 
     // Open /dev/console for the init process.
     let console = root_fs
-        .lookup_inode(&root_dir, Path::new("/dev/console"), true)
-        .expect("failed to open /dev/console");
+        .lookup_file(Path::new("/dev/console"))
+        .expect("failed to open /dev/console")
+        .into();
 
     // Open the init's executable.
     // FIXME: We use /bin/sh for now.

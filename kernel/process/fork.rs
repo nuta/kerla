@@ -26,7 +26,6 @@ pub fn fork(parent: &Arc<Process>, parent_frame: &SyscallFrame) -> Result<Arc<Pr
             arch,
             state: super::ProcessState::Runnable,
             resumed_by: None,
-            working_dir: inner.working_dir.clone(),
         }),
     });
 
