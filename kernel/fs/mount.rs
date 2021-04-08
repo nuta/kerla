@@ -138,7 +138,8 @@ impl RootFs {
                 "." => continue,
                 ".." => parent_dir
                     .parent_dir
-                    .as_ref().unwrap_or(&self.root_path)
+                    .as_ref()
+                    .unwrap_or(&self.root_path)
                     .clone(),
                 // Look for the entry with the name in the directory.
                 _ => resolve_path_component(&parent_dir, name, |parent_dir, name| {
