@@ -33,11 +33,15 @@ bitflags! {
 #[derive(Debug, Copy, Clone)]
 pub struct OpenOptions {
     pub nonblock: bool,
+    pub close_on_exec: bool,
 }
 
 impl OpenOptions {
     pub fn readwrite() -> OpenOptions {
-        OpenOptions { nonblock: false }
+        OpenOptions {
+            nonblock: false,
+            close_on_exec: false,
+        }
     }
 }
 
@@ -45,6 +49,7 @@ impl From<OpenFlags> for OpenOptions {
     fn from(flags: OpenFlags) -> OpenOptions {
         OpenOptions {
             nonblock: flags.contains(OpenFlags::O_NONBLOCK),
+            close_on_exec: flags.contains(OpenFlags::O_CLOEXEC),
         }
     }
 }
@@ -214,8 +219,14 @@ impl OpenedFile {
 }
 
 #[derive(Clone)]
+struct LocalOpenedFile {
+    opened_file: Arc<SpinLock<OpenedFile>>,
+    close_on_exec: bool,
+}
+
+#[derive(Clone)]
 pub struct OpenedFileTable {
-    files: Vec<Option<Arc<SpinLock<OpenedFile>>>>,
+    files: Vec<Option<LocalOpenedFile>>,
     prev_fd: i32,
 }
 
@@ -229,7 +240,7 @@ impl OpenedFileTable {
 
     pub fn get(&self, fd: Fd) -> Result<&Arc<SpinLock<OpenedFile>>> {
         match self.files.get(fd.as_usize()) {
-            Some(Some(opened_file)) => Ok(opened_file),
+            Some(Some(LocalOpenedFile { opened_file, .. })) => Ok(opened_file),
             _ => Err(Error::new(Errno::EBADF)),
         }
     }
@@ -256,6 +267,7 @@ impl OpenedFileTable {
                         options,
                         pos: 0,
                     })),
+                    options.close_on_exec,
                 )?;
                 return Ok(fd);
             }
@@ -270,6 +282,7 @@ impl OpenedFileTable {
         &mut self,
         fd: Fd,
         opened_file: Arc<SpinLock<OpenedFile>>,
+        cloexec: bool,
     ) -> Result<()> {
         match self.files.get_mut(fd.as_usize()) {
             Some(Some(_)) => {
@@ -279,14 +292,20 @@ impl OpenedFileTable {
                 ));
             }
             Some(entry @ None) => {
-                *entry = Some(opened_file);
+                *entry = Some(LocalOpenedFile {
+                    opened_file,
+                    close_on_exec: cloexec,
+                });
             }
             None if fd.as_int() >= FD_MAX => {
                 return Err(Errno::EBADF.into());
             }
             None => {
                 self.files.resize(fd.as_usize() + 1, None);
-                self.files[fd.as_usize()] = Some(opened_file);
+                self.files[fd.as_usize()] = Some(LocalOpenedFile {
+                    opened_file,
+                    close_on_exec: cloexec,
+                });
             }
         }
 
@@ -295,5 +314,15 @@ impl OpenedFileTable {
 
     pub fn fork(&self) -> OpenedFileTable {
         self.clone()
+    }
+
+    pub fn close_cloexec_files(&mut self) {
+        self.files.retain(|file| match file {
+            Some(LocalOpenedFile {
+                close_on_exec: true,
+                ..
+            }) => false,
+            _ => true,
+        })
     }
 }

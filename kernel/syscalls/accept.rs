@@ -16,7 +16,10 @@ impl<'a> SyscallDispatcher<'a> {
             .lock()
             .accept()?;
 
-        let options = OpenOptions { nonblock: false };
+        let options = OpenOptions {
+            nonblock: false,
+            close_on_exec: false,
+        };
         let fd = current_process()
             .opened_files
             .lock()

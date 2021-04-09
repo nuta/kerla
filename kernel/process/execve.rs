@@ -117,6 +117,8 @@ pub fn execve(
     let stack_bottom = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)?;
     let kernel_sp = stack_bottom.as_vaddr().add(KERNEL_STACK_SIZE);
 
+    opened_files.lock().close_cloexec_files();
+
     let process = Arc::new(Process {
         parent: parent.clone(),
         children: SpinLock::new(Vec::new()),

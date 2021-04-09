@@ -19,6 +19,7 @@ impl From<SocketFlags> for OpenOptions {
     fn from(flags: SocketFlags) -> OpenOptions {
         OpenOptions {
             nonblock: flags.contains(SocketFlags::SOCK_NONBLOCK),
+            close_on_exec: flags.contains(SocketFlags::SOCK_CLOEXEC),
         }
     }
 }
