@@ -108,24 +108,22 @@ impl FileLike for UdpSocket {
         _flags: RecvFromFlags,
         options: &OpenOptions,
     ) -> Result<(usize, Endpoint)> {
-        let mut sockets = SOCKETS.lock();
-        let mut socket = sockets.get::<smoltcp::socket::UdpSocket>(self.handle);
-        loop {
+        SOCKET_WAIT_QUEUE.sleep_until(|| {
+            let mut sockets = SOCKETS.lock();
+            let mut socket = sockets.get::<smoltcp::socket::UdpSocket>(self.handle);
             match socket.recv() {
                 Ok((payload, endpoint)) => {
                     let written_len = buf.write_bytes(payload)?;
-                    return Ok((written_len, endpoint.into()));
+                    Ok(Some((written_len, endpoint.into())))
                 }
-                Err(smoltcp::Error::Exhausted) if options.nonblock => {
-                    return Err(Errno::EAGAIN.into())
-                }
+                Err(smoltcp::Error::Exhausted) if options.nonblock => Err(Errno::EAGAIN.into()),
                 Err(smoltcp::Error::Exhausted) => {
                     // The receive buffer is empty. Try again later...
-                    SOCKET_WAIT_QUEUE.sleep();
+                    Ok(None)
                 }
-                Err(err) => return Err(err.into()),
+                Err(err) => Err(err.into()),
             }
-        }
+        })
     }
 
     fn poll(&self) -> Result<PollStatus> {

@@ -1,8 +1,9 @@
 use super::dispatcher::UserCStr;
 use crate::fs::path::Path;
+use crate::process::{switch, ProcessState};
 use crate::{arch::UserVAddr, result::Result};
 use crate::{
-    process::{current_process, execve, switch, ProcessState},
+    process::{current_process, execve},
     syscalls::SyscallDispatcher,
 };
 use alloc::vec::Vec;
@@ -57,7 +58,8 @@ impl<'a> SyscallDispatcher<'a> {
             current.opened_files.clone(),
         )?;
 
-        switch(ProcessState::Sleeping /* FIXME: */);
+        current_process().set_state(ProcessState::Execved);
+        switch();
         unreachable!();
     }
 }

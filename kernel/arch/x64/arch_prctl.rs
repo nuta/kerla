@@ -11,7 +11,7 @@ pub fn arch_prctl(current: &Arc<Process>, code: i32, uaddr: UserVAddr) -> Result
     match code {
         ARCH_SET_FS => {
             let value = uaddr.value() as u64;
-            current.lock().arch.fsbase = value;
+            current.arch.lock().fsbase = value;
             unsafe {
                 wrfsbase(value);
             }

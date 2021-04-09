@@ -42,12 +42,14 @@ cpu_local! {
 }
 
 static SCHEDULER: Once<SpinLock<Scheduler>> = Once::new();
+pub static JOIN_WAIT_QUEUE: Once<WaitQueue> = Once::new();
 
 pub fn current_process() -> &'static Arc<Process> {
     CURRENT.get()
 }
 
 pub fn init() {
+    JOIN_WAIT_QUEUE.init(|| WaitQueue::new());
     SCHEDULER.init(|| SpinLock::new(Scheduler::new()));
     let idle_thread = Process::new_idle_thread().unwrap();
     IDLE_THREAD.as_mut().set(idle_thread.clone());

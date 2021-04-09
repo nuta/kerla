@@ -138,17 +138,17 @@ impl FileLike for ConsoleFile {
         mut buf: UserBufferMut<'_>,
         _options: &OpenOptions,
     ) -> Result<usize> {
-        loop {
+        self.wait_queue.sleep_until(|| {
             while let Some(ch) = self.input.pop() {
                 buf.write(ch as u8)?;
             }
 
             if buf.pos() > 0 {
-                return Ok(buf.pos());
+                Ok(Some(buf.pos()))
+            } else {
+                Ok(None)
             }
-
-            self.wait_queue.sleep();
-        }
+        })
     }
 
     fn write(

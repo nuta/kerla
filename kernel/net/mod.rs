@@ -61,7 +61,7 @@ impl From<MonotonicClock> for Instant {
 pub(self) static SOCKETS: Once<SpinLock<SocketSet>> = Once::new();
 static INTERFACE: Once<SpinLock<EthernetInterface<OurDevice>>> = Once::new();
 static DHCP_CLIENT: Once<SpinLock<Dhcpv4Client>> = Once::new();
-pub(self) static SOCKET_WAIT_QUEUE: WaitQueue = WaitQueue::new();
+pub(self) static SOCKET_WAIT_QUEUE: Once<WaitQueue> = Once::new();
 
 pub fn process_packets() {
     let mut sockets = SOCKETS.lock();
@@ -191,6 +191,7 @@ pub fn init() {
     );
 
     RX_PACKET_QUEUE.init(|| SpinLock::new(ArrayQueue::new(128)));
+    SOCKET_WAIT_QUEUE.init(WaitQueue::new);
     INTERFACE.init(|| SpinLock::new(iface));
     SOCKETS.init(|| SpinLock::new(sockets));
     DHCP_CLIENT.init(|| SpinLock::new(dhcp));

@@ -1,8 +1,8 @@
 use crate::{
     arch::UserVAddr,
     ctypes::*,
-    process::{current_process, get_process_by_pid, switch, PId},
-    result::{Errno, Error, Result},
+    process::{current_process, PId, ProcessState, JOIN_WAIT_QUEUE},
+    result::Result,
     syscalls::SyscallDispatcher,
 };
 
@@ -19,28 +19,42 @@ impl<'a> SyscallDispatcher<'a> {
     pub fn sys_wait4(
         &mut self,
         pid: PId,
-        _status: UserVAddr,
+        status: UserVAddr,
         options: WaitOptions,
         _rusage: UserVAddr,
     ) -> Result<isize> {
-        let got_pid = if pid.as_i32() == -1 {
-            if options.contains(WaitOptions::WNOHANG) {
-                // FIXME: A dirty workaround for now.
-                return Ok(0);
+        let (got_pid, status_value) = JOIN_WAIT_QUEUE.sleep_until(|| {
+            let children = current_process().children.lock();
+            for child in children.iter() {
+                if pid.as_i32() > 0 && child.pid != pid {
+                    // Wait for the specific PID.
+                    continue;
+                }
+
+                if pid.as_i32() == 0 {
+                    // TODO: Wait for any children in the same process group.
+                    todo!();
+                }
+
+                if let ProcessState::ExitedWith(status_value) = child.state() {
+                    return Ok(Some((child.pid, status_value)));
+                }
             }
 
-            switch(crate::process::ProcessState::WaitForAnyChild);
-            current_process().lock().resumed_by.unwrap()
-        } else if pid.as_i32() == 0 {
-            todo!();
-        } else {
-            get_process_by_pid(pid)
-                .ok_or_else(|| Error::new(Errno::ECHILD))?
-                .wait_queue
-                .sleep();
-            pid
-        };
+            if options.contains(WaitOptions::WNOHANG) {
+                return Ok(Some((PId::new(0), 0)));
+            }
 
+            Ok(None)
+        })?;
+
+        // Evict joined or unused processs objects.
+        current_process()
+            .children
+            .lock()
+            .retain(|p| p.pid != got_pid && p.state() != ProcessState::Execved);
+
+        status.write::<c_int>(&status_value)?;
         Ok(got_pid.as_i32() as isize)
     }
 }

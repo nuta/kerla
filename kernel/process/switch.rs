@@ -12,14 +12,9 @@ cpu_local! {
     static ref HELD_LOCKS: ArrayVec<[Arc<Process>; 2]> = ArrayVec::new();
 }
 
-pub fn resume(process: &Arc<Process>) {
-    process.lock().state = ProcessState::Runnable;
-    SCHEDULER.lock().enqueue(process.clone());
-}
-
 /// Yields execution to another thread. When the currently running thread is resumed
 // in future, it will be
-pub fn switch(new_state: ProcessState) {
+pub fn switch() {
     // Save the current interrupt enable flag to restore it in the next execution
     // of the currently running thread.
     let interrupt_enabled = is_interrupt_enabled();
@@ -30,7 +25,7 @@ pub fn switch(new_state: ProcessState) {
 
         // Push back the currently running thread to the runqueue if it's still
         // ready for running, in other words, it's not blocked.
-        if prev_thread.pid != PId::new(0) && new_state == ProcessState::Runnable {
+        if prev_thread.pid != PId::new(0) && prev_thread.state() == ProcessState::Runnable {
             scheduler.enqueue((*prev_thread).clone());
         }
 
@@ -41,7 +36,7 @@ pub fn switch(new_state: ProcessState) {
         }
     };
 
-    assert!(HELD_LOCKS.get().is_empty());
+    debug_assert!(next_thread.state() == ProcessState::Runnable);
 
     if Arc::ptr_eq(prev_thread, &next_thread) {
         // Continue executing the current process.
@@ -56,10 +51,8 @@ pub fn switch(new_state: ProcessState) {
     // Since these locks won't be dropped until the current (prev) thread is
     // resumed next time, we'll unlock these locks in `after_switch` in the next
     // thread's context.
-    let mut prev_inner = prev_thread.inner.lock();
-    let mut next_inner = next_thread.inner.lock();
-
-    prev_inner.state = new_state;
+    let mut prev_arch = prev_thread.arch.lock();
+    let mut next_arch = next_thread.arch.lock();
 
     if let Some(vm) = next_thread.vm.as_ref() {
         let lock = vm.lock();
@@ -68,11 +61,11 @@ pub fn switch(new_state: ProcessState) {
 
     // Switch into the next thread.
     CURRENT.as_mut().set(next_thread.clone());
-    arch::switch_thread(&mut (*prev_inner).arch, &mut (*next_inner).arch);
+    arch::switch_thread(&mut *prev_arch, &mut *next_arch);
 
     // Don't call destructors as they're unlocked in `after_switch`.
-    mem::forget(prev_inner);
-    mem::forget(next_inner);
+    mem::forget(prev_arch);
+    mem::forget(next_arch);
 
     // Now we're in the next thread. Release held locks and continue executing.
     after_switch();
@@ -90,7 +83,7 @@ pub fn switch(new_state: ProcessState) {
 pub extern "C" fn after_switch() {
     for thread in HELD_LOCKS.as_mut().drain(..) {
         unsafe {
-            thread.inner.force_unlock();
+            thread.arch.force_unlock();
         }
     }
 }

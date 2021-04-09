@@ -74,7 +74,7 @@ impl FileLike for TcpSocket {
     }
 
     fn accept(&self, _options: &OpenOptions) -> Result<(Arc<dyn FileLike>, Endpoint)> {
-        loop {
+        SOCKET_WAIT_QUEUE.sleep_until(|| {
             let mut sockets = SOCKETS.lock();
             let mut backlogs = self.backlogs.lock();
 
@@ -95,15 +95,14 @@ impl FileLike for TcpSocket {
                     let smol_socket: SocketRef<'_, smoltcp::socket::TcpSocket> =
                         sockets.get(socket.handle);
                     let endpoint = smol_socket.remote_endpoint().into();
-                    return Ok((socket as Arc<dyn FileLike>, endpoint));
+                    Ok(Some((socket as Arc<dyn FileLike>, endpoint)))
                 }
                 None => {
                     // No accept'able sockets.
-                    SOCKET_WAIT_QUEUE.sleep();
-                    continue;
+                    Ok(None)
                 }
-            };
-        }
+            }
+        })
     }
 
     fn bind(&self, endpoint: Endpoint) -> Result<()> {
@@ -117,7 +116,6 @@ impl FileLike for TcpSocket {
         // TODO: Reject if the endpoint is already in use -- IIUC smoltcp
         //       does not check that.
         let mut inuse_endpoints = INUSE_ENDPOINTS.lock();
-
         let mut local_endpoint = self.local_endpoint.load().unwrap_or(Endpoint {
             addr: IpAddress::Unspecified,
             port: 0,
@@ -143,16 +141,21 @@ impl FileLike for TcpSocket {
         inuse_endpoints.insert(endpoint.port);
         drop(inuse_endpoints);
 
+        // Submit a SYN packet.
         process_packets();
-        while !SOCKETS
-            .lock()
-            .get::<smoltcp::socket::TcpSocket>(self.handle)
-            .may_send()
-        {
-            SOCKET_WAIT_QUEUE.sleep();
-        }
 
-        Ok(())
+        // Wait until the connection has been established.
+        SOCKET_WAIT_QUEUE.sleep_until(|| {
+            if SOCKETS
+                .lock()
+                .get::<smoltcp::socket::TcpSocket>(self.handle)
+                .may_send()
+            {
+                Ok(Some(()))
+            } else {
+                Ok(None)
+            }
+        })
     }
 
     fn write(
@@ -191,8 +194,7 @@ impl FileLike for TcpSocket {
         mut buf: UserBufferMut<'_>,
         options: &OpenOptions,
     ) -> Result<usize> {
-        let mut total_len = 0;
-        loop {
+        SOCKET_WAIT_QUEUE.sleep_until(|| {
             let copied_len = SOCKETS
                 .lock()
                 .get::<smoltcp::socket::TcpSocket>(self.handle)
@@ -202,22 +204,21 @@ impl FileLike for TcpSocket {
                 });
 
             match copied_len {
-                Ok(0) => {
-                    return Ok(total_len);
+                Ok(0) | Err(smoltcp::Error::Exhausted) => {
+                    if options.nonblock {
+                        Err(Errno::EAGAIN.into())
+                    } else {
+                        // The receive buffer is empty. Sleep on the wait queue...
+                        Ok(None)
+                    }
                 }
                 Ok(copied_len) => {
                     // Continue reading.
-                    total_len += copied_len;
+                    Ok(Some(copied_len))
                 }
-                Err(smoltcp::Error::Exhausted) if options.nonblock => {
-                    return Err(Errno::EAGAIN.into())
-                }
-                Err(smoltcp::Error::Exhausted) => {
-                    // The receive buffer is empty. Try again later...
-                    SOCKET_WAIT_QUEUE.sleep();
-                }
-                Err(err) => return Err(err.into()),
+                // TODO: Handle FIN
+                Err(err) => Err(err.into()),
             }
-        }
+        })
     }
 }

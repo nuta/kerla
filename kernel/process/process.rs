@@ -4,6 +4,7 @@ use super::*;
 use crate::{
     arch::{self, SpinLock},
     boot::INITIAL_ROOT_FS,
+    ctypes::*,
     fs::inode::{FileLike, INode},
     fs::{mount::RootFs, opened_file},
     mm::vm::Vm,
@@ -13,9 +14,11 @@ use crate::{
 
 use alloc::collections::BTreeMap;
 use alloc::sync::{Arc, Weak};
+use alloc::vec::Vec;
 
 use arch::SpinLockGuard;
 
+use crossbeam::atomic::AtomicCell;
 use opened_file::OpenedFileTable;
 
 pub static PROCESSES: SpinLock<BTreeMap<PId, Arc<Process>>> = SpinLock::new(BTreeMap::new());
@@ -42,10 +45,6 @@ pub fn alloc_pid() -> Result<PId> {
     }
 }
 
-pub fn get_process_by_pid(pid: PId) -> Option<Arc<Process>> {
-    PROCESSES.lock().get(&pid).cloned()
-}
-
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct PId(i32);
 
@@ -63,25 +62,21 @@ impl PId {
 pub enum ProcessState {
     Runnable,
     Sleeping,
-    WaitForAnyChild,
-}
-
-/// Mutable fields in the process struct.
-pub struct MutableFields {
-    pub arch: arch::Thread,
-    pub state: ProcessState,
-    pub resumed_by: Option<PId>,
+    ExitedWith(c_int),
+    Execved,
 }
 
 /// The process control block.
 pub struct Process {
+    pub arch: SpinLock<arch::Thread>,
     pub pid: PId,
+    pub(super) state: AtomicCell<ProcessState>,
     pub parent: Option<Weak<Process>>,
+    pub children: SpinLock<Vec<Arc<Process>>>,
     pub vm: Option<Arc<SpinLock<Vm>>>,
     pub opened_files: Arc<SpinLock<OpenedFileTable>>,
     pub root_fs: Arc<SpinLock<RootFs>>,
     pub wait_queue: WaitQueue,
-    pub(super) inner: SpinLock<MutableFields>,
 }
 
 impl Process {
@@ -107,12 +102,10 @@ impl Process {
 
     pub fn new_idle_thread() -> Result<Arc<Process>> {
         Ok(Arc::new(Process {
-            inner: SpinLock::new(MutableFields {
-                arch: arch::Thread::new_idle_thread(),
-                state: ProcessState::Runnable,
-                resumed_by: None,
-            }),
+            arch: SpinLock::new(arch::Thread::new_idle_thread()),
+            state: AtomicCell::new(ProcessState::Runnable),
             parent: None,
+            children: SpinLock::new(Vec::new()),
             vm: None,
             pid: PId::new(0),
             root_fs: INITIAL_ROOT_FS.clone(),
@@ -172,25 +165,29 @@ impl Process {
         Ok(process)
     }
 
-    pub fn exit(&self) {
-        if let Some(parent) = self.parent.as_ref() {
-            if let Some(parent) = parent.upgrade() {
-                let mut lock = parent.lock();
-                // FIXME: What if the child exists before the parent enters the
-                //        wait state?
-                if ProcessState::WaitForAnyChild == lock.state {
-                    // FIXME: Cleanup.
-                    lock.state = ProcessState::Runnable;
-                    lock.resumed_by = Some(self.pid);
-                    drop(lock);
-                    SCHEDULER.lock().enqueue(parent);
-                }
-            }
+    pub fn state(&self) -> ProcessState {
+        self.state.load()
+    }
+
+    pub fn set_state(self: &Arc<Process>, new_state: ProcessState) {
+        let scheduler = SCHEDULER.lock();
+        let old_state = self.state.swap(new_state);
+        if old_state != ProcessState::Runnable && new_state == ProcessState::Runnable {
+            scheduler.enqueue(self.clone());
+        } else {
+            scheduler.remove(self);
         }
     }
 
-    pub fn lock(&self) -> SpinLockGuard<'_, MutableFields> {
-        self.inner.lock()
+    pub fn resume(self: &Arc<Process>) {
+        self.set_state(ProcessState::Runnable);
+    }
+
+    pub fn exit(self: &Arc<Process>, status: c_int) -> ! {
+        self.set_state(ProcessState::ExitedWith(status));
+        JOIN_WAIT_QUEUE.wake_all();
+        switch();
+        unreachable!();
     }
 
     pub fn vm(&self) -> SpinLockGuard<'_, Vm> {

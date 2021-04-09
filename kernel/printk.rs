@@ -152,7 +152,7 @@ global_asm!(
     .global __symbol_table
     __symbol_table:
        .ascii "__SYMBOL_TABLE_START__"
-       .space 600 * 1024
+       .space 725 * 1024
        .ascii "__SYMBOL_TABLE_END__"
 "#
 );

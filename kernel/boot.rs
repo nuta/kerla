@@ -11,9 +11,9 @@ use crate::{
         path::Path,
     },
     mm::{global_allocator, page_allocator},
-    net,
+    net, poll,
     printk::PrintkLogger,
-    process::{self, switch, Process, ProcessState},
+    process::{self, switch, Process},
 };
 use alloc::sync::Arc;
 use penguin_utils::once::Once;
@@ -64,6 +64,7 @@ pub fn boot_kernel(bootinfo: &BootInfo) -> ! {
 
     // Initialize kernel subsystems.
     arch::init();
+    poll::init();
     devfs::init();
     tmpfs::init();
     initramfs::init();
@@ -111,7 +112,7 @@ pub fn boot_kernel(bootinfo: &BootInfo) -> ! {
     .expect("failed to execute /sbin/init");
 
     // We've done the kernel initialization. Switch into the init...
-    switch(ProcessState::Runnable);
+    switch();
 
     // We're now in the idle thread context.
     idle_thread();

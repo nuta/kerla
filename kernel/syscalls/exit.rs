@@ -1,12 +1,7 @@
-use crate::{
-    process::{current_process, switch},
-    syscalls::SyscallDispatcher,
-};
+use crate::{ctypes::*, process::current_process, syscalls::SyscallDispatcher};
 
 impl<'a> SyscallDispatcher<'a> {
-    pub fn sys_exit(&mut self, _status: i32) -> ! {
-        current_process().exit();
-        switch(crate::process::ProcessState::Sleeping);
-        todo!()
+    pub fn sys_exit(&mut self, status: c_int) -> ! {
+        current_process().exit(status);
     }
 }

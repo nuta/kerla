@@ -5,7 +5,7 @@ use crate::{
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicUsize, Ordering};
-use process::{current_process, resume, switch};
+use process::{current_process, switch};
 
 const PREEMPT_PER_TICKS: usize = 30;
 static MONOTONIC_TICKS: AtomicUsize = AtomicUsize::new(0);
@@ -25,7 +25,8 @@ pub fn _sleep_ms(ms: usize) {
         process: current_process().clone(),
     });
 
-    switch(ProcessState::Sleeping);
+    current_process().set_state(ProcessState::Sleeping);
+    switch();
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -88,7 +89,7 @@ pub fn handle_timer_irq() {
 
         timers.retain(|timer| {
             if timer.current == 0 {
-                resume(&timer.process);
+                timer.process.resume();
             }
 
             timer.current > 0
@@ -98,6 +99,6 @@ pub fn handle_timer_irq() {
     WALLCLOCK_TICKS.fetch_add(1, Ordering::Relaxed);
     let ticks = MONOTONIC_TICKS.fetch_add(1, Ordering::Relaxed);
     if ticks % PREEMPT_PER_TICKS == 0 {
-        process::switch(ProcessState::Runnable);
+        process::switch();
     }
 }

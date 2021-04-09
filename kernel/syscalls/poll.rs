@@ -15,9 +15,9 @@ use super::UserBufReader;
 impl<'a> SyscallDispatcher<'a> {
     pub fn sys_poll(&mut self, fds: UserVAddr, nfds: c_nfds, timeout: c_int) -> Result<isize> {
         let started_at = read_monotonic_clock();
-        loop {
+        POLL_WAIT_QUEUE.sleep_until(|| {
             if timeout > 0 && started_at.elapsed_msecs() >= (timeout as usize) {
-                break;
+                return Ok(Some(0));
             }
 
             // Check the statuses of all specified files one by one.
@@ -53,13 +53,11 @@ impl<'a> SyscallDispatcher<'a> {
             }
 
             if ready_fds > 0 {
-                return Ok(ready_fds);
+                Ok(Some(ready_fds))
+            } else {
+                // Sleep until any changes in files or sockets occur...
+                Ok(None)
             }
-
-            // Sleep until any changes in files or sockets occur...
-            POLL_WAIT_QUEUE.sleep();
-        }
-
-        Ok(0)
+        })
     }
 }

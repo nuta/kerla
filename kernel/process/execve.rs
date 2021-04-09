@@ -7,6 +7,8 @@ use crate::mm::page_allocator::{alloc_pages, AllocPageFlags};
 use crate::process::*;
 use crate::result::{Errno, Result};
 use alloc::sync::Weak;
+use alloc::vec::Vec;
+use crossbeam::atomic::AtomicCell;
 use goblin::elf64::program_header::PT_LOAD;
 
 pub fn execve(
@@ -116,12 +118,10 @@ pub fn execve(
     let kernel_sp = stack_bottom.as_vaddr().add(KERNEL_STACK_SIZE);
 
     let process = Arc::new(Process {
-        parent,
-        inner: SpinLock::new(MutableFields {
-            arch: arch::Thread::new_user_thread(ip, user_sp, kernel_sp),
-            state: ProcessState::Runnable,
-            resumed_by: None,
-        }),
+        parent: parent.clone(),
+        children: SpinLock::new(Vec::new()),
+        state: AtomicCell::new(ProcessState::Runnable),
+        arch: SpinLock::new(arch::Thread::new_user_thread(ip, user_sp, kernel_sp)),
         root_fs,
         vm: Some(Arc::new(SpinLock::new(vm))),
         pid,
@@ -129,6 +129,11 @@ pub fn execve(
         wait_queue: WaitQueue::new(),
     });
 
+    if let Some(parent) = parent.and_then(|parent| parent.upgrade()) {
+        parent.children.lock().push(process.clone());
+    }
+
+    PROCESSES.lock().insert(process.pid, process.clone());
     SCHEDULER.lock().enqueue(process.clone());
     Ok(process)
 }
