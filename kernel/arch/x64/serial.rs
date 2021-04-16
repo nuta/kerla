@@ -1,6 +1,6 @@
 use x86::io::{inb, outb};
 
-use crate::fs::devfs::CONSOLE_FILE;
+use crate::fs::devfs::SERIAL_TTY;
 
 use super::ioapic::enable_irq;
 
@@ -48,9 +48,9 @@ fn read_char() -> Option<char> {
 pub fn irq_handler() {
     while let Some(ch) = read_char() {
         if ch == '\r' {
-            CONSOLE_FILE.input_char('\n');
+            SERIAL_TTY.input_char('\n');
         } else {
-            CONSOLE_FILE.input_char(ch);
+            SERIAL_TTY.input_char(ch);
         }
     }
 }
