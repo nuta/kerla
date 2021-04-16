@@ -55,11 +55,15 @@ impl Tty {
         let mut buf_lock = self.buf.lock();
         match ch as u8 {
             0x7f /* backspace */ if self.is_cooked_mode() => {
-                if let Some(b'\n') = buf_lock.pop() {
-                    buf_lock.push(b'\n');
-                } else {
-                    // Remove the previous character by overwriting with a whitespace.
-                    print_str(b"\x08 \x08");
+                match buf_lock.pop() {
+                    Some(b'\n') => {
+                        buf_lock.push(b'\n');
+                    }
+                    Some(_) => {
+                        // Remove the previous character by overwriting with a whitespace.
+                        print_str(b"\x08 \x08");
+                    }
+                    None => {}
                 }
             }
             _ => {
