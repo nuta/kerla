@@ -9,7 +9,7 @@ use arrayvec::ArrayVec;
 use core::mem::{self};
 
 cpu_local! {
-    static ref HELD_LOCKS: ArrayVec<[Arc<Process>; 2]> = ArrayVec::new();
+    static ref HELD_LOCKS: ArrayVec<Arc<Process>, 2> = ArrayVec::new_const();
 }
 
 /// Yields execution to another thread. When the currently running thread is resumed

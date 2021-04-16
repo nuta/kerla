@@ -29,7 +29,7 @@ pub struct RamArea {
 }
 
 pub struct BootInfo {
-    pub ram_areas: ArrayVec<[RamArea; 8]>,
+    pub ram_areas: ArrayVec<RamArea, 8>,
 }
 
 static LOGGER: PrintkLogger = PrintkLogger;

@@ -1,8 +1,8 @@
 use super::address::{PAddr, VAddr};
 use crate::boot::{BootInfo, RamArea};
 use arrayvec::ArrayVec;
+use core::cmp::max;
 use core::mem::size_of;
-use core::{cmp::max};
 use penguin_utils::alignment::align_up;
 use penguin_utils::byte_size::ByteSize;
 
@@ -74,7 +74,7 @@ extern "C" {
 }
 
 fn process_memory_map_entry(
-    ram_areas: &mut ArrayVec<[RamArea; 8]>,
+    ram_areas: &mut ArrayVec<RamArea, 8>,
     entry_type: u32,
     base: usize,
     len: usize,

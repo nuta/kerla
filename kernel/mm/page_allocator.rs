@@ -10,7 +10,7 @@ use penguin_utils::byte_size::ByteSize;
 // TODO:
 // use penguin_utils::buddy_allocator::BuddyAllocator as Allocator;
 
-static ZONES: SpinLock<ArrayVec<[Allocator; 8]>> = SpinLock::new(ArrayVec::new());
+static ZONES: SpinLock<ArrayVec<Allocator, 8>> = SpinLock::new(ArrayVec::new_const());
 
 fn num_pages_to_order(num_pages: usize) -> usize {
     // TODO: Use log2 instead
