@@ -111,6 +111,17 @@ impl Directory for Dir {
         Ok(self.0.lock().stat)
     }
 
+    fn link(&self, name: &str, link_to: &INode) -> Result<()> {
+        let tmpfs_inode = match link_to {
+            INode::FileLike(file_like) => TmpFsINode::File(downcast(file_like).unwrap()),
+            INode::Directory(dir) => TmpFsINode::Directory(downcast(dir).unwrap()),
+            INode::Symlink(_) => unreachable!(), /* symblic links are not supported yet */
+        };
+
+        self.0.lock().files.insert(name.to_owned(), tmpfs_inode);
+        Ok(())
+    }
+
     fn create_file(&self, name: &str, _mode: FileMode) -> Result<INode> {
         let mut dir_lock = self.0.lock();
         if dir_lock.files.contains_key(name) {

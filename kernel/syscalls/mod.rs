@@ -43,6 +43,8 @@ pub(self) mod getcwd;
 pub(self) mod getdents64;
 pub(self) mod getrandom;
 pub(self) mod ioctl;
+pub(self) mod link;
+pub(self) mod linkat;
 pub(self) mod listen;
 pub(self) mod lstat;
 pub(self) mod mkdir;

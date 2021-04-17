@@ -46,6 +46,10 @@ impl DevRootDir {
 }
 
 impl Directory for DevRootDir {
+    fn link(&self, _name: &str, _link_to: &INode) -> Result<()> {
+        Err(Error::new(Errno::ENOSYS))
+    }
+
     fn lookup(&self, name: &str) -> Result<INode> {
         match name {
             "null" => Ok(INode::FileLike(NULL_FILE.clone())),

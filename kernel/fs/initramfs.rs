@@ -75,6 +75,10 @@ impl Directory for InitramFsDir {
         Ok(self.stat)
     }
 
+    fn link(&self, _name: &str, _link_to: &INode) -> Result<()> {
+        Err(Error::new(Errno::ENOSYS))
+    }
+
     fn readdir(&self, index: usize) -> Result<Option<DirEntry>> {
         let entry = self.files.values().nth(index).map(|entry| match entry {
             InitramFsINode::Directory(dir) => DirEntry {

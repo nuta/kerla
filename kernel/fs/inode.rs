@@ -112,6 +112,7 @@ pub trait Directory: Send + Sync + Downcastable {
     fn stat(&self) -> Result<Stat>;
     fn readdir(&self, index: usize) -> Result<Option<DirEntry>>;
     fn lookup(&self, name: &str) -> Result<INode>;
+    fn link(&self, _name: &str, _link_to: &INode) -> Result<()>;
     /// Creates a file. Returns `EEXIST` if the it already exists.
     fn create_file(&self, _name: &str, _mode: FileMode) -> Result<INode>;
     /// Creates a directory. Returns `EEXIST` if the it already exists.
@@ -150,6 +151,20 @@ impl INode {
         match self {
             INode::Directory(dir) => Ok(dir),
             _ => Err(Error::new(Errno::EBADF)),
+        }
+    }
+
+    pub fn is_file(&self) -> bool {
+        match self {
+            INode::FileLike(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_dir(&self) -> bool {
+        match self {
+            INode::Directory(_) => true,
+            _ => false,
         }
     }
 }

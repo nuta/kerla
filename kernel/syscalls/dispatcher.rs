@@ -41,11 +41,13 @@ const SYS_FCNTL: usize = 72;
 const SYS_GETCWD: usize = 79;
 const SYS_CHDIR: usize = 80;
 const SYS_MKDIR: usize = 83;
+const SYS_LINK: usize = 86;
 const SYS_ARCH_PRCTL: usize = 158;
 const SYS_GETDENTS64: usize = 217;
 const SYS_SET_TID_ADDRESS: usize = 218;
 const SYS_CLOCK_GETTIME: usize = 228;
 const SYS_UTIMES: usize = 235;
+const SYS_LINKAT: usize = 265;
 const SYS_GETRANDOM: usize = 318;
 
 const PATH_MAX: usize = 512;
@@ -150,6 +152,14 @@ impl<'a> SyscallDispatcher<'a> {
             SYS_STAT => self.sys_stat(&resolve_path(a1)?, UserVAddr::new(a2)?),
             SYS_LSTAT => self.sys_lstat(&resolve_path(a1)?, UserVAddr::new(a2)?),
             SYS_FCNTL => self.sys_fcntl(Fd::new(a1 as i32), a2 as c_int, a3),
+            SYS_LINK => self.sys_link(&resolve_path(a1)?, &resolve_path(a2)?),
+            SYS_LINKAT => self.sys_linkat(
+                CwdOrFd::parse(a1 as c_int),
+                &resolve_path(a2)?,
+                CwdOrFd::parse(a3 as c_int),
+                &resolve_path(a4)?,
+                bitflags_from_user!(AtFlags, a5 as c_int)?,
+            ),
             SYS_UTIMES => self.sys_utimes(&resolve_path(a1)?, UserVAddr::new(a2)?),
             SYS_GETDENTS64 => self.sys_getdents64(Fd::new(a1 as i32), UserVAddr::new(a2)?, a3),
             SYS_POLL => self.sys_poll(UserVAddr::new(a1)?, a2 as c_ulong, a3 as c_int),
