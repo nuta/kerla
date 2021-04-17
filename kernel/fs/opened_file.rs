@@ -188,6 +188,10 @@ impl OpenedFile {
         Ok(written_len)
     }
 
+    pub fn fsync(&mut self) -> Result<()> {
+        self.path.inode.fsync()
+    }
+
     pub fn listen(&mut self, backlog: i32) -> Result<()> {
         self.as_file()?.listen(backlog)
     }

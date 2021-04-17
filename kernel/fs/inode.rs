@@ -65,6 +65,10 @@ pub trait FileLike: Send + Sync + Downcastable {
         Err(Error::new(Errno::EBADF))
     }
 
+    fn fsync(&self) -> Result<()> {
+        Ok(())
+    }
+
     fn accept(&self, _options: &OpenOptions) -> Result<(Arc<dyn FileLike>, Endpoint)> {
         Err(Error::new(Errno::EBADF))
     }
@@ -117,11 +121,19 @@ pub trait Directory: Send + Sync + Downcastable {
     fn create_file(&self, _name: &str, _mode: FileMode) -> Result<INode>;
     /// Creates a directory. Returns `EEXIST` if the it already exists.
     fn create_dir(&self, _name: &str, _mode: FileMode) -> Result<INode>;
+
+    fn fsync(&self) -> Result<()> {
+        Ok(())
+    }
 }
 
 pub trait Symlink: Send + Sync + Downcastable {
     fn stat(&self) -> Result<Stat>;
     fn linked_to(&self) -> Result<PathBuf>;
+
+    fn fsync(&self) -> Result<()> {
+        Ok(())
+    }
 }
 
 #[derive(Clone)]
@@ -165,6 +177,14 @@ impl INode {
         match self {
             INode::Directory(_) => true,
             _ => false,
+        }
+    }
+
+    pub fn fsync(&self) -> Result<()> {
+        match self {
+            INode::FileLike(file) => file.fsync(),
+            INode::Symlink(file) => file.fsync(),
+            INode::Directory(dir) => dir.fsync(),
         }
     }
 }
