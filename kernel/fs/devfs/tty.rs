@@ -3,7 +3,11 @@ use bitflags::bitflags;
 
 use crate::{
     arch::{print_str, SpinLock},
-    fs::{inode::FileLike, opened_file::OpenOptions, stat::Stat},
+    fs::{
+        inode::{FileLike, INodeNo},
+        opened_file::OpenOptions,
+        stat::{FileMode, Stat, S_IFCHR},
+    },
     process::WaitQueue,
     result::Result,
     user_buffer::UserBuffer,
@@ -80,8 +84,11 @@ impl Tty {
 
 impl FileLike for Tty {
     fn stat(&self) -> Result<Stat> {
-        // TODO:
-        unimplemented!()
+        Ok(Stat {
+            inode_no: INodeNo::new(3),
+            mode: FileMode::new(S_IFCHR | 0o666),
+            ..Stat::zeroed()
+        })
     }
 
     fn read(

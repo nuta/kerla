@@ -8,8 +8,13 @@ use crate::{
     },
     result::{Errno, Error, Result},
 };
+use alloc::borrow::ToOwned;
+use alloc::string::String;
 use alloc::sync::Arc;
+use hashbrown::HashMap;
 use penguin_utils::once::Once;
+
+use super::inode::FileType;
 
 mod null;
 mod tty;
@@ -24,9 +29,13 @@ pub struct DevFs {}
 
 impl DevFs {
     pub fn new() -> DevFs {
-        ROOT_DIR.init(|| Arc::new(DevRootDir::new()) as Arc<dyn Directory>);
         NULL_FILE.init(|| Arc::new(NullFile::new()) as Arc<dyn FileLike>);
         SERIAL_TTY.init(|| Arc::new(Tty::new()));
+
+        let mut root_dir = DevRootDir::new();
+        root_dir.add_file("null", NULL_FILE.clone());
+        root_dir.add_file("console", SERIAL_TTY.clone());
+        ROOT_DIR.init(|| Arc::new(root_dir) as Arc<dyn Directory>);
         DevFs {}
     }
 }
@@ -38,10 +47,19 @@ impl FileSystem for DevFs {
 }
 
 /// The `/dev` directory.
-struct DevRootDir {}
+struct DevRootDir {
+    files: HashMap<String, Arc<dyn FileLike>>,
+}
+
 impl DevRootDir {
     pub fn new() -> DevRootDir {
-        DevRootDir {}
+        DevRootDir {
+            files: HashMap::new(),
+        }
+    }
+
+    pub fn add_file(&mut self, name: &str, file: Arc<dyn FileLike>) {
+        self.files.insert(name.to_owned(), file);
     }
 }
 
@@ -51,15 +69,26 @@ impl Directory for DevRootDir {
     }
 
     fn lookup(&self, name: &str) -> Result<INode> {
-        match name {
-            "null" => Ok(INode::FileLike(NULL_FILE.clone())),
-            "console" => Ok(INode::FileLike(SERIAL_TTY.clone())),
-            _ => Err(Error::new(Errno::ENOENT)),
-        }
+        self.files
+            .get(name)
+            .cloned()
+            .map(Into::into)
+            .ok_or_else(|| Error::new(Errno::ENOENT))
     }
 
-    fn readdir(&self, _index: usize) -> Result<Option<DirEntry>> {
-        todo!()
+    fn readdir(&self, index: usize) -> Result<Option<DirEntry>> {
+        let (name, file) = match self.files.iter().nth(index) {
+            Some((name, file)) => (name, file),
+            None => return Ok(None),
+        };
+
+        let entry = DirEntry {
+            inode_no: file.stat()?.inode_no,
+            file_type: FileType::Regular,
+            name: name.to_owned(),
+        };
+
+        Ok(Some(entry))
     }
 
     fn stat(&self) -> Result<Stat> {

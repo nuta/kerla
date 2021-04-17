@@ -41,6 +41,7 @@ pub struct BlockCount(isize);
 pub struct Time(isize);
 
 pub const S_IFMT: u32 = 0o170000;
+pub const S_IFCHR: u32 = 0o020000;
 pub const S_IFDIR: u32 = 0o040000;
 pub const S_IFREG: u32 = 0o100000;
 pub const S_IFLNK: u32 = 0o120000;

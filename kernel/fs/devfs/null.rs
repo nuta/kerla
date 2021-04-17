@@ -1,5 +1,9 @@
 use crate::{
-    fs::{inode::FileLike, opened_file::OpenOptions, stat::Stat},
+    fs::{
+        inode::{FileLike, INodeNo},
+        opened_file::OpenOptions,
+        stat::{FileMode, Stat, S_IFCHR},
+    },
     result::Result,
     user_buffer::UserBuffer,
     user_buffer::UserBufferMut,
@@ -7,6 +11,7 @@ use crate::{
 
 /// The `/dev/null` file.
 pub(super) struct NullFile {}
+
 impl NullFile {
     pub fn new() -> NullFile {
         NullFile {}
@@ -15,8 +20,11 @@ impl NullFile {
 
 impl FileLike for NullFile {
     fn stat(&self) -> Result<Stat> {
-        // TODO:
-        unimplemented!()
+        Ok(Stat {
+            inode_no: INodeNo::new(2),
+            mode: FileMode::new(S_IFCHR | 0o666),
+            ..Stat::zeroed()
+        })
     }
 
     fn read(
