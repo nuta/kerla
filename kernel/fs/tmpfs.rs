@@ -112,9 +112,13 @@ impl Directory for Dir {
     }
 
     fn create_file(&self, name: &str, _mode: FileMode) -> Result<INode> {
+        let mut dir_lock = self.0.lock();
+        if dir_lock.files.contains_key(name) {
+            return Err(Errno::EEXIST.into());
+        }
+
         let inode = Arc::new(File::new(name.to_owned(), alloc_inode_no()));
-        self.0
-            .lock()
+        dir_lock
             .files
             .insert(name.to_owned(), TmpFsINode::File(inode.clone()));
 

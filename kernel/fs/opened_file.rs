@@ -22,6 +22,7 @@ bitflags! {
         const O_WRONLY = 0o1;
         const O_RDWR = 0o2;
         const O_CREAT = 0o100;
+        const O_EXCL = 0o200;
         const O_TRUNC = 0o1000;
         const O_APPEND = 0o2000;
         const O_NONBLOCK = 0o4000;

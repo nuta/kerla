@@ -32,7 +32,15 @@ fn create_file(path: &Path, flags: OpenFlags, mode: FileMode) -> Result<INode> {
 impl<'a> SyscallDispatcher<'a> {
     pub fn sys_open(&mut self, path: &Path, flags: OpenFlags, mode: FileMode) -> Result<isize> {
         let inode = if flags.contains(OpenFlags::O_CREAT) {
-            create_file(path, flags, mode)?
+            match create_file(path, flags, mode) {
+                Ok(inode) => inode,
+                Err(err) if flags.contains(OpenFlags::O_EXCL) && err.errno() == Errno::EEXIST => {
+                    open_file(path, flags)?
+                }
+                Err(err) => {
+                    return Err(err);
+                }
+            }
         } else {
             open_file(path, flags)?
         };

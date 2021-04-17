@@ -111,7 +111,9 @@ pub trait Directory: Send + Sync {
     fn stat(&self) -> Result<Stat>;
     fn readdir(&self, index: usize) -> Result<Option<DirEntry>>;
     fn lookup(&self, name: &str) -> Result<INode>;
+    /// Creates a file. Returns `EEXIST` if the it already exists.
     fn create_file(&self, _name: &str, _mode: FileMode) -> Result<INode>;
+    /// Creates a directory. Returns `EEXIST` if the it already exists.
     fn create_dir(&self, _name: &str, _mode: FileMode) -> Result<INode>;
 }
 
