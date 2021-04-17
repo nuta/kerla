@@ -35,7 +35,7 @@ pub struct TmpFs {
 impl TmpFs {
     pub fn new() -> TmpFs {
         TmpFs {
-            root_dir: Arc::new(Dir::new("".to_owned(), INodeNo::new(1))),
+            root_dir: Arc::new(Dir::new(INodeNo::new(1))),
         }
     }
 }
@@ -47,7 +47,6 @@ impl FileSystem for TmpFs {
 }
 
 struct DirInner {
-    name: String,
     files: HashMap<String, TmpFsINode>,
     stat: Stat,
 }
@@ -55,9 +54,8 @@ struct DirInner {
 struct Dir(SpinLock<DirInner>);
 
 impl Dir {
-    pub fn new(name: String, inode_no: INodeNo) -> Dir {
+    pub fn new(inode_no: INodeNo) -> Dir {
         Dir(SpinLock::new(DirInner {
-            name,
             files: HashMap::new(),
             stat: Stat {
                 inode_no,
@@ -86,21 +84,21 @@ impl Directory for Dir {
             .0
             .lock()
             .files
-            .values()
+            .iter()
             .nth(index)
-            .map(|entry| match entry {
+            .map(|(name, entry)| match entry {
                 TmpFsINode::Directory(dir) => {
                     let dir = dir.0.lock();
                     DirEntry {
                         inode_no: dir.stat.inode_no,
                         file_type: FileType::Directory,
-                        name: dir.name.clone(),
+                        name: name.clone(),
                     }
                 }
                 TmpFsINode::File(file) => DirEntry {
                     inode_no: file.stat.inode_no,
                     file_type: FileType::Regular,
-                    name: file.name.clone(),
+                    name: name.clone(),
                 },
             });
 
@@ -128,7 +126,7 @@ impl Directory for Dir {
             return Err(Errno::EEXIST.into());
         }
 
-        let inode = Arc::new(File::new(name.to_owned(), alloc_inode_no()));
+        let inode = Arc::new(File::new(alloc_inode_no()));
         dir_lock
             .files
             .insert(name.to_owned(), TmpFsINode::File(inode.clone()));
@@ -137,7 +135,7 @@ impl Directory for Dir {
     }
 
     fn create_dir(&self, name: &str, _mode: FileMode) -> Result<INode> {
-        let inode = Arc::new(Dir::new(name.to_owned(), alloc_inode_no()));
+        let inode = Arc::new(Dir::new(alloc_inode_no()));
         self.0
             .lock()
             .files
@@ -148,15 +146,13 @@ impl Directory for Dir {
 }
 
 struct File {
-    name: String,
     data: SpinLock<Vec<u8>>,
     stat: Stat,
 }
 
 impl File {
-    pub fn new(name: String, inode_no: INodeNo) -> File {
+    pub fn new(inode_no: INodeNo) -> File {
         File {
-            name,
             data: SpinLock::new(Vec::new()),
             stat: Stat {
                 inode_no,
