@@ -1,6 +1,6 @@
 use crate::{
     arch::{self, SpinLock},
-    fs::{inode::FileLike, opened_file::*},
+    fs::opened_file::*,
     mm::vm::{Vm, VmAreaType},
 };
 

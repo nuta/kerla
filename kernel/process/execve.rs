@@ -2,6 +2,7 @@ use super::elf::{Elf, ProgramHeader};
 use crate::fs::{
     mount::RootFs,
     opened_file::{OpenOptions, OpenedFileTable},
+    path::Path,
 };
 use crate::mm::page_allocator::{alloc_pages, AllocPageFlags};
 use crate::process::*;
@@ -14,11 +15,33 @@ use goblin::elf64::program_header::PT_LOAD;
 pub fn execve(
     parent: Option<Weak<Process>>,
     pid: PId,
-    executable: Arc<dyn FileLike>,
+    executable_path: Arc<PathComponent>,
     argv: &[&[u8]],
     envp: &[&[u8]],
     root_fs: Arc<SpinLock<RootFs>>,
     opened_files: Arc<SpinLock<OpenedFileTable>>,
+) -> Result<Arc<Process>> {
+    do_execve(
+        parent,
+        pid,
+        executable_path,
+        argv,
+        envp,
+        root_fs,
+        opened_files,
+        true,
+    )
+}
+
+fn do_execve(
+    parent: Option<Weak<Process>>,
+    pid: PId,
+    executable_path: Arc<PathComponent>,
+    argv: &[&[u8]],
+    envp: &[&[u8]],
+    root_fs: Arc<SpinLock<RootFs>>,
+    opened_files: Arc<SpinLock<OpenedFileTable>>,
+    support_shebang: bool,
 ) -> Result<Arc<Process>> {
     // Read the ELF header in the executable file.
     let file_header_len = PAGE_SIZE;
@@ -26,7 +49,42 @@ pub fn execve(
     let file_header_pages = alloc_pages(file_header_len / PAGE_SIZE, AllocPageFlags::KERNEL)?;
     let buf =
         unsafe { core::slice::from_raw_parts_mut(file_header_pages.as_mut_ptr(), file_header_len) };
+
+    let executable = executable_path.inode.as_file()?;
     executable.read(0, buf.into(), &OpenOptions::readwrite())?;
+
+    if support_shebang && buf.starts_with(b"#!") && buf.contains(&b'\n') {
+        // Parse the shebang and load and overwrite argv and executable.
+        let mut argv: Vec<&[u8]> = buf[2..buf.iter().position(|&ch| ch == b'\n').unwrap()]
+            .split(|&ch| ch == b' ')
+            .collect();
+        if argv.is_empty() {
+            return Err(Errno::EINVAL.into());
+        }
+
+        let executable_pathbuf = executable_path.resolve_absolute_path();
+        argv.push(executable_pathbuf.as_str().as_bytes());
+
+        for i in &argv {
+            debug!("argv='{}'", unsafe { core::str::from_utf8_unchecked(i) });
+        }
+        // FIXME: We should use &[u8] in Path.
+        let shebang_path = root_fs.lock().lookup_path(
+            Path::new(unsafe { core::str::from_utf8_unchecked(argv[0]) }),
+            true,
+        )?;
+
+        return do_execve(
+            parent,
+            pid,
+            shebang_path,
+            &argv,
+            envp,
+            root_fs,
+            opened_files,
+            false,
+        );
+    }
 
     let elf = Elf::parse(&buf);
     let ip = elf.entry()?;

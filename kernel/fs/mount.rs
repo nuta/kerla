@@ -102,7 +102,7 @@ impl RootFs {
 
     /// Resolves a path into `PathComponent`. If `follow_symlink` is `true`,
     /// symbolic linked are resolved and will never return `INode::Symlink`.
-    fn lookup_path(&self, path: &Path, follow_symlink: bool) -> Result<Arc<PathComponent>> {
+    pub fn lookup_path(&self, path: &Path, follow_symlink: bool) -> Result<Arc<PathComponent>> {
         let lookup_from = if path.is_absolute() {
             self.root_path.clone()
         } else {

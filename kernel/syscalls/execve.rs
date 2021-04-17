@@ -22,7 +22,7 @@ impl<'a> SyscallDispatcher<'a> {
         envp_uaddr: UserVAddr,
     ) -> Result<isize> {
         let current = current_process();
-        let executable = current.root_fs.lock().lookup_file(path)?;
+        let executable = current.root_fs.lock().lookup_path(path, true)?;
 
         let mut argv = Vec::new();
         for i in 0..ARG_MAX {

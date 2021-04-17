@@ -93,9 +93,8 @@ pub fn boot_kernel(bootinfo: &BootInfo) -> ! {
         .into();
 
     // Open the init's executable.
-    // FIXME: We use /bin/sh for now.
-    let executable = root_fs
-        .lookup_file(Path::new("/bin/sh"))
+    let executable_path = root_fs
+        .lookup_path(Path::new("/sbin/init"), true)
         .expect("failed to open /sbin/init");
 
     // We cannot initialize the process subsystem until INITIAL_ROOT_FS is initialized.
@@ -105,9 +104,9 @@ pub fn boot_kernel(bootinfo: &BootInfo) -> ! {
     // Create the init process.
     Process::new_init_process(
         INITIAL_ROOT_FS.clone(),
-        executable,
+        executable_path,
         console,
-        &["/bin/sh".as_bytes()],
+        &[b"/sbin/init"],
     )
     .expect("failed to execute /sbin/init");
 
