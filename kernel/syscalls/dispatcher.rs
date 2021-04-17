@@ -37,6 +37,7 @@ const SYS_EXECVE: usize = 59;
 const SYS_EXIT: usize = 60;
 const SYS_WAIT4: usize = 61;
 const SYS_UNAME: usize = 63;
+const SYS_FCNTL: usize = 72;
 const SYS_GETCWD: usize = 79;
 const SYS_CHDIR: usize = 80;
 const SYS_MKDIR: usize = 83;
@@ -148,6 +149,7 @@ impl<'a> SyscallDispatcher<'a> {
             ),
             SYS_STAT => self.sys_stat(&resolve_path(a1)?, UserVAddr::new(a2)?),
             SYS_LSTAT => self.sys_lstat(&resolve_path(a1)?, UserVAddr::new(a2)?),
+            SYS_FCNTL => self.sys_fcntl(Fd::new(a1 as i32), a2 as c_int, a3),
             SYS_UTIMES => self.sys_utimes(&resolve_path(a1)?, UserVAddr::new(a2)?),
             SYS_GETDENTS64 => self.sys_getdents64(Fd::new(a1 as i32), UserVAddr::new(a2)?, a3),
             SYS_POLL => self.sys_poll(UserVAddr::new(a1)?, a2 as c_ulong, a3 as c_int),

@@ -255,27 +255,18 @@ impl OpenedFileTable {
     }
 
     pub fn open(&mut self, inode: INode, options: OpenOptions) -> Result<Fd> {
-        let mut i = (self.prev_fd + 1) % FD_MAX;
-        while i != self.prev_fd {
-            if matches!(self.files.get(i as usize), Some(None) | None) {
-                // It looks the fd number is not in use. Open the file at that fd.
-                let fd = Fd::new(i);
-                self.open_with_fixed_fd(
-                    fd,
-                    Arc::new(SpinLock::new(OpenedFile {
-                        inode,
-                        options,
-                        pos: 0,
-                    })),
-                    options.close_on_exec,
-                )?;
-                return Ok(fd);
-            }
-
-            i = (i + 1) % FD_MAX;
-        }
-
-        Err(Error::new(Errno::ENFILE))
+        self.alloc_fd(None).and_then(|fd| {
+            self.open_with_fixed_fd(
+                fd,
+                Arc::new(SpinLock::new(OpenedFile {
+                    inode,
+                    options,
+                    pos: 0,
+                })),
+                options.close_on_exec,
+            )
+            .and_then(|_| Ok(fd))
+        })
     }
 
     pub fn open_with_fixed_fd(
@@ -312,6 +303,18 @@ impl OpenedFileTable {
         Ok(())
     }
 
+    pub fn dup(&mut self, fd: Fd, gte: Option<i32>, cloexec: bool) -> Result<Fd> {
+        let opened_file = match self.files.get(fd.as_usize()) {
+            Some(Some(opened_file)) => opened_file.opened_file.clone(),
+            _ => return Err(Errno::EBADF.into()),
+        };
+
+        self.alloc_fd(gte).and_then(|fd| {
+            self.open_with_fixed_fd(fd, opened_file, cloexec)
+                .and_then(|_| Ok(fd))
+        })
+    }
+
     pub fn fork(&self) -> OpenedFileTable {
         self.clone()
     }
@@ -324,5 +327,25 @@ impl OpenedFileTable {
             }) => false,
             _ => true,
         })
+    }
+
+    /// Allocates an unused fd. Note that this method does not any reservations
+    /// for the fd: the caller must register it before unlocking this table.
+    fn alloc_fd(&mut self, gte: Option<i32>) -> Result<Fd> {
+        let (mut i, gte) = match gte {
+            Some(gte) => (gte, gte),
+            None => ((self.prev_fd + 1) % FD_MAX, 0),
+        };
+
+        while i != self.prev_fd && i >= gte {
+            if matches!(self.files.get(i as usize), Some(None) | None) {
+                // It looks the fd number is not in use. Open the file at that fd.
+                return Ok(Fd::new(i));
+            }
+
+            i = (i + 1) % FD_MAX;
+        }
+
+        Err(Error::new(Errno::ENFILE))
     }
 }

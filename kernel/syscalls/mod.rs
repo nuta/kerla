@@ -32,6 +32,7 @@ pub(self) mod connect;
 pub(self) mod dispatcher;
 pub(self) mod execve;
 pub(self) mod exit;
+pub(self) mod fcntl;
 pub(self) mod fork;
 pub(self) mod getcwd;
 pub(self) mod getdents64;
