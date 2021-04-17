@@ -6,7 +6,7 @@ use crate::fs::{
 };
 use crate::mm::page_allocator::{alloc_pages, AllocPageFlags};
 use crate::process::*;
-use crate::result::{Errno, Result};
+use crate::result::{Errno, Error, Result};
 use alloc::sync::Weak;
 use alloc::vec::Vec;
 use crossbeam::atomic::AtomicCell;
@@ -65,12 +65,9 @@ fn do_execve(
         let executable_pathbuf = executable_path.resolve_absolute_path();
         argv.push(executable_pathbuf.as_str().as_bytes());
 
-        for i in &argv {
-            debug!("argv='{}'", unsafe { core::str::from_utf8_unchecked(i) });
-        }
         // FIXME: We should use &[u8] in Path.
         let shebang_path = root_fs.lock().lookup_path(
-            Path::new(unsafe { core::str::from_utf8_unchecked(argv[0]) }),
+            Path::new(core::str::from_utf8(argv[0]).map_err(|_| Error::new(Errno::EINVAL))?),
             true,
         )?;
 
