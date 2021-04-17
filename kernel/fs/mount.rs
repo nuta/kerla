@@ -1,12 +1,12 @@
 use super::{
     file_system::FileSystem,
     inode::{Directory, FileLike, INode, INodeNo},
-    opened_file::resolve_path_component,
     opened_file::PathComponent,
+    opened_file::{resolve_path_component, OpenedFileTable},
     path::Path,
 };
-use crate::alloc::string::String;
 use crate::result::{Errno, Error, Result};
+use crate::{alloc::string::String, syscalls::CwdOrFd};
 use alloc::sync::Arc;
 
 use hashbrown::HashMap;
@@ -101,7 +101,7 @@ impl RootFs {
     }
 
     /// Resolves a path into `PathComponent`. If `follow_symlink` is `true`,
-    /// symbolic linked are resolved and will never return `INode::Symlink`.
+    /// symbolic links are resolved and will never return `INode::Symlink`.
     pub fn lookup_path(&self, path: &Path, follow_symlink: bool) -> Result<Arc<PathComponent>> {
         let lookup_from = if path.is_absolute() {
             self.root_path.clone()
@@ -115,6 +115,57 @@ impl RootFs {
             follow_symlink,
             self.symlink_follow_limit,
         )
+    }
+
+    /// Resolves a path into `PathComponent` from the given directory `cwd_or_fd`.
+    /// If `follow_symlink` is `true`, symbolic links are resolved and will
+    /// never return `INode::Symlink`.
+    pub fn lookup_path_at(
+        &self,
+        opened_files: &OpenedFileTable,
+        cwd_or_fd: &CwdOrFd,
+        path: &Path,
+        follow_symlink: bool,
+    ) -> Result<Arc<PathComponent>> {
+        self.do_lookup_path(
+            &self.resolve_cwd_or_fd(opened_files, cwd_or_fd, path)?,
+            path,
+            follow_symlink,
+            self.symlink_follow_limit,
+        )
+    }
+
+    pub fn lookup_parent_path_at<'a>(
+        &self,
+        opened_files: &OpenedFileTable,
+        cwd_or_fd: &CwdOrFd,
+        path: &'a Path,
+        follow_symlink: bool,
+    ) -> Result<(Arc<PathComponent>, &'a str)> {
+        let (parent_dir, name) = path
+            .parent_and_basename()
+            .ok_or_else::<Error, _>(|| Errno::EEXIST.into())?;
+        let path = self.lookup_path_at(opened_files, cwd_or_fd, parent_dir, follow_symlink)?;
+        Ok((path, name))
+    }
+
+    fn resolve_cwd_or_fd(
+        &self,
+        opened_files: &OpenedFileTable,
+        cwd_or_fd: &CwdOrFd,
+        path: &Path,
+    ) -> Result<Arc<PathComponent>> {
+        if path.is_absolute() {
+            Ok(self.root_path.clone())
+        } else {
+            match cwd_or_fd {
+                CwdOrFd::AtCwd => Ok(self.cwd_path.clone()),
+                CwdOrFd::Fd(fd) => {
+                    let opened_file = opened_files.get(*fd)?;
+                    Ok(opened_file.lock().path().clone())
+                }
+            }
+        }
     }
 
     fn do_lookup_path(

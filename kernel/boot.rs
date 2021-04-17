@@ -88,9 +88,8 @@ pub fn boot_kernel(bootinfo: &BootInfo) -> ! {
 
     // Open /dev/console for the init process.
     let console = root_fs
-        .lookup_file(Path::new("/dev/console"))
-        .expect("failed to open /dev/console")
-        .into();
+        .lookup_path(Path::new("/dev/console"), true)
+        .expect("failed to open /dev/console");
 
     // Open the init's executable.
     let executable_path = root_fs

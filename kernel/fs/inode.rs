@@ -6,6 +6,7 @@ use crate::{net::*, user_buffer::UserBuffer};
 use alloc::string::String;
 use alloc::sync::Arc;
 use bitflags::bitflags;
+use penguin_utils::downcast::Downcastable;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
@@ -34,7 +35,7 @@ bitflags! {
     }
 }
 
-pub trait FileLike: Send + Sync {
+pub trait FileLike: Send + Sync + Downcastable {
     fn stat(&self) -> Result<Stat> {
         Err(Error::new(Errno::EBADF))
     }
@@ -107,7 +108,7 @@ pub struct DirEntry {
     pub name: String,
 }
 
-pub trait Directory: Send + Sync {
+pub trait Directory: Send + Sync + Downcastable {
     fn stat(&self) -> Result<Stat>;
     fn readdir(&self, index: usize) -> Result<Option<DirEntry>>;
     fn lookup(&self, name: &str) -> Result<INode>;
@@ -117,7 +118,7 @@ pub trait Directory: Send + Sync {
     fn create_dir(&self, _name: &str, _mode: FileMode) -> Result<INode>;
 }
 
-pub trait Symlink: Send + Sync {
+pub trait Symlink: Send + Sync + Downcastable {
     fn stat(&self) -> Result<Stat>;
     fn linked_to(&self) -> Result<PathBuf>;
 }

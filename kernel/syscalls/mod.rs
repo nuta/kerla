@@ -1,8 +1,13 @@
-use crate::result::{Errno, Result};
 use crate::{
     arch::UserVAddr,
+    ctypes::*,
     net::{Endpoint, IpAddress, Ipv4Address},
 };
+use crate::{
+    fs::opened_file::Fd,
+    result::{Errno, Result},
+};
+use bitflags::bitflags;
 use core::cmp::min;
 use core::mem::size_of;
 use penguin_utils::{alignment::align_up, endian::NetworkEndianExt};
@@ -57,6 +62,27 @@ pub(self) mod write;
 pub(self) mod writev;
 
 pub use dispatcher::SyscallDispatcher;
+
+pub enum CwdOrFd {
+    /// `AT_FDCWD`
+    AtCwd,
+    Fd(Fd),
+}
+
+impl CwdOrFd {
+    pub fn parse(value: c_int) -> CwdOrFd {
+        match value {
+            -100 => CwdOrFd::AtCwd,
+            _ => CwdOrFd::Fd(Fd::new(value)),
+        }
+    }
+}
+
+bitflags! {
+    pub struct AtFlags: c_int {
+        const AT_SYMLINK_FOLLOW = 0x400;
+    }
+}
 
 pub(self) const MAX_READ_WRITE_LEN: usize = core::isize::MAX as usize;
 pub(self) const IOV_MAX: usize = 1024;

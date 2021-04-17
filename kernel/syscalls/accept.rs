@@ -1,6 +1,6 @@
 use crate::{
     arch::UserVAddr,
-    fs::opened_file::{Fd, OpenOptions},
+    fs::opened_file::{Fd, OpenOptions, PathComponent},
     result::Result,
 };
 use crate::{process::current_process, syscalls::SyscallDispatcher};
@@ -23,7 +23,7 @@ impl<'a> SyscallDispatcher<'a> {
         let fd = current_process()
             .opened_files
             .lock()
-            .open(sock.into(), options)?;
+            .open(PathComponent::new_anonymous(sock.into()), options)?;
         write_endpoint_as_sockaddr(&endpoint, sockaddr, socklen)?;
         Ok(fd.as_usize() as isize)
     }

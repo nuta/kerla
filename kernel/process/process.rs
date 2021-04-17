@@ -5,7 +5,6 @@ use crate::{
     arch::{self, SpinLock},
     boot::INITIAL_ROOT_FS,
     ctypes::*,
-    fs::inode::INode,
     fs::{mount::RootFs, opened_file},
     mm::vm::Vm,
     process::execve,
@@ -117,10 +116,10 @@ impl Process {
     pub fn new_init_process(
         root_fs: Arc<SpinLock<RootFs>>,
         executable_path: Arc<PathComponent>,
-        console: INode,
+        console: Arc<PathComponent>,
         argv: &[&[u8]],
     ) -> Result<Arc<Process>> {
-        assert!(matches!(console, INode::FileLike(_)));
+        assert!(console.inode.is_file());
 
         let mut opened_files = OpenedFileTable::new();
         // Open stdin.

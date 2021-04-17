@@ -2,7 +2,10 @@ use super::{AF_INET, IPPROTO_TCP, IPPROTO_UDP, SOCK_DGRAM, SOCK_STREAM};
 use crate::fs::inode::{FileLike, INode};
 use crate::net::{TcpSocket, UdpSocket};
 use crate::result::{Errno, Result};
-use crate::{ctypes::*, fs::opened_file::OpenOptions};
+use crate::{
+    ctypes::*,
+    fs::opened_file::{OpenOptions, PathComponent},
+};
 use crate::{process::current_process, syscalls::SyscallDispatcher};
 use alloc::sync::Arc;
 use bitflags::bitflags;
@@ -49,10 +52,10 @@ impl<'a> SyscallDispatcher<'a> {
             }
         };
 
-        let fd = current_process()
-            .opened_files
-            .lock()
-            .open(INode::FileLike(socket), flags.into())?;
+        let fd = current_process().opened_files.lock().open(
+            PathComponent::new_anonymous(INode::FileLike(socket).into()),
+            flags.into(),
+        )?;
 
         Ok(fd.as_usize() as isize)
     }

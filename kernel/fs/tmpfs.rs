@@ -17,7 +17,7 @@ use alloc::string::String;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use hashbrown::HashMap;
-use penguin_utils::once::Once;
+use penguin_utils::{downcast::downcast, once::Once};
 
 pub static TMP_FS: Once<Arc<TmpFs>> = Once::new();
 

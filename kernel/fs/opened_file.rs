@@ -88,6 +88,14 @@ pub struct PathComponent {
 }
 
 impl PathComponent {
+    pub fn new_anonymous(inode: INode) -> Arc<PathComponent> {
+        Arc::new(PathComponent {
+            parent_dir: None,
+            name: "anon".to_owned(),
+            inode,
+        })
+    }
+
     pub fn resolve_absolute_path(&self) -> PathBuf {
         let path = if self.parent_dir.is_some() {
             let mut path = String::from(&self.name);
@@ -142,30 +150,30 @@ where
 }
 
 pub struct OpenedFile {
-    inode: INode,
+    path: Arc<PathComponent>,
     pos: usize,
     options: OpenOptions,
 }
 
 impl OpenedFile {
-    pub fn new(inode: INode, options: OpenOptions, pos: usize) -> OpenedFile {
-        OpenedFile {
-            inode,
-            pos,
-            options,
-        }
+    pub fn new(path: Arc<PathComponent>, options: OpenOptions, pos: usize) -> OpenedFile {
+        OpenedFile { path, pos, options }
     }
 
     pub fn as_file(&self) -> Result<&Arc<dyn FileLike>> {
-        self.inode.as_file()
+        self.path.inode.as_file()
     }
 
     pub fn as_dir(&self) -> Result<&Arc<dyn Directory>> {
-        self.inode.as_dir()
+        self.path.inode.as_dir()
     }
 
     pub fn pos(&self) -> usize {
         self.pos
+    }
+
+    pub fn path(&self) -> &Arc<PathComponent> {
+        &self.path
     }
 
     pub fn read(&mut self, buf: UserBufferMut<'_>) -> Result<usize> {
@@ -255,12 +263,12 @@ impl OpenedFileTable {
         Ok(())
     }
 
-    pub fn open(&mut self, inode: INode, options: OpenOptions) -> Result<Fd> {
+    pub fn open(&mut self, path: Arc<PathComponent>, options: OpenOptions) -> Result<Fd> {
         self.alloc_fd(None).and_then(|fd| {
             self.open_with_fixed_fd(
                 fd,
                 Arc::new(SpinLock::new(OpenedFile {
-                    inode,
+                    path,
                     options,
                     pos: 0,
                 })),
