@@ -38,6 +38,13 @@ pub struct OpenOptions {
 }
 
 impl OpenOptions {
+    pub fn empty() -> OpenOptions {
+        OpenOptions {
+            nonblock: false,
+            close_on_exec: false,
+        }
+    }
+
     pub fn readwrite() -> OpenOptions {
         OpenOptions {
             nonblock: false,

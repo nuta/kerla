@@ -51,6 +51,7 @@ pub(self) mod lstat;
 pub(self) mod mkdir;
 pub(self) mod mmap;
 pub(self) mod open;
+pub(self) mod pipe;
 pub(self) mod poll;
 pub(self) mod read;
 pub(self) mod recvfrom;

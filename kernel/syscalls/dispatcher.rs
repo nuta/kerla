@@ -26,6 +26,7 @@ const SYS_BRK: usize = 12;
 const SYS_SIGACTION: usize = 13;
 const SYS_IOCTL: usize = 16;
 const SYS_WRITEV: usize = 20;
+const SYS_PIPE: usize = 22;
 const SYS_SOCKET: usize = 41;
 const SYS_CONNECT: usize = 42;
 const SYS_ACCEPT: usize = 43;
@@ -173,6 +174,7 @@ impl<'a> SyscallDispatcher<'a> {
             SYS_BRK => self.sys_brk(UserVAddr::new(a1)?),
             SYS_IOCTL => self.sys_ioctl(Fd::new(a1 as i32), a2, a3),
             SYS_SET_TID_ADDRESS => self.sys_set_tid_address(UserVAddr::new(a1)?),
+            SYS_PIPE => self.sys_pipe(UserVAddr::new(a1)?),
             SYS_SIGACTION => {
                 self.sys_rt_sigaction(a1 as c_int, UserVAddr::new(a2)?, UserVAddr::new(a3)?)
             }
