@@ -13,6 +13,7 @@ impl<T> Once<T> {
     }
 
     pub fn init<F: FnOnce() -> T>(&self, f: F) {
+        assert!(!self.inner.is_completed());
         self.inner.call_once(f);
     }
 }
