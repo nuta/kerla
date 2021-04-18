@@ -1,6 +1,9 @@
 use crate::{
     arch::SpinLock,
-    fs::{inode::FileLike, opened_file::OpenOptions},
+    fs::{
+        inode::{FileLike, PollStatus},
+        opened_file::OpenOptions,
+    },
     user_buffer::UserBuffer,
     user_buffer::UserBufferMut,
 };
@@ -220,5 +223,20 @@ impl FileLike for TcpSocket {
                 Err(err) => Err(err.into()),
             }
         })
+    }
+
+    fn poll(&self) -> Result<PollStatus> {
+        let mut sockets = SOCKETS.lock();
+        let socket = sockets.get::<smoltcp::socket::TcpSocket>(self.handle);
+
+        let mut status = PollStatus::empty();
+        if socket.can_recv() {
+            status |= PollStatus::POLLIN;
+        }
+        if socket.can_send() {
+            status |= PollStatus::POLLOUT;
+        }
+
+        Ok(status)
     }
 }
