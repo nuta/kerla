@@ -132,6 +132,8 @@ extern "C" {
 }
 
 /// Represents a user virtual memory address.
+// FIXME: It might be better if we ensure it is non null, i.e., use `Option<UserVaddr>`
+//        to represent a nullable user pointer.
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 #[repr(transparent)]
 pub struct UserVAddr(u64);
@@ -181,6 +183,14 @@ impl UserVAddr {
             Some(end) if end <= KERNEL_BASE_ADDR as usize => Ok(()),
             Some(_end) => Err(Error::with_message(Errno::EFAULT, "invalid user pointer")),
             None => Err(Error::with_message(Errno::EFAULT, "overflow in access_ok")),
+        }
+    }
+
+    pub fn read_optional<T>(self) -> Result<Option<T>> {
+        if self.is_null() {
+            Ok(None)
+        } else {
+            self.read().map(Some)
         }
     }
 
