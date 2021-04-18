@@ -1,0 +1,126 @@
+use core::{cmp::min, mem::MaybeUninit, ops::Range, slice};
+
+pub struct RingBuffer<T, const CAP: usize> {
+    buf: [MaybeUninit<T>; CAP],
+    rp: usize,
+    wp: usize,
+}
+
+impl<T, const CAP: usize> RingBuffer<T, CAP> {
+    pub fn new() -> RingBuffer<T, CAP> {
+        RingBuffer {
+            buf: unsafe { MaybeUninit::uninit().assume_init() },
+            rp: 0,
+            wp: 0,
+        }
+    }
+
+    pub fn is_writable(&self) -> bool {
+        !((self.wp + 1) % (CAP + 1) == self.rp)
+    }
+
+    pub fn is_readable(&self) -> bool {
+        self.rp != self.wp
+    }
+
+    pub fn push_slice(&mut self, data: &[T]) -> usize
+    where
+        T: Copy,
+    {
+        if !self.is_writable() {
+            return 0;
+        }
+
+        if self.wp >= self.rp {
+            let free1 = self.wp..(CAP - 1);
+            let free2 = 0..self.rp.saturating_sub(1);
+            let src1 = &data[..min(data.len(), free1.len())];
+            let src2 = &data[src1.len()..min(data.len(), src1.len() + free2.len())];
+
+            let dst1 = free1.start..(free1.start + src1.len());
+            if !dst1.is_empty() {
+                self.wp = dst1.end;
+                self.slice_mut(dst1).copy_from_slice(src1);
+            }
+
+            let dst2 = free2.start..(free2.start + src2.len());
+            if !dst2.is_empty() {
+                self.wp = dst2.end;
+                self.slice_mut(dst2).copy_from_slice(src2);
+            }
+
+            src1.len() + src2.len()
+        } else {
+            let free = self.wp..self.rp.saturating_sub(1);
+            let src = &data[..min(data.len(), free.len())];
+            let dst = free.start..(free.start + src.len());
+            self.wp = dst.end;
+            self.slice_mut(dst).copy_from_slice(src);
+            src.len()
+        }
+    }
+
+    pub fn pop_slice(&mut self, len: usize) -> Option<&[T]> {
+        if !self.is_readable() {
+            return None;
+        }
+
+        let range = if self.rp < self.wp {
+            self.rp..min(self.rp + len, self.wp)
+        } else {
+            self.wp..min(self.wp + len, CAP)
+        };
+
+        self.rp += (self.rp + range.len()) % CAP;
+        Some(self.slice(range))
+    }
+
+    fn slice(&self, range: Range<usize>) -> &[T] {
+        debug_assert!(range.end <= CAP);
+        unsafe {
+            let ptr = self.buf.as_ptr() as *const T;
+            slice::from_raw_parts(ptr.add(range.start), range.end - range.start)
+        }
+    }
+
+    fn slice_mut(&mut self, range: Range<usize>) -> &mut [T] {
+        debug_assert!(range.end <= CAP);
+        unsafe {
+            let ptr = self.buf.as_mut_ptr() as *mut T;
+            slice::from_raw_parts_mut(ptr.add(range.start), range.end - range.start)
+        }
+    }
+}
+
+#[cfg(all(test, not(feature = "no_std")))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_ring_buffer() {
+        let mut rb = RingBuffer::<u8, 8>::new();
+
+        assert_eq!(rb.push_slice(b"abcd"), 4);
+        assert_eq!(rb.slice(0..4), b"abcd");
+        assert_eq!(rb.wp, 4);
+        assert_eq!(rb.rp, 0);
+
+        assert_eq!(rb.push_slice(b"1234"), 3);
+        assert_eq!(rb.slice(0..7), b"abcd123");
+
+        // The buffer is full.
+        assert_eq!(rb.push_slice(b"x"), 0);
+        assert_eq!(rb.slice(0..7), b"abcd123");
+        assert_eq!(rb.wp, 7);
+        assert_eq!(rb.rp, 0);
+
+        assert_eq!(rb.pop_slice(3), Some(b"abc"));
+        assert_eq!(rb.wp, 7);
+        assert_eq!(rb.rp, 3);
+
+        assert_eq!(rb.push_slice(b"xyz"), 2);
+        assert_eq!(rb.slice(0..7), b"xycd123");
+        assert_eq!(rb.wp, 2);
+        assert_eq!(rb.rp, 3);
+    }
+}

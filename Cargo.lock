@@ -157,6 +157,7 @@ dependencies = [
 name = "penguin_utils"
 version = "0.0.0"
 dependencies = [
+ "arrayvec",
  "spin",
 ]
 
