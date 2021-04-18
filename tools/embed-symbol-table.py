@@ -6,6 +6,7 @@ import struct
 START_MAKER = b"__SYMBOL_TABLE_START__"
 END_MAKER = b"__SYMBOL_TABLE_END__"
 SYMBOL_TABLE_MAGIC = 0xbeefbeef
+SYMBOL_MAX_LEN = 55
 
 
 def main():
@@ -41,15 +42,25 @@ def main():
     # Build a symbol table.
     symbol_table = struct.pack("<IIQ", SYMBOL_TABLE_MAGIC, len(symbols), 0)
     for addr, name in symbols:
-        symbol_table += struct.pack("<Q56s", addr, bytes(name[:55], "ascii"))
+        if len(name) <= SYMBOL_MAX_LEN:
+            truncated_name = name[:55]
+        else:
+            prefix_len = SYMBOL_MAX_LEN // 2
+            suffix_len = SYMBOL_MAX_LEN - len("...") - prefix_len
+            truncated_name = name[:prefix_len] + "..." + name[-suffix_len:]
+            assert len(truncated_name) == SYMBOL_MAX_LEN
+        symbol_table += struct.pack("<Q56s", addr,
+                                    bytes(truncated_name, "ascii"))
 
     max_size = offset_end - offset
     if len(symbol_table) > max_size:
-        sys.exit(f"embed-symbol-table.py: Too many symbols; please expand the symbol table area (max_size={max_size / 1024}KiB, created={len(symbol_table) / 1024}KiB)")
+        sys.exit(
+            f"embed-symbol-table.py: Too many symbols; please expand the symbol table area (max_size={max_size / 1024}KiB, created={len(symbol_table) / 1024}KiB)")
 
     # Embed the symbol table.
     image = image[:offset] + symbol_table + image[offset + len(symbol_table):]
     open(args.executable, "wb").write(image)
+
 
 if __name__ == "__main__":
     main()
