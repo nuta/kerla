@@ -11,7 +11,7 @@ use crate::{
 use alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
 use core::cmp::min;
 use crossbeam::atomic::AtomicCell;
-use smoltcp::socket::{SocketRef, SocketSet, TcpSocketBuffer};
+use smoltcp::socket::{SocketRef, TcpSocketBuffer};
 
 use super::{process_packets, socket::*, SOCKETS, SOCKET_WAIT_QUEUE};
 
@@ -41,7 +41,6 @@ impl TcpSocket {
 
     fn refill_backlog_sockets(
         &self,
-        sockets: &mut SpinLockGuard<'_, SocketSet>,
         backlogs: &mut SpinLockGuard<'_, Vec<Arc<TcpSocket>>>,
     ) -> Result<()> {
         let local_endpoint = match self.local_endpoint.load() {
@@ -51,7 +50,8 @@ impl TcpSocket {
 
         for _ in 0..(self.num_backlogs.load() - backlogs.len()) {
             let socket = TcpSocket::new();
-            sockets
+            SOCKETS
+                .lock()
                 .get::<smoltcp::socket::TcpSocket>(socket.handle)
                 .listen(local_endpoint)?;
             backlogs.push(socket);
@@ -63,25 +63,24 @@ impl TcpSocket {
 
 impl FileLike for TcpSocket {
     fn listen(&self, backlog: i32) -> Result<()> {
-        let mut sockets = SOCKETS.lock();
         let mut backlogs = self.backlogs.lock();
 
         let new_num_backlogs = min(backlog as usize, BACKLOG_MAX);
-        self.backlogs.lock().truncate(new_num_backlogs);
+        backlogs.truncate(new_num_backlogs);
         self.num_backlogs.store(new_num_backlogs);
 
-        self.refill_backlog_sockets(&mut sockets, &mut backlogs)
+        self.refill_backlog_sockets(&mut backlogs)
     }
 
     fn accept(&self, _options: &OpenOptions) -> Result<(Arc<dyn FileLike>, Endpoint)> {
         SOCKET_WAIT_QUEUE.sleep_until(|| {
-            let mut sockets = SOCKETS.lock();
             let mut backlogs = self.backlogs.lock();
 
             // Look for an accept'able socket in the backlog....
             let index = backlogs.iter().position(|sock| {
+                let mut sockets_lock = SOCKETS.lock();
                 let smol_socket: SocketRef<'_, smoltcp::socket::TcpSocket> =
-                    sockets.get(sock.handle);
+                    sockets_lock.get(sock.handle);
                 smol_socket.may_recv() || smol_socket.may_send()
             });
 
@@ -89,11 +88,12 @@ impl FileLike for TcpSocket {
                 Some(index) => {
                     // Pop the client socket and add a new socket into the backlog.
                     let socket = backlogs.remove(index);
-                    self.refill_backlog_sockets(&mut sockets, &mut backlogs)?;
+                    self.refill_backlog_sockets(&mut backlogs)?;
 
                     // Extract the remote endpoint.
+                    let mut sockets_lock = SOCKETS.lock();
                     let smol_socket: SocketRef<'_, smoltcp::socket::TcpSocket> =
-                        sockets.get(socket.handle);
+                        sockets_lock.get(socket.handle);
                     let endpoint = smol_socket.remote_endpoint().into();
                     Ok(Some((socket as Arc<dyn FileLike>, endpoint)))
                 }
