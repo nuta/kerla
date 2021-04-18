@@ -1,4 +1,4 @@
-use super::{getrandom::GetRandomFlags, wait4::WaitOptions, AtFlags, CwdOrFd};
+use super::{getrandom::GetRandomFlags, parse_timeval, wait4::WaitOptions, AtFlags, CwdOrFd};
 use crate::{
     arch::{SyscallFrame, UserVAddr},
     ctypes::*,
@@ -27,6 +27,7 @@ const SYS_SIGACTION: usize = 13;
 const SYS_IOCTL: usize = 16;
 const SYS_WRITEV: usize = 20;
 const SYS_PIPE: usize = 22;
+const SYS_SELECT: usize = 23;
 const SYS_SOCKET: usize = 41;
 const SYS_CONNECT: usize = 42;
 const SYS_ACCEPT: usize = 43;
@@ -167,6 +168,13 @@ impl<'a> SyscallDispatcher<'a> {
             SYS_UTIMES => self.sys_utimes(&resolve_path(a1)?, UserVAddr::new(a2)?),
             SYS_GETDENTS64 => self.sys_getdents64(Fd::new(a1 as i32), UserVAddr::new(a2)?, a3),
             SYS_POLL => self.sys_poll(UserVAddr::new(a1)?, a2 as c_ulong, a3 as c_int),
+            SYS_SELECT => self.sys_select(
+                a1 as c_int,
+                UserVAddr::new(a2)?,
+                UserVAddr::new(a3)?,
+                UserVAddr::new(a4)?,
+                parse_timeval(UserVAddr::new(a5)?)?,
+            ),
             SYS_GETCWD => self.sys_getcwd(UserVAddr::new(a1)?, a2 as c_size),
             SYS_CHDIR => self.sys_chdir(&resolve_path(a1)?),
             SYS_MKDIR => self.sys_mkdir(&resolve_path(a1)?, FileMode::new(a2 as u32)),

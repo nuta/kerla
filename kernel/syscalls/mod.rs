@@ -56,6 +56,7 @@ pub(self) mod poll;
 pub(self) mod read;
 pub(self) mod recvfrom;
 pub(self) mod rt_sigaction;
+pub(self) mod select;
 pub(self) mod sendto;
 pub(self) mod set_tid_address;
 pub(self) mod socket;
@@ -156,6 +157,24 @@ pub(self) fn parse_sockaddr(uaddr: UserVAddr, _len: usize) -> Result<SockAddr> {
     };
 
     Ok(sockaddr)
+}
+
+/// `struct timeval`
+#[derive(Debug, Copy, Clone)]
+#[repr(C, packed)]
+pub struct Timeval {
+    tv_sec: c_time,
+    tv_usec: c_suseconds,
+}
+
+impl Timeval {
+    pub fn as_msecs(&self) -> usize {
+        (self.tv_sec as usize) * 1000 + (self.tv_usec as usize) / 1000
+    }
+}
+
+pub(self) fn parse_timeval(uaddr: UserVAddr) -> Result<Option<Timeval>> {
+    uaddr.read_optional::<Timeval>()
 }
 
 pub fn write_endpoint_as_sockaddr(

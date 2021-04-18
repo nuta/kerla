@@ -14,6 +14,7 @@ pub type c_long = c_int64;
 pub type c_ulong = c_uint64;
 
 pub type c_time = c_int64;
+pub type c_suseconds = c_int64;
 pub type c_clockid = c_int;
 pub type c_nfds = c_ulong;
 pub type c_size = c_ulong;
