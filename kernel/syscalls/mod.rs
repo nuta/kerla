@@ -54,6 +54,7 @@ pub(self) mod open;
 pub(self) mod poll;
 pub(self) mod read;
 pub(self) mod recvfrom;
+pub(self) mod rt_sigaction;
 pub(self) mod sendto;
 pub(self) mod set_tid_address;
 pub(self) mod socket;

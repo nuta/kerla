@@ -23,6 +23,7 @@ const SYS_LSTAT: usize = 6;
 const SYS_POLL: usize = 7;
 const SYS_MMAP: usize = 9;
 const SYS_BRK: usize = 12;
+const SYS_SIGACTION: usize = 13;
 const SYS_IOCTL: usize = 16;
 const SYS_WRITEV: usize = 20;
 const SYS_SOCKET: usize = 41;
@@ -172,6 +173,9 @@ impl<'a> SyscallDispatcher<'a> {
             SYS_BRK => self.sys_brk(UserVAddr::new(a1)?),
             SYS_IOCTL => self.sys_ioctl(Fd::new(a1 as i32), a2, a3),
             SYS_SET_TID_ADDRESS => self.sys_set_tid_address(UserVAddr::new(a1)?),
+            SYS_SIGACTION => {
+                self.sys_rt_sigaction(a1 as c_int, UserVAddr::new(a2)?, UserVAddr::new(a3)?)
+            }
             SYS_EXECVE => {
                 self.sys_execve(&resolve_path(a1)?, UserVAddr::new(a2)?, UserVAddr::new(a3)?)
             }
