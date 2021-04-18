@@ -68,16 +68,6 @@ class Package:
             f"RUN apt-get update && apt-get install -qy {' '.join(BUILTIN_PACKAGES)}"
         ]
 
-        for path, content in self.added_files.items():
-            dst_path = os.path.join("/build", path.lstrip("/"))
-            tmp_path = os.path.join("add_files", path.lstrip("/"))
-            Path(tmp_path).parent.mkdir(parents=True, exist_ok=True)
-            if type(content) is str:
-                open(tmp_path, "w").write(content)
-            else:
-                open(tmp_path, "wb").write(content)
-            lines.append(f"ADD {tmp_path} {dst_path}")
-
         if self.host_deps:
             lines.append(f"RUN apt-get install -qy {' '.join(self.host_deps)}")
 
@@ -93,6 +83,16 @@ class Package:
             lines.append(f"RUN curl -fsSL --output {tarball} \"{self.url}\"")
             lines.append(
                 f"RUN mkdir /build && tar xf {tarball} --strip-components=1 -C /build")
+
+        for path, content in self.added_files.items():
+            dst_path = os.path.join("/build", path.lstrip("/"))
+            tmp_path = os.path.join("add_files", path.lstrip("/"))
+            Path(tmp_path).parent.mkdir(parents=True, exist_ok=True)
+            if type(content) is str:
+                open(tmp_path, "w").write(content)
+            else:
+                open(tmp_path, "wb").write(content)
+            lines.append(f"ADD {tmp_path} {dst_path}")
 
         lines.append("WORKDIR /build")
         lines += self.dockerfile
@@ -218,6 +218,7 @@ def main():
 
     if not cp.stderr.endswith(b" blocks\n"):
         print(cp.stderr)
+
 
 if __name__ == "__main__":
     main()

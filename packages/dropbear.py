@@ -1,5 +1,10 @@
 from . import Package
 
+LOCALOPTIONS_H = """\
+#define DEBUG_TRACE 1
+#define DEBUG_NOFORK 1
+"""
+
 
 class Dropbear(Package):
     def __init__(self):
@@ -14,6 +19,7 @@ class Dropbear(Package):
         }
 
     def build(self):
+        self.add_file("localoptions.h", LOCALOPTIONS_H)
         self.run(
             "./configure CC=musl-gcc --enable-static --disable-largefile --disable-zlib --disable-syslog")
         self.make()
