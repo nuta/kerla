@@ -36,6 +36,7 @@ pub(self) mod clock_gettime;
 pub(self) mod close;
 pub(self) mod connect;
 pub(self) mod dispatcher;
+pub(self) mod dup2;
 pub(self) mod execve;
 pub(self) mod exit;
 pub(self) mod fcntl;

@@ -366,6 +366,20 @@ impl OpenedFileTable {
         })
     }
 
+    pub fn dup2(&mut self, old: Fd, new: Fd, options: OpenOptions) -> Result<()> {
+        let opened_file = match self.files.get(old.as_usize()) {
+            Some(Some(opened_file)) => opened_file.opened_file.clone(),
+            _ => return Err(Errno::EBADF.into()),
+        };
+
+        if let Some(Some(_)) = self.files.get(new.as_usize()) {
+            self.close(new).ok();
+        }
+
+        self.open_with_fixed_fd(new, opened_file, options)?;
+        Ok(())
+    }
+
     pub fn fork(&self) -> OpenedFileTable {
         self.clone()
     }
