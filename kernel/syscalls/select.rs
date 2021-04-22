@@ -5,14 +5,14 @@ use crate::{
     ctypes::c_int,
     fs::{inode::PollStatus, opened_file::Fd},
     poll::POLL_WAIT_QUEUE,
-    result::Result,
+    result::{Errno, Result},
     timer::read_monotonic_clock,
 };
 use crate::{process::current_process, syscalls::SyscallDispatcher};
 
-use super::{Timeval, UserBufReader};
+use super::Timeval;
 
-fn check_fd_statuses<F>(num_fds: c_int, fds: UserVAddr, is_ready: F) -> Result<isize>
+fn check_fd_statuses<F>(max_fd: c_int, fds: UserVAddr, is_ready: F) -> Result<isize>
 where
     F: Fn(PollStatus) -> bool,
 {
@@ -20,13 +20,20 @@ where
         return Ok(0);
     }
 
+    let num_bytes = align_up(max_fd as usize, 8) / 8;
+    if num_bytes > 1024 {
+        return Err(Errno::ENOMEM.into());
+    }
+
+    let mut fds_vec = vec![0; num_bytes];
+    fds.read_bytes(fds_vec.as_mut_slice())?;
+
     let mut ready_fds = 0;
-    let mut reader = UserBufReader::new(fds);
-    for byte_i in 0..(align_up(num_fds as usize, 8) / 8) {
-        let mut bitmap: u8 = reader.read()?;
+    for byte_i in 0..num_bytes {
+        let byte = &mut fds_vec[byte_i];
         for bit_i in 0..8 {
             let fd = Fd::new((byte_i * 8 + bit_i) as c_int);
-            if bitmap & (1 << bit_i) != 0 && fd.as_int() < num_fds {
+            if *byte & (1 << bit_i) != 0 && fd.as_int() <= max_fd {
                 let status = current_process()
                     .opened_files
                     .lock()
@@ -37,12 +44,14 @@ where
                 if is_ready(status) {
                     ready_fds += 1;
                 } else {
-                    bitmap &= !(1 << bit_i);
+                    *byte &= !(1 << bit_i);
                 }
             }
         }
+    }
 
-        fds.add(reader.pos() - 1)?.write::<u8>(&bitmap)?;
+    if ready_fds > 0 {
+        fds.write_bytes(&fds_vec)?;
     }
 
     Ok(ready_fds)
@@ -51,7 +60,7 @@ where
 impl<'a> SyscallDispatcher<'a> {
     pub fn sys_select(
         &mut self,
-        nfds: c_int,
+        max_fd: c_int,
         readfds: UserVAddr,
         writefds: UserVAddr,
         _errorfds: UserVAddr,
@@ -69,11 +78,11 @@ impl<'a> SyscallDispatcher<'a> {
 
             // Check the statuses of all specified files one by one.
             // TODO: Support errorfds
-            let ready_fds =
-                check_fd_statuses(nfds, readfds, |status| status.contains(PollStatus::POLLIN))?
-                    + check_fd_statuses(nfds, writefds, |status| {
-                        status.contains(PollStatus::POLLOUT)
-                    })?;
+            let ready_fds = check_fd_statuses(max_fd, readfds, |status| {
+                status.contains(PollStatus::POLLIN)
+            })? + check_fd_statuses(max_fd, writefds, |status| {
+                status.contains(PollStatus::POLLOUT)
+            })?;
 
             if ready_fds > 0 {
                 Ok(Some(ready_fds))
