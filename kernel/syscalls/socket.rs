@@ -13,7 +13,6 @@ use bitflags::bitflags;
 bitflags! {
     struct SocketFlags: c_int {
         const SOCK_NONBLOCK = 0o4000;
-        // TODO: not implemented
         const SOCK_CLOEXEC = 0o2000000;
     }
 }
