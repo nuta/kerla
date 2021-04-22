@@ -39,6 +39,7 @@ pub(self) mod execve;
 pub(self) mod exit;
 pub(self) mod fcntl;
 pub(self) mod fork;
+pub(self) mod fstat;
 pub(self) mod fsync;
 pub(self) mod getcwd;
 pub(self) mod getdents64;

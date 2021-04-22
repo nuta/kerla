@@ -19,6 +19,7 @@ const SYS_WRITE: usize = 1;
 const SYS_OPEN: usize = 2;
 const SYS_CLOSE: usize = 3;
 const SYS_STAT: usize = 4;
+const SYS_FSTAT: usize = 5;
 const SYS_LSTAT: usize = 6;
 const SYS_POLL: usize = 7;
 const SYS_MMAP: usize = 9;
@@ -155,6 +156,7 @@ impl<'a> SyscallDispatcher<'a> {
                 a6 as c_off,
             ),
             SYS_STAT => self.sys_stat(&resolve_path(a1)?, UserVAddr::new(a2)?),
+            SYS_FSTAT => self.sys_fstat(Fd::new(a1 as c_int), UserVAddr::new(a2)?),
             SYS_LSTAT => self.sys_lstat(&resolve_path(a1)?, UserVAddr::new(a2)?),
             SYS_FCNTL => self.sys_fcntl(Fd::new(a1 as i32), a2 as c_int, a3),
             SYS_LINK => self.sys_link(&resolve_path(a1)?, &resolve_path(a2)?),
