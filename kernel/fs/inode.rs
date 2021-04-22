@@ -36,6 +36,10 @@ bitflags! {
 }
 
 pub trait FileLike: Send + Sync + Downcastable {
+    fn open(&self, _options: &OpenOptions) -> Result<Option<Arc<dyn FileLike>>> {
+        Ok(None)
+    }
+
     fn stat(&self) -> Result<Stat> {
         Err(Error::new(Errno::EBADF))
     }

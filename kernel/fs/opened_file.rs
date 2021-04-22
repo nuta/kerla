@@ -340,6 +340,17 @@ impl OpenedFileTable {
             }
         }
 
+        let mut opened_file = opened_file.lock();
+        match opened_file.path.inode {
+            INode::FileLike(ref file) => {
+                // TODO: Explore better approaches on opening a file.
+                if let Some(new_file) = file.open(&options)? {
+                    opened_file.path = PathComponent::new_anonymous(new_file.into());
+                }
+            }
+            _ => {}
+        }
+
         Ok(())
     }
 
