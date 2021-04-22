@@ -35,20 +35,20 @@ pub fn print_str(s: &[u8]) {
     }
 }
 
-fn read_char() -> Option<char> {
+fn read_char() -> Option<u8> {
     unsafe {
         if (inb(IOPORT_SERIAL + LSR) & 1) == 0 {
             return None;
         }
 
-        Some(inb(IOPORT_SERIAL + RBR) as char)
+        Some(inb(IOPORT_SERIAL + RBR))
     }
 }
 
 pub fn irq_handler() {
     while let Some(ch) = read_char() {
-        if ch == '\r' {
-            SERIAL_TTY.input_char('\n');
+        if ch == b'\r' {
+            SERIAL_TTY.input_char(b'\n');
         } else {
             SERIAL_TTY.input_char(ch);
         }

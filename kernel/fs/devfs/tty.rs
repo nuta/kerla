@@ -1,84 +1,42 @@
-use arrayvec::ArrayVec;
-use bitflags::bitflags;
-
 use crate::{
-    arch::{print_str, SpinLock},
+    arch::print_str,
     fs::{
         inode::{FileLike, INodeNo},
         opened_file::OpenOptions,
         stat::{FileMode, Stat, S_IFCHR},
     },
-    process::WaitQueue,
     result::Result,
+    tty::line_discipline::*,
     user_buffer::UserBuffer,
     user_buffer::UserBufferMut,
 };
 
-bitflags! {
-    struct LFlag: u32 {
-        const ICANON = 0o0000002;
-        const ECHO   = 0o0000010;
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct Termios {
-    lflag: LFlag,
-}
-
-impl Default for Termios {
-    fn default() -> Termios {
-        Termios {
-            lflag: LFlag::ICANON | LFlag::ECHO,
-        }
-    }
-}
-
 pub struct Tty {
-    wait_queue: WaitQueue,
-    // TODO: Use an fixed-sized queue which supports iterating all elements.
-    buf: SpinLock<ArrayVec<u8, 64>>,
-    termios: Termios,
+    discipline: LineDiscipline,
 }
 
 impl Tty {
     pub fn new() -> Tty {
         Tty {
-            wait_queue: WaitQueue::new(),
-            buf: SpinLock::new(ArrayVec::new()),
-            termios: Default::default(),
+            discipline: LineDiscipline::new(),
         }
     }
 
-    pub fn input_char(&self, ch: char) {
-        if self.termios.lflag.contains(LFlag::ECHO) {
-            self.write(0, [ch as u8].as_slice().into(), &OpenOptions::readwrite())
-                .ok();
-        }
-
-        let mut buf_lock = self.buf.lock();
-        match ch as u8 {
-            0x7f /* backspace */ if self.is_cooked_mode() => {
-                match buf_lock.pop() {
-                    Some(b'\n') => {
-                        buf_lock.push(b'\n');
-                    }
-                    Some(_) => {
+    pub fn input_char(&self, ch: u8) {
+        self.discipline
+            .write(([ch].as_slice()).into(), |ctrl| {
+                match ctrl {
+                    LineControl::Backspace => {
                         // Remove the previous character by overwriting with a whitespace.
                         print_str(b"\x08 \x08");
                     }
-                    None => {}
+                    LineControl::Echo(ch) => {
+                        self.write(0, [ch].as_slice().into(), &OpenOptions::readwrite())
+                            .ok();
+                    }
                 }
-            }
-            _ => {
-                buf_lock.try_push(ch as u8).ok();
-            }
-        }
-        self.wait_queue.wake_one();
-    }
-
-    pub fn is_cooked_mode(&self) -> bool {
-        self.termios.lflag.contains(LFlag::ICANON)
+            })
+            .ok();
     }
 }
 
@@ -94,42 +52,10 @@ impl FileLike for Tty {
     fn read(
         &self,
         _offset: usize,
-        mut dst: UserBufferMut<'_>,
+        dst: UserBufferMut<'_>,
         _options: &OpenOptions,
     ) -> Result<usize> {
-        self.wait_queue.sleep_until(|| {
-            let mut buf_lock = self.buf.lock();
-            if self.is_cooked_mode() {
-                if buf_lock.contains(&b'\n') {
-                    // Cooked mode: read until the newline.
-                    while dst.remaining_len() > 0 {
-                        if let Some(ch) = buf_lock.pop_at(0) {
-                            dst.write(ch as u8)?;
-
-                            if ch == b'\n' {
-                                break;
-                            }
-                        } else {
-                            break;
-                        }
-                    }
-                }
-            } else {
-                while dst.remaining_len() > 0 {
-                    if let Some(ch) = buf_lock.pop_at(0) {
-                        dst.write(ch as u8)?;
-                    } else {
-                        break;
-                    }
-                }
-            }
-
-            if dst.pos() > 0 {
-                Ok(Some(dst.pos()))
-            } else {
-                Ok(None)
-            }
-        })
+        self.discipline.read(dst)
     }
 
     fn write(

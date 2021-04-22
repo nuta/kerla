@@ -39,4 +39,5 @@ mod random;
 mod syscalls;
 mod test_runner;
 mod timer;
+mod tty;
 mod user_buffer;
