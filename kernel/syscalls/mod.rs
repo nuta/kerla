@@ -49,6 +49,7 @@ pub(self) mod getrandom;
 pub(self) mod ioctl;
 pub(self) mod link;
 pub(self) mod linkat;
+pub(self) mod getpid;
 pub(self) mod listen;
 pub(self) mod lstat;
 pub(self) mod mkdir;
