@@ -20,11 +20,11 @@ nameserver 1.1.1.1
 
 FILES["/etc/passwd"] = """
 root:x:0:0:root:/:/bin/sh
-""".strip()
+""".lstrip()
 
 FILES["/etc/group"] = """
 root:x:0:
-""".strip()
+""".lstrip()
 
 FILES["/etc/profile"] = """
 echo ""
@@ -37,7 +37,7 @@ echo "            (__)\\\\       )\\\\/\\\\"
 echo "                ||----w |"
 echo "                ||     ||"
 echo ""
-""".strip()
+""".lstrip()
 
 
 class Files(Package):
