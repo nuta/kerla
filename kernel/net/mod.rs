@@ -47,8 +47,6 @@ pub fn receive_ethernet_frame(frame: &[u8]) {
         // TODO: Introduce warn_once! macro
         warn!("the rx packet queue is full; dropping an incoming packet");
     }
-
-    trace!("received {} bytes", frame.len());
 }
 
 impl From<MonotonicClock> for Instant {
@@ -69,8 +67,7 @@ pub fn process_packets() {
     let mut dhcp = DHCP_CLIENT.lock();
 
     let timestamp = read_monotonic_clock().into();
-    let mut do_again = true;
-    while do_again {
+    loop {
         if let Some(config) = dhcp
             .poll(&mut iface, &mut sockets, timestamp)
             .unwrap_or_else(|e| {
@@ -92,20 +89,21 @@ pub fn process_packets() {
                 .map(|router| iface.routes_mut().add_default_ipv4_route(router).unwrap());
         }
 
-        do_again = match iface.poll(&mut sockets, timestamp) {
-            Ok(do_again) => do_again,
-            Err(smoltcp::Error::Unrecognized) => true,
+        match iface.poll(&mut sockets, timestamp) {
+            Ok(false) => break,
+            Ok(true) => {}
+            Err(smoltcp::Error::Unrecognized) => {}
             Err(err) => {
                 debug_warn!("smoltcp error: {:?}", err);
-                false
+                break;
             }
-        };
-        if do_again {
-            SOCKET_WAIT_QUEUE.wake_all();
-            POLL_WAIT_QUEUE.wake_all();
         }
     }
 
+    SOCKET_WAIT_QUEUE.wake_all();
+    POLL_WAIT_QUEUE.wake_all();
+
+    // TODO: timeout
     let mut _timeout = dhcp.next_poll(timestamp);
     if let Some(sockets_timeout) = iface.poll_delay(&sockets, timestamp) {
         _timeout = sockets_timeout;
