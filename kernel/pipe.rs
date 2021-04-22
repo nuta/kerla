@@ -49,8 +49,6 @@ impl FileLike for PipeWriter {
         options: &OpenOptions,
     ) -> Result<usize> {
         // TODO: Implement EPIPE and SIGPIPE
-        // TODO: NONBLOCK support
-        assert!(!options.nonblock);
 
         let ret_value = PIPE_WAIT_QUEUE.sleep_until(|| {
             let mut written_len = 0;
@@ -71,6 +69,8 @@ impl FileLike for PipeWriter {
 
             if written_len > 0 {
                 Ok(Some(written_len))
+            } else if options.nonblock {
+                Ok(Some(0))
             } else {
                 Ok(None)
             }
@@ -116,8 +116,6 @@ impl FileLike for PipeReader {
         options: &OpenOptions,
     ) -> Result<usize> {
         // TODO: Return Ok(0) if there're no writers.
-        // TODO: NONBLOCK support
-        assert!(!options.nonblock);
 
         let ret_value = PIPE_WAIT_QUEUE.sleep_until(|| {
             let mut read_len = 0;
@@ -127,6 +125,8 @@ impl FileLike for PipeReader {
 
             if read_len > 0 {
                 Ok(Some(read_len))
+            } else if options.nonblock {
+                Ok(Some(0))
             } else {
                 Ok(None)
             }
