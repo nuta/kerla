@@ -18,6 +18,27 @@ FILES["/etc/resolv.conf"] = """
 nameserver 1.1.1.1
 """.lstrip()
 
+FILES["/etc/passwd"] = """
+root:x:0:0:root:/:/bin/sh
+""".strip()
+
+FILES["/etc/group"] = """
+root:x:0:
+""".strip()
+
+FILES["/etc/profile"] = """
+echo ""
+echo " _________"
+echo "< Welcome >"
+echo " ---------"
+echo "        \\\\   ^__^"
+echo "         \\\\  (oo)\\\\_______"
+echo "            (__)\\\\       )\\\\/\\\\"
+echo "                ||----w |"
+echo "                ||     ||"
+echo ""
+""".strip()
+
 
 class Files(Package):
     def __init__(self):
