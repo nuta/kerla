@@ -235,6 +235,10 @@ impl OpenedFile {
         self.as_file()?.getsockname()
     }
 
+    pub fn getpeername(&mut self) -> Result<Endpoint> {
+        self.as_file()?.getpeername()
+    }
+
     pub fn connect(&mut self, endpoint: Endpoint) -> Result<()> {
         self.as_file()?.connect(endpoint, &self.options)
     }

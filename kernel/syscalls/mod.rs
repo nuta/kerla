@@ -45,6 +45,7 @@ pub(self) mod fstat;
 pub(self) mod fsync;
 pub(self) mod getcwd;
 pub(self) mod getdents64;
+pub(self) mod getpeername;
 pub(self) mod getrandom;
 pub(self) mod getsockname;
 pub(self) mod ioctl;

@@ -39,6 +39,7 @@ const SYS_RECVFROM: usize = 45;
 const SYS_BIND: usize = 49;
 const SYS_LISTEN: usize = 50;
 const SYS_GETSOCKNAME: usize = 51;
+const SYS_GETPEERNAME: usize = 52;
 const SYS_FORK: usize = 57;
 const SYS_EXECVE: usize = 59;
 const SYS_EXIT: usize = 60;
@@ -214,6 +215,9 @@ impl<'a> SyscallDispatcher<'a> {
             SYS_LISTEN => self.sys_listen(Fd::new(a1 as i32), a2 as c_int),
             SYS_GETSOCKNAME => {
                 self.sys_getsockname(Fd::new(a1 as i32), UserVAddr::new(a2)?, UserVAddr::new(a3)?)
+            }
+            SYS_GETPEERNAME => {
+                self.sys_getpeername(Fd::new(a1 as i32), UserVAddr::new(a2)?, UserVAddr::new(a3)?)
             }
             SYS_ACCEPT => {
                 self.sys_accept(Fd::new(a1 as i32), UserVAddr::new(a2)?, UserVAddr::new(a3)?)
