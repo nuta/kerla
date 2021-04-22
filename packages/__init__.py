@@ -23,6 +23,7 @@ class Package:
         self.version = None
         self.url = None
         self.host_deps = None
+        self.patch_id = 1
         self.dockerfile = []
         self.files = {}
         self.symlinks = {}
@@ -41,6 +42,12 @@ class Package:
     def env(self, key, value):
         escaped = value.replace("\"", "\\\"")
         self.dockerfile.append([f"ENV {key}={escaped}"])
+
+    def patch(self, patch):
+        patch_file = f"__build_{self.patch_id}__.patch"
+        self.add_file(patch_file, patch)
+        self.run(["sh", "-c", f"patch --ignore-whitespace -p1 < {patch_file}"])
+        self.patch_id += 1
 
     def make(self, cmd=None):
         if cmd:
