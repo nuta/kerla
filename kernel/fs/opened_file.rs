@@ -371,13 +371,17 @@ impl OpenedFileTable {
     }
 
     pub fn close_cloexec_files(&mut self) {
-        self.files.retain(|file| match file {
-            Some(LocalOpenedFile {
-                close_on_exec: true,
-                ..
-            }) => false,
-            _ => true,
-        })
+        for slot in &mut self.files {
+            if matches!(
+                slot,
+                Some(LocalOpenedFile {
+                    close_on_exec: true,
+                    ..
+                })
+            ) {
+                *slot = None;
+            }
+        }
     }
 
     /// Allocates an unused fd. Note that this method does not any reservations
