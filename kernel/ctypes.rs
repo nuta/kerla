@@ -21,6 +21,7 @@ pub type c_size = c_ulong;
 pub type c_off = c_uint64;
 
 pub const CLOCK_REALTIME: c_clockid = 0;
+pub const CLOCK_MONOTONIC: c_clockid = 1;
 
 bitflags! {
     pub struct MMapProt: c_int {

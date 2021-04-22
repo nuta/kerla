@@ -68,6 +68,10 @@ impl MonotonicClock {
         self.ticks / (TICK_HZ / 1000)
     }
 
+    pub fn nanosecs(self) -> usize {
+        self.msecs() * 1_000_000
+    }
+
     pub fn elapsed_msecs(self) -> usize {
         // FIXME: Consider wrapping.
         (read_monotonic_clock().ticks - self.ticks) / (TICK_HZ / 1000)

@@ -1,11 +1,11 @@
 use super::UserBufWriter;
-use crate::syscalls::SyscallDispatcher;
+use crate::{syscalls::SyscallDispatcher, timer::read_monotonic_clock};
 use crate::{
     arch::UserVAddr,
     result::{Errno, Result},
 };
 use crate::{
-    ctypes::{c_clockid, c_long, c_time, CLOCK_REALTIME},
+    ctypes::{c_clockid, c_long, c_time, CLOCK_REALTIME, CLOCK_MONOTONIC},
     timer::read_wall_clock,
 };
 use core::convert::TryInto;
@@ -16,6 +16,10 @@ impl<'a> SyscallDispatcher<'a> {
             CLOCK_REALTIME => {
                 let now = read_wall_clock();
                 (now.secs_from_epoch(), now.nanosecs_from_epoch())
+            }
+            CLOCK_MONOTONIC => {
+                let now = read_monotonic_clock();
+                (now.secs(), now.nanosecs())
             }
             _ => {
                 debug_warn!("clock_gettime: unsupported clock id: {}", clock);
