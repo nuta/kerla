@@ -53,6 +53,12 @@ const SYS_MKDIR: usize = 83;
 const SYS_LINK: usize = 86;
 const SYS_READLINK: usize = 89;
 const SYS_CHMOD: usize = 90;
+const SYS_CHOWN: usize = 92;
+const SYS_GETUID: usize = 102;
+const SYS_SETUID: usize = 105;
+const SYS_SETGID: usize = 106;
+const SYS_GETEUID: usize = 107;
+const SYS_SETGROUPS: usize = 116;
 const SYS_ARCH_PRCTL: usize = 158;
 const SYS_GETDENTS64: usize = 217;
 const SYS_SET_TID_ADDRESS: usize = 218;
@@ -174,6 +180,7 @@ impl<'a> SyscallDispatcher<'a> {
             ),
             SYS_READLINK => self.sys_readlink(&resolve_path(a1)?, UserVAddr::new(a2)?, a3 as usize),
             SYS_CHMOD => self.sys_chmod(&resolve_path(a1)?, FileMode::new(a2 as u32)),
+            SYS_CHOWN => Ok(0), // TODO:
             SYS_FSYNC => self.sys_fsync(Fd::new(a1 as i32)),
             SYS_UTIMES => self.sys_utimes(&resolve_path(a1)?, UserVAddr::new(a2)?),
             SYS_GETDENTS64 => self.sys_getdents64(Fd::new(a1 as i32), UserVAddr::new(a2)?, a3),
@@ -193,6 +200,11 @@ impl<'a> SyscallDispatcher<'a> {
             SYS_BRK => self.sys_brk(UserVAddr::new(a1)?),
             SYS_IOCTL => self.sys_ioctl(Fd::new(a1 as i32), a2, a3),
             SYS_GETPID => self.sys_getpid(),
+            SYS_GETUID => Ok(0),  // TODO:
+            SYS_GETEUID => Ok(0), // TODO:
+            SYS_SETUID => Ok(0),  // TODO:
+            SYS_SETGID => Ok(0),  // TODO:
+            SYS_SETGROUPS => Ok(0),  // TODO:
             SYS_SET_TID_ADDRESS => self.sys_set_tid_address(UserVAddr::new(a1)?),
             SYS_PIPE => self.sys_pipe(UserVAddr::new(a1)?),
             SYS_SIGACTION => {
