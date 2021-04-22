@@ -202,32 +202,20 @@ pub fn write_endpoint_as_sockaddr(
             if !sockaddr.is_null() {
                 let mut offset = 0;
                 // family
-                info!(
-                    "write: {:?} {}, off={}, port={:02x?} {:02x?} {:02x?}",
-                    addr,
-                    endpoint.port,
-                    offset,
-                    &endpoint.port.to_le_bytes(),
-                    &endpoint.port.to_be_bytes(),
-                    &endpoint.port.to_ne_bytes()
-                );
                 offset += sockaddr
                     .add(offset)?
                     .write::<sa_family_t>(&(AF_INET as sa_family_t))?;
                 // port
-                info!("write: {:?} {}, off={}", addr, endpoint.port, offset);
                 offset += sockaddr
                     .add(offset)?
                     .write_bytes(&endpoint.port.to_be_bytes())?;
                 // addr
-                info!("write: {:?} {}, off={}", addr, endpoint.port, offset);
                 offset += sockaddr.add(offset)?.write_bytes(&addr.0)?;
                 // zero
                 sockaddr.add(offset)?.write_bytes(&[0; 8])?;
 
                 let mut wrr = vec![0; 16];
                 sockaddr.read_bytes(&mut wrr).unwrap();
-                info!("sockaddr_r = {:02x?}", wrr);
             }
 
             if !socklen.is_null() {
