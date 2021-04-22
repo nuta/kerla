@@ -29,7 +29,7 @@ syscall_entry:
     mov rsp, gs:[GS_RSP0]
 
     // Start accepting interrupts.
-    sti
+    // sti FIXME:
 
     // Save SYSRET context and registers onto the kernel stack.
     push gs:[GS_RSP3] // User RSP.
