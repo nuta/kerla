@@ -21,6 +21,17 @@ use super::{process_packets, socket::*, SOCKETS, SOCKET_WAIT_QUEUE};
 const BACKLOG_MAX: usize = 8;
 static INUSE_ENDPOINTS: SpinLock<BTreeSet<u16>> = SpinLock::new(BTreeSet::new());
 
+/// Looks for an accept'able socket in the backlog.
+fn get_ready_backlog_index(
+    sockets: &mut smoltcp::socket::SocketSet,
+    backlogs: &[Arc<TcpSocket>],
+) -> Option<usize> {
+    backlogs.iter().position(|sock| {
+        let smol_socket: SocketRef<'_, smoltcp::socket::TcpSocket> = sockets.get(sock.handle);
+        smol_socket.may_recv() || smol_socket.may_send()
+    })
+}
+
 pub struct TcpSocket {
     handle: smoltcp::socket::SocketHandle,
     local_endpoint: AtomicCell<Option<Endpoint>>,
@@ -77,20 +88,13 @@ impl FileLike for TcpSocket {
 
     fn accept(&self, _options: &OpenOptions) -> Result<(Arc<dyn FileLike>, Endpoint)> {
         SOCKET_WAIT_QUEUE.sleep_until(|| {
+            let mut sockets = SOCKETS.lock();
             let mut backlogs = self.backlogs.lock();
-
-            // Look for an accept'able socket in the backlog....
-            let index = backlogs.iter().position(|sock| {
-                let mut sockets_lock = SOCKETS.lock();
-                let smol_socket: SocketRef<'_, smoltcp::socket::TcpSocket> =
-                    sockets_lock.get(sock.handle);
-                smol_socket.may_recv() || smol_socket.may_send()
-            });
-
-            match index {
+            match get_ready_backlog_index(&mut *sockets, &*backlogs) {
                 Some(index) => {
                     // Pop the client socket and add a new socket into the backlog.
                     let socket = backlogs.remove(index);
+                    drop(sockets);
                     self.refill_backlog_sockets(&mut backlogs)?;
 
                     // Extract the remote endpoint.
