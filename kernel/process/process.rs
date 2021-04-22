@@ -130,7 +130,7 @@ impl Process {
                 OpenFlags::O_RDONLY.into(),
                 0,
             ))),
-            false,
+            OpenOptions::empty(),
         )?;
         // Open stdout.
         opened_files.open_with_fixed_fd(
@@ -140,7 +140,7 @@ impl Process {
                 OpenFlags::O_WRONLY.into(),
                 0,
             ))),
-            false,
+            OpenOptions::empty(),
         )?;
         // Open stderr.
         opened_files.open_with_fixed_fd(
@@ -150,7 +150,7 @@ impl Process {
                 OpenFlags::O_WRONLY.into(),
                 0,
             ))),
-            false,
+            OpenOptions::empty(),
         )?;
 
         let process = execve(

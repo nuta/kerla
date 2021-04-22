@@ -38,6 +38,13 @@ pub struct OpenOptions {
 }
 
 impl OpenOptions {
+    pub fn new(nonblock: bool, cloexec: bool) -> OpenOptions {
+        OpenOptions {
+            nonblock,
+            close_on_exec: cloexec,
+        }
+    }
+
     pub fn empty() -> OpenOptions {
         OpenOptions {
             nonblock: false,
@@ -195,6 +202,18 @@ impl OpenedFile {
         Ok(written_len)
     }
 
+    pub fn set_cloexec(&mut self, cloexec: bool) {
+        self.options.close_on_exec = cloexec;
+    }
+
+    pub fn set_flags(&mut self, flags: OpenFlags) -> Result<()> {
+        if flags.contains(OpenFlags::O_NONBLOCK) {
+            self.options.nonblock = true;
+        }
+
+        Ok(())
+    }
+
     pub fn fsync(&mut self) -> Result<()> {
         self.path.inode.fsync()
     }
@@ -283,7 +302,7 @@ impl OpenedFileTable {
                     options,
                     pos: 0,
                 })),
-                options.close_on_exec,
+                options,
             )
             .and_then(|_| Ok(fd))
         })
@@ -293,7 +312,7 @@ impl OpenedFileTable {
         &mut self,
         fd: Fd,
         opened_file: Arc<SpinLock<OpenedFile>>,
-        cloexec: bool,
+        options: OpenOptions,
     ) -> Result<()> {
         match self.files.get_mut(fd.as_usize()) {
             Some(Some(_)) => {
@@ -304,8 +323,8 @@ impl OpenedFileTable {
             }
             Some(entry @ None) => {
                 *entry = Some(LocalOpenedFile {
-                    opened_file,
-                    close_on_exec: cloexec,
+                    opened_file: opened_file.clone(),
+                    close_on_exec: options.close_on_exec,
                 });
             }
             None if fd.as_int() >= FD_MAX => {
@@ -314,8 +333,8 @@ impl OpenedFileTable {
             None => {
                 self.files.resize(fd.as_usize() + 1, None);
                 self.files[fd.as_usize()] = Some(LocalOpenedFile {
-                    opened_file,
-                    close_on_exec: cloexec,
+                    opened_file: opened_file.clone(),
+                    close_on_exec: options.close_on_exec,
                 });
             }
         }
@@ -323,14 +342,14 @@ impl OpenedFileTable {
         Ok(())
     }
 
-    pub fn dup(&mut self, fd: Fd, gte: Option<i32>, cloexec: bool) -> Result<Fd> {
+    pub fn dup(&mut self, fd: Fd, gte: Option<i32>, options: OpenOptions) -> Result<Fd> {
         let opened_file = match self.files.get(fd.as_usize()) {
             Some(Some(opened_file)) => opened_file.opened_file.clone(),
             _ => return Err(Errno::EBADF.into()),
         };
 
         self.alloc_fd(gte).and_then(|fd| {
-            self.open_with_fixed_fd(fd, opened_file, cloexec)
+            self.open_with_fixed_fd(fd, opened_file, options)
                 .and_then(|_| Ok(fd))
         })
     }
