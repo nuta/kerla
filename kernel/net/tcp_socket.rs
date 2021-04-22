@@ -230,13 +230,17 @@ impl FileLike for TcpSocket {
     }
 
     fn poll(&self) -> Result<PollStatus> {
-        let mut sockets = SOCKETS.lock();
-        let socket = sockets.get::<smoltcp::socket::TcpSocket>(self.handle);
-
         let mut status = PollStatus::empty();
+        let mut sockets = SOCKETS.lock();
+        if get_ready_backlog_index(&mut *sockets, &*self.backlogs.lock()).is_some() {
+            status |= PollStatus::POLLIN;
+        }
+
+        let socket = sockets.get::<smoltcp::socket::TcpSocket>(self.handle);
         if socket.can_recv() {
             status |= PollStatus::POLLIN;
         }
+
         if socket.can_send() {
             status |= PollStatus::POLLOUT;
         }
