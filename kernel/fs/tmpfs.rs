@@ -38,6 +38,10 @@ impl TmpFs {
             root_dir: Arc::new(Dir::new(INodeNo::new(1))),
         }
     }
+
+    pub fn root_tmpfs_dir(&self) -> &Arc<Dir> {
+        &self.root_dir
+    }
 }
 
 impl FileSystem for TmpFs {
@@ -46,12 +50,17 @@ impl FileSystem for TmpFs {
     }
 }
 
+enum TmpFsINode {
+    File(Arc<dyn FileLike>),
+    Directory(Arc<Dir>),
+}
+
 struct DirInner {
     files: HashMap<String, TmpFsINode>,
     stat: Stat,
 }
 
-struct Dir(SpinLock<DirInner>);
+pub struct Dir(SpinLock<DirInner>);
 
 impl Dir {
     pub fn new(inode_no: INodeNo) -> Dir {
@@ -64,6 +73,22 @@ impl Dir {
             },
         }))
     }
+
+    pub fn add_dir(&self, name: &str) -> Arc<Dir> {
+        let dir = Arc::new(Dir::new(alloc_inode_no()));
+        self.0
+            .lock()
+            .files
+            .insert(name.to_owned(), TmpFsINode::Directory(dir.clone()));
+        dir
+    }
+
+    pub fn add_file(&self, name: &str, file: Arc<dyn FileLike>) {
+        self.0
+            .lock()
+            .files
+            .insert(name.to_owned(), TmpFsINode::File(file));
+    }
 }
 
 impl Directory for Dir {
@@ -73,36 +98,38 @@ impl Directory for Dir {
             .files
             .get(name)
             .map(|tmpfs_inode| match tmpfs_inode {
-                TmpFsINode::File(file) => (file.clone() as Arc<dyn FileLike>).into(),
+                TmpFsINode::File(file) => file.clone().into(),
                 TmpFsINode::Directory(dir) => (dir.clone() as Arc<dyn Directory>).into(),
             })
             .ok_or_else(|| Error::new(Errno::ENOENT))
     }
 
     fn readdir(&self, index: usize) -> Result<Option<DirEntry>> {
-        let entry = self
-            .0
-            .lock()
-            .files
-            .iter()
-            .nth(index)
-            .map(|(name, entry)| match entry {
-                TmpFsINode::Directory(dir) => {
-                    let dir = dir.0.lock();
-                    DirEntry {
-                        inode_no: dir.stat.inode_no,
-                        file_type: FileType::Directory,
-                        name: name.clone(),
-                    }
-                }
-                TmpFsINode::File(file) => DirEntry {
-                    inode_no: file.stat.inode_no,
-                    file_type: FileType::Regular,
-                    name: name.clone(),
-                },
-            });
+        let dir_lock = self.0.lock();
+        let (name, inode) = match dir_lock.files.iter().nth(index) {
+            Some(entry) => entry,
+            None => {
+                return Ok(None);
+            }
+        };
 
-        Ok(entry)
+        let entry = match inode {
+            TmpFsINode::Directory(dir) => {
+                let dir = dir.0.lock();
+                DirEntry {
+                    inode_no: dir.stat.inode_no,
+                    file_type: FileType::Directory,
+                    name: name.clone(),
+                }
+            }
+            TmpFsINode::File(file) => DirEntry {
+                inode_no: file.stat()?.inode_no,
+                file_type: FileType::Regular,
+                name: name.clone(),
+            },
+        };
+
+        Ok(Some(entry))
     }
 
     fn stat(&self) -> Result<Stat> {
@@ -111,7 +138,7 @@ impl Directory for Dir {
 
     fn link(&self, name: &str, link_to: &INode) -> Result<()> {
         let tmpfs_inode = match link_to {
-            INode::FileLike(file_like) => TmpFsINode::File(downcast(file_like).unwrap()),
+            INode::FileLike(file_like) => TmpFsINode::File(file_like.clone()),
             INode::Directory(dir) => TmpFsINode::Directory(downcast(dir).unwrap()),
             INode::Symlink(_) => unreachable!(), /* symblic links are not supported yet */
         };
@@ -188,11 +215,6 @@ impl FileLike for File {
         data.resize(offset + buf.remaining_len(), 0);
         buf.read_bytes(&mut data[offset..])
     }
-}
-
-enum TmpFsINode {
-    File(Arc<File>),
-    Directory(Arc<Dir>),
 }
 
 pub fn init() {
