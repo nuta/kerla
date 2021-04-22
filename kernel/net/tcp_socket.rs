@@ -119,6 +119,19 @@ impl FileLike for TcpSocket {
         Ok(())
     }
 
+    fn getsockname(&self) -> Result<Endpoint> {
+        let endpoint = SOCKETS
+            .lock()
+            .get::<smoltcp::socket::TcpSocket>(self.handle)
+            .local_endpoint();
+
+        if endpoint.addr.is_unspecified() {
+            return Err(Errno::ENOTCONN.into());
+        }
+
+        Ok(endpoint.into())
+    }
+
     fn connect(&self, endpoint: Endpoint, _options: &OpenOptions) -> Result<()> {
         // TODO: Reject if the endpoint is already in use -- IIUC smoltcp
         //       does not check that.

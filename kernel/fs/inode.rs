@@ -69,6 +69,10 @@ pub trait FileLike: Send + Sync + Downcastable {
         Err(Error::new(Errno::EBADF))
     }
 
+    fn getsockname(&self) -> Result<Endpoint> {
+        Err(Error::new(Errno::EBADF))
+    }
+
     fn fsync(&self) -> Result<()> {
         Ok(())
     }
