@@ -41,6 +41,17 @@ pub enum Errno {
 
     ENOSYS = 38,
     ELOOP = 40,
+
+    EADDRINUSE = 98,
+    EADDRNOTAVAIL = 99,
+    ENETDOWN = 100,
+    ENETUNREACH = 101,
+    ENETRESET = 102,
+    ECONNABORTED = 103,
+    ECONNRESET = 104,
+    ENOBUFS = 105,
+    EISCONN = 106,
+    ENOTCONN = 107,
 }
 
 pub type Result<T> = ::core::result::Result<T, Error>;
