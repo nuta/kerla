@@ -181,9 +181,9 @@ impl FileLike for TcpSocket {
                     (copied_len, copied_len)
                 });
 
+            process_packets();
             match copied_len {
                 Ok(0) => {
-                    process_packets();
                     return Ok(total_len);
                 }
                 Ok(copied_len) => {
