@@ -1,4 +1,5 @@
 #![cfg_attr(feature = "no_std", no_std)]
+#![feature(slice_internals)]
 #![allow(unused)]
 
 #[cfg(not(feature = "no_std"))]
@@ -9,6 +10,7 @@ extern crate std;
 extern crate alloc;
 
 pub mod alignment;
+pub mod bitmap;
 pub mod buddy_allocator;
 pub mod bump_allocator;
 pub mod byte_size;
