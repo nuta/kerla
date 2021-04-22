@@ -1,0 +1,37 @@
+use crate::result::Result;
+use crate::syscalls::SyscallDispatcher;
+use crate::{
+    arch::UserVAddr,
+    fs::{opened_file::Fd, path::Path},
+    process::current_process,
+    result::Errno,
+};
+
+use super::UserBufWriter;
+
+impl<'a> SyscallDispatcher<'a> {
+    pub fn sys_readlink(&mut self, path: &Path, buf: UserVAddr, buf_size: usize) -> Result<isize> {
+        let resolved_path = if path.as_str().starts_with("/proc/self/fd/") {
+            // TODO: Implement procfs
+            let fd = path.as_str()["/proc/self/fd/".len()..].parse().unwrap();
+            current_process()
+                .opened_files
+                .lock()
+                .get(Fd::new(fd))?
+                .lock()
+                .path()
+                .resolve_absolute_path()
+        } else {
+            todo!()
+        };
+
+        if (buf_size as usize) < resolved_path.as_str().as_bytes().len() {
+            return Err(Errno::ERANGE.into());
+        }
+
+        let mut writer = UserBufWriter::new(buf);
+        writer.write_bytes(resolved_path.as_str().as_bytes())?;
+        writer.write(0u8)?;
+        Ok(writer.pos() as isize)
+    }
+}

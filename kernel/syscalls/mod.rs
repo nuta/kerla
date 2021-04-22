@@ -54,6 +54,7 @@ pub(self) mod open;
 pub(self) mod pipe;
 pub(self) mod poll;
 pub(self) mod read;
+pub(self) mod readlink;
 pub(self) mod recvfrom;
 pub(self) mod rt_sigaction;
 pub(self) mod select;

@@ -46,6 +46,7 @@ const SYS_GETCWD: usize = 79;
 const SYS_CHDIR: usize = 80;
 const SYS_MKDIR: usize = 83;
 const SYS_LINK: usize = 86;
+const SYS_READLINK: usize = 89;
 const SYS_ARCH_PRCTL: usize = 158;
 const SYS_GETDENTS64: usize = 217;
 const SYS_SET_TID_ADDRESS: usize = 218;
@@ -164,6 +165,7 @@ impl<'a> SyscallDispatcher<'a> {
                 &resolve_path(a4)?,
                 bitflags_from_user!(AtFlags, a5 as c_int)?,
             ),
+            SYS_READLINK => self.sys_readlink(&resolve_path(a1)?, UserVAddr::new(a2)?, a3 as usize),
             SYS_FSYNC => self.sys_fsync(Fd::new(a1 as i32)),
             SYS_UTIMES => self.sys_utimes(&resolve_path(a1)?, UserVAddr::new(a2)?),
             SYS_GETDENTS64 => self.sys_getdents64(Fd::new(a1 as i32), UserVAddr::new(a2)?, a3),
