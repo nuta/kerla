@@ -17,6 +17,7 @@ pub mod byte_size;
 pub mod bytes_parser;
 pub mod downcast;
 pub mod endian;
+pub mod id_table;
 pub mod lazy;
 pub mod once;
 pub mod ring_buffer;
