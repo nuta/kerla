@@ -3,7 +3,10 @@ use penguin_utils::{once::Once, ring_buffer::RingBuffer};
 
 use crate::{
     arch::SpinLock,
-    fs::{inode::FileLike, opened_file::OpenOptions},
+    fs::{
+        inode::{FileLike, PollStatus},
+        opened_file::OpenOptions,
+    },
     process::WaitQueue,
     result::{Errno, Result},
     user_buffer::{UserBuffer, UserBufferMut},
@@ -86,6 +89,17 @@ impl FileLike for PipeWriter {
     ) -> Result<usize> {
         Err(Errno::EINVAL.into())
     }
+
+    fn poll(&self) -> Result<PollStatus> {
+        let mut status = PollStatus::empty();
+        let inner = self.0.lock();
+
+        if inner.buf.is_writable() {
+            status |= PollStatus::POLLOUT;
+        }
+
+        Ok(status)
+    }
 }
 
 pub struct PipeReader(Arc<SpinLock<PipeInner>>);
@@ -122,4 +136,19 @@ impl FileLike for PipeReader {
         PIPE_WAIT_QUEUE.wake_all();
         ret_value
     }
+
+    fn poll(&self) -> Result<PollStatus> {
+        let mut status = PollStatus::empty();
+        let inner = self.0.lock();
+
+        if inner.buf.is_readable() {
+            status |= PollStatus::POLLIN;
+        }
+
+        Ok(status)
+    }
+}
+
+pub fn init() {
+    PIPE_WAIT_QUEUE.init(|| WaitQueue::new());
 }

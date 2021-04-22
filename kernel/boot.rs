@@ -11,7 +11,7 @@ use crate::{
         path::Path,
     },
     mm::{global_allocator, page_allocator},
-    net, poll,
+    net, pipe, poll,
     printk::PrintkLogger,
     process::{self, switch, Process},
 };
@@ -64,6 +64,7 @@ pub fn boot_kernel(bootinfo: &BootInfo) -> ! {
 
     // Initialize kernel subsystems.
     arch::init();
+    pipe::init();
     poll::init();
     devfs::init();
     tmpfs::init();
