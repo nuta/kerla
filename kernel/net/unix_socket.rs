@@ -1,11 +1,13 @@
 use alloc::sync::Arc;
 
-use crate::{fs::{inode::FileLike, opened_file::OpenOptions}, result::{Errno, Result}};
+use crate::{
+    fs::{inode::FileLike, opened_file::OpenOptions},
+    result::{Errno, Result},
+};
 
 use super::Endpoint;
 
-pub struct UnixSocket {
-}
+pub struct UnixSocket {}
 
 impl UnixSocket {
     pub fn new() -> Arc<UnixSocket> {

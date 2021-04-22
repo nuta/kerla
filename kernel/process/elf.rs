@@ -1,6 +1,6 @@
 use crate::arch::UserVAddr;
 use crate::result::Result;
-use core::{slice::from_raw_parts};
+use core::slice::from_raw_parts;
 use goblin::elf64::header::Header;
 pub use goblin::elf64::program_header::ProgramHeader;
 

@@ -200,11 +200,11 @@ impl<'a> SyscallDispatcher<'a> {
             SYS_BRK => self.sys_brk(UserVAddr::new(a1)?),
             SYS_IOCTL => self.sys_ioctl(Fd::new(a1 as i32), a2, a3),
             SYS_GETPID => self.sys_getpid(),
-            SYS_GETUID => Ok(0),  // TODO:
-            SYS_GETEUID => Ok(0), // TODO:
-            SYS_SETUID => Ok(0),  // TODO:
-            SYS_SETGID => Ok(0),  // TODO:
-            SYS_SETGROUPS => Ok(0),  // TODO:
+            SYS_GETUID => Ok(0),    // TODO:
+            SYS_GETEUID => Ok(0),   // TODO:
+            SYS_SETUID => Ok(0),    // TODO:
+            SYS_SETGID => Ok(0),    // TODO:
+            SYS_SETGROUPS => Ok(0), // TODO:
             SYS_SET_TID_ADDRESS => self.sys_set_tid_address(UserVAddr::new(a1)?),
             SYS_PIPE => self.sys_pipe(UserVAddr::new(a1)?),
             SYS_SIGACTION => {

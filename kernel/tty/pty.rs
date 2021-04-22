@@ -95,7 +95,7 @@ impl FileLike for PtyMaster {
                     master_buf.push(ch);
                 }
             }
-    })?;
+        })?;
 
         if written_len > 0 {
             POLL_WAIT_QUEUE.wake_all();
@@ -233,7 +233,12 @@ impl FileLike for Ptmx {
         })
     }
 
-    fn read(&self, _offset: usize, _buf: UserBufferMut<'_>, _options: &OpenOptions) -> Result<usize> {
+    fn read(
+        &self,
+        _offset: usize,
+        _buf: UserBufferMut<'_>,
+        _options: &OpenOptions,
+    ) -> Result<usize> {
         unreachable!();
     }
 

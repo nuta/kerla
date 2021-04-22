@@ -1,13 +1,13 @@
 use super::UserBufWriter;
-use crate::{syscalls::SyscallDispatcher, timer::read_monotonic_clock};
 use crate::{
     arch::UserVAddr,
     result::{Errno, Result},
 };
 use crate::{
-    ctypes::{c_clockid, c_long, c_time, CLOCK_REALTIME, CLOCK_MONOTONIC},
+    ctypes::{c_clockid, c_long, c_time, CLOCK_MONOTONIC, CLOCK_REALTIME},
     timer::read_wall_clock,
 };
+use crate::{syscalls::SyscallDispatcher, timer::read_monotonic_clock};
 use core::convert::TryInto;
 
 impl<'a> SyscallDispatcher<'a> {

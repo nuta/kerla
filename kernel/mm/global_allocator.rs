@@ -1,6 +1,5 @@
-use crate::{arch::PAGE_SIZE};
+use crate::arch::PAGE_SIZE;
 use buddy_system_allocator::LockedHeap;
-
 
 use super::page_allocator::{alloc_pages, AllocPageFlags};
 
