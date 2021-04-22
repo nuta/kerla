@@ -30,10 +30,12 @@ use smoltcp::{
 mod socket;
 mod tcp_socket;
 mod udp_socket;
+mod unix_socket;
 
 pub use socket::*;
 pub use tcp_socket::*;
 pub use udp_socket::*;
+pub use unix_socket::*;
 
 static RX_PACKET_QUEUE: Once<SpinLock<ArrayQueue<Vec<u8>>>> = Once::new();
 static DRIVER: Once<Arc<SpinLock<dyn EthernetDriver>>> = Once::new();

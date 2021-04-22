@@ -1,6 +1,6 @@
-use super::{AF_INET, IPPROTO_TCP, IPPROTO_UDP, SOCK_DGRAM, SOCK_STREAM};
+use super::{AF_UNIX, AF_INET, IPPROTO_TCP, IPPROTO_UDP, SOCK_DGRAM, SOCK_STREAM};
 use crate::fs::inode::{FileLike, INode};
-use crate::net::{TcpSocket, UdpSocket};
+use crate::net::{TcpSocket, UdpSocket, UnixSocket};
 use crate::result::{Errno, Result};
 use crate::{
     ctypes::*,
@@ -35,6 +35,9 @@ impl<'a> SyscallDispatcher<'a> {
         let flags = bitflags_from_user!(SocketFlags, type_ & !SOCKET_TYPE_MASK)?;
 
         let socket = match (domain, socket_type, protocol) {
+            (AF_UNIX, SOCK_STREAM, 0) => {
+                UnixSocket::new() as Arc<dyn FileLike>
+            }
             (AF_INET, SOCK_DGRAM, 0) | (AF_INET, SOCK_DGRAM, IPPROTO_UDP) => {
                 UdpSocket::new() as Arc<dyn FileLike>
             }

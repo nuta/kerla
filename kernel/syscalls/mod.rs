@@ -99,6 +99,7 @@ pub(self) struct IoVec {
     len: usize,
 }
 
+pub const AF_UNIX: i32 = 1;
 pub const AF_INET: i32 = 2;
 pub const SOCK_STREAM: i32 = 1;
 pub const SOCK_DGRAM: i32 = 2;
@@ -149,6 +150,13 @@ pub(self) fn parse_sockaddr(uaddr: UserVAddr, _len: usize) -> Result<SockAddr> {
             sockaddr_in.port = sockaddr_in.port.from_network_endian();
             sockaddr_in.addr = sockaddr_in.addr.from_network_endian();
             SockAddr::In(sockaddr_in)
+        }
+        AF_UNIX => {
+            // let offset = size_of::<sa_family_t>();
+            // let path = UserCStr::new(uaddr.add(offset)?, len.saturating_sub(offset))?;
+            // SockAddr::Unix(PathBuf::from(path.as_str()?))
+            // FIXME:
+            return Err(Errno::EACCES.into());
         }
         _ => {
             // FIXME: Is EINVAL correct error code?
