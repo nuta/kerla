@@ -202,7 +202,6 @@ checksum = "97173c1ef35b0a09304cb3882eba594761243005847cbbf6124f966e8da6519a"
 dependencies = [
  "bitflags",
  "byteorder",
- "log",
  "managed",
 ]
 
