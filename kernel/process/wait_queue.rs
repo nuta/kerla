@@ -58,7 +58,7 @@ impl WaitQueue {
         }
     }
 
-    pub fn wake_one(&self) {
+    pub fn _wake_one(&self) {
         let mut queue = self.queue.lock();
         if let Some(process) = queue.pop_front() {
             process.resume();

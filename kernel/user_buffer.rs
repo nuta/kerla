@@ -108,7 +108,7 @@ impl<'a> UserBufferMut<'a> {
         Ok(copy_len)
     }
 
-    pub fn write<T: Copy>(&mut self, value: T) -> Result<usize> {
+    pub fn _write<T: Copy>(&mut self, value: T) -> Result<usize> {
         let bytes =
             unsafe { slice::from_raw_parts(&value as *const T as *const u8, size_of::<T>()) };
         self.write_bytes(bytes)
