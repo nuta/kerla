@@ -13,7 +13,9 @@ use core::cmp::min;
 use core::slice;
 
 pub fn handle_page_fault(unaligned_vaddr: UserVAddr, _reason: PageFaultReason) {
-    let aligned_vaddr = UserVAddr::new(align_down(unaligned_vaddr.value(), PAGE_SIZE)).unwrap();
+    // FIXME: Kill the current process if vaddr is invalid.
+    let aligned_vaddr =
+        UserVAddr::new_nonnull(align_down(unaligned_vaddr.value(), PAGE_SIZE)).unwrap();
     let current = current_process();
     let mut vm = current.vm.as_ref().unwrap().lock();
 

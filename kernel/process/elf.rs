@@ -27,7 +27,7 @@ impl<'a> Elf<'a> {
     }
 
     pub fn entry(&self) -> Result<UserVAddr> {
-        UserVAddr::new(self.header.e_entry as usize)
+        UserVAddr::new_nonnull(self.header.e_entry as usize)
     }
 
     pub fn header(&self) -> &Header {

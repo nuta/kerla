@@ -147,8 +147,8 @@ unsafe extern "C" fn x64_handle_interrupt(vec: u8, frame: *const InterruptFrame)
 
             // Abort if the virtual address points to out of the user's address space.
             let unaligned_vaddr = match UserVAddr::new(cr2() as usize) {
-                Ok(uvaddr) => uvaddr,
-                Err(_) => {
+                Ok(Some(uvaddr)) => uvaddr,
+                Ok(None) | Err(_) => {
                     // TODO: Kill the current user process.
                     todo!();
                 }

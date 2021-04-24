@@ -8,7 +8,12 @@ use crate::{
 };
 
 impl<'a> SyscallDispatcher<'a> {
-    pub fn sys_accept(&mut self, fd: Fd, sockaddr: UserVAddr, socklen: UserVAddr) -> Result<isize> {
+    pub fn sys_accept(
+        &mut self,
+        fd: Fd,
+        sockaddr: Option<UserVAddr>,
+        socklen: Option<UserVAddr>,
+    ) -> Result<isize> {
         let (sock, accepted_sockaddr) = current_process()
             .opened_files
             .lock()

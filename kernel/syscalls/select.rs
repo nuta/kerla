@@ -16,10 +16,6 @@ fn check_fd_statuses<F>(max_fd: c_int, fds: UserVAddr, is_ready: F) -> Result<is
 where
     F: Fn(PollStatus) -> bool,
 {
-    if fds.is_null() {
-        return Ok(0);
-    }
-
     let num_bytes = align_up(max_fd as usize, 8) / 8;
     if num_bytes > 1024 {
         return Err(Errno::ENOMEM.into());
@@ -61,9 +57,9 @@ impl<'a> SyscallDispatcher<'a> {
     pub fn sys_select(
         &mut self,
         max_fd: c_int,
-        readfds: UserVAddr,
-        writefds: UserVAddr,
-        _errorfds: UserVAddr,
+        readfds: Option<UserVAddr>,
+        writefds: Option<UserVAddr>,
+        _errorfds: Option<UserVAddr>,
         timeout: Option<Timeval>,
     ) -> Result<isize> {
         let started_at = read_monotonic_clock();
@@ -78,11 +74,15 @@ impl<'a> SyscallDispatcher<'a> {
 
             // Check the statuses of all specified files one by one.
             // TODO: Support errorfds
-            let ready_fds = check_fd_statuses(max_fd, readfds, |status| {
-                status.contains(PollStatus::POLLIN)
-            })? + check_fd_statuses(max_fd, writefds, |status| {
-                status.contains(PollStatus::POLLOUT)
-            })?;
+            let mut ready_fds = 0;
+            if let Some(fds) = readfds {
+                ready_fds +=
+                    check_fd_statuses(max_fd, fds, |status| status.contains(PollStatus::POLLIN))?;
+            }
+            if let Some(fds) = writefds {
+                ready_fds +=
+                    check_fd_statuses(max_fd, fds, |status| status.contains(PollStatus::POLLIN))?;
+            }
 
             if ready_fds > 0 {
                 Ok(Some(ready_fds))

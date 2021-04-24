@@ -11,7 +11,7 @@ use crate::{process::current_process, syscalls::SyscallDispatcher};
 impl<'a> SyscallDispatcher<'a> {
     pub fn sys_mmap(
         &mut self,
-        addr_hint: UserVAddr,
+        addr_hint: Option<UserVAddr>,
         len: c_size,
         _prot: MMapProt,
         flags: MMapFlags,
@@ -48,17 +48,17 @@ impl<'a> SyscallDispatcher<'a> {
 
         // Determine the virtual address space to map.
         let mut vm = current_process().vm();
-        let mapped_uaddr = if addr_hint.is_null() {
-            vm.alloc_vaddr_range(len as usize)?
-        } else if vm.is_free_vaddr_range(addr_hint, len as usize) {
-            addr_hint
-        } else {
-            // [addr_hint, addr_hint + len) is already in use or invalid.
-            if flags.contains(MMapFlags::MAP_FIXED) {
-                return Err(Errno::EINVAL.into());
-            } else {
+        let mapped_uaddr = match addr_hint {
+            Some(addr_hint) if vm.is_free_vaddr_range(addr_hint, len as usize) => addr_hint,
+            Some(_) => {
+                // [addr_hint, addr_hint + len) is already in use or invalid.
+                if flags.contains(MMapFlags::MAP_FIXED) {
+                    return Err(Errno::EINVAL.into());
+                }
+
                 vm.alloc_vaddr_range(len as usize)?
             }
+            None => vm.alloc_vaddr_range(len as usize)?,
         };
 
         vm.add_vm_area(mapped_uaddr, len as usize, area_type)?;

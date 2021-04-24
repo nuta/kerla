@@ -27,22 +27,21 @@ impl<'a> SyscallDispatcher<'a> {
         let mut argv = Vec::new();
         for i in 0..ARG_MAX {
             let ptr = argv_uaddr.add(i * size_of::<usize>())?;
-            let str_ptr = ptr.read::<UserVAddr>()?;
-            if str_ptr.is_null() {
-                break;
+            let str_ptr = UserVAddr::new(ptr.read::<usize>()?)?;
+            match str_ptr {
+                Some(str_ptr) => argv.push(UserCStr::new(str_ptr, ARG_LEN_MAX)?),
+                None => break,
             }
-            argv.push(UserCStr::new(str_ptr, ARG_LEN_MAX)?);
         }
 
         let mut envp = Vec::new();
         for i in 0..ENV_MAX {
             let ptr = envp_uaddr.add(i * size_of::<usize>())?;
-            let str_ptr = ptr.read::<UserVAddr>()?;
-            if str_ptr.is_null() {
-                break;
+            let str_ptr = UserVAddr::new(ptr.read::<usize>()?)?;
+            match str_ptr {
+                Some(str_ptr) => envp.push(UserCStr::new(str_ptr, ENV_LEN_MAX)?),
+                None => break,
             }
-
-            envp.push(UserCStr::new(str_ptr, ENV_LEN_MAX)?);
         }
 
         let argv_slice: Vec<&[u8]> = argv.as_slice().iter().map(|s| s.as_bytes()).collect();

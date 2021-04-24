@@ -17,7 +17,7 @@ impl<'a> SyscallDispatcher<'a> {
             .lock()
             .getpeername()?;
 
-        write_endpoint_as_sockaddr(&endpoint, sockaddr, socklen)?;
+        write_endpoint_as_sockaddr(&endpoint, Some(sockaddr), Some(socklen))?;
         Ok(0)
     }
 }

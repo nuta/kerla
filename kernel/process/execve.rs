@@ -125,8 +125,8 @@ fn do_execve(
     )?;
 
     let mut vm = Vm::new(
-        UserVAddr::new(user_stack_bottom).unwrap(),
-        UserVAddr::new(user_heap_bottom).unwrap(),
+        UserVAddr::new_nonnull(user_stack_bottom).unwrap(),
+        UserVAddr::new_nonnull(user_heap_bottom).unwrap(),
     )?;
     for i in 0..(file_header_len / PAGE_SIZE) {
         vm.page_table_mut().map_user_page(
@@ -163,7 +163,7 @@ fn do_execve(
         };
 
         vm.add_vm_area(
-            UserVAddr::new(phdr.p_vaddr as usize)?,
+            UserVAddr::new_nonnull(phdr.p_vaddr as usize)?,
             phdr.p_memsz as usize,
             area_type,
         )?;

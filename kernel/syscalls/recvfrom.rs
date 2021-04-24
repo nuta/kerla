@@ -13,8 +13,8 @@ impl<'a> SyscallDispatcher<'a> {
         uaddr: UserVAddr,
         len: usize,
         flags: RecvFromFlags,
-        src_addr: UserVAddr,
-        addr_len: UserVAddr,
+        src_addr: Option<UserVAddr>,
+        addr_len: Option<UserVAddr>,
     ) -> Result<isize> {
         let len = min(len, MAX_READ_WRITE_LEN);
 

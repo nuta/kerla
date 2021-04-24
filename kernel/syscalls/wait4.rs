@@ -19,9 +19,9 @@ impl<'a> SyscallDispatcher<'a> {
     pub fn sys_wait4(
         &mut self,
         pid: PId,
-        status: UserVAddr,
+        status: Option<UserVAddr>,
         options: WaitOptions,
-        _rusage: UserVAddr,
+        _rusage: Option<UserVAddr>,
     ) -> Result<isize> {
         let (got_pid, status_value) = JOIN_WAIT_QUEUE.sleep_until(|| {
             let children = current_process().children.lock();
@@ -54,7 +54,9 @@ impl<'a> SyscallDispatcher<'a> {
             .lock()
             .retain(|p| p.pid != got_pid && p.state() != ProcessState::Execved);
 
-        status.write::<c_int>(&status_value)?;
+        if let Some(status) = status {
+            status.write::<c_int>(&status_value)?;
+        }
         Ok(got_pid.as_i32() as isize)
     }
 }

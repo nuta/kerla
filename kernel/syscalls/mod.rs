@@ -113,8 +113,11 @@ impl Timeval {
     }
 }
 
-pub(self) fn parse_timeval(uaddr: UserVAddr) -> Result<Option<Timeval>> {
-    uaddr.read_optional::<Timeval>()
+pub(self) fn parse_timeval(uaddr: Option<UserVAddr>) -> Result<Option<Timeval>> {
+    match uaddr {
+        Some(uaddr) => Ok(Some(uaddr.read::<Timeval>()?)),
+        None => Ok(None),
+    }
 }
 
 pub struct UserBufReader {

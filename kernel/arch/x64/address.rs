@@ -132,16 +132,36 @@ extern "C" {
 }
 
 /// Represents a user virtual memory address.
-// FIXME: It might be better if we ensure it is non null, i.e., use `Option<UserVaddr>`
-//        to represent a nullable user pointer.
+///
+/// It is guaranteed that `UserVaddr` contains a valid address, in other words,
+/// it does not point to a kernel address.
+///
+/// Futhermore, like `NonNull<T>`, it is always non-null. Use `Option<UserVaddr>`
+/// represent a nullable user pointer.
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 #[repr(transparent)]
 pub struct UserVAddr(u64);
 
 impl UserVAddr {
-    pub const fn new(addr: usize) -> Result<UserVAddr> {
+    pub const fn new(addr: usize) -> Result<Option<UserVAddr>> {
         if (addr as u64) >= KERNEL_BASE_ADDR {
             return Err(Error::with_message(Errno::EFAULT, "invalid user pointer"));
+        }
+
+        if addr == 0 {
+            Ok(None)
+        } else {
+            Ok(Some(UserVAddr(addr as u64)))
+        }
+    }
+
+    pub const fn new_nonnull(addr: usize) -> Result<UserVAddr> {
+        if (addr as u64) >= KERNEL_BASE_ADDR {
+            return Err(Error::with_message(Errno::EFAULT, "invalid user pointer"));
+        }
+
+        if addr == 0 {
+            return Err(Error::with_message(Errno::EFAULT, "null user pointer"));
         }
 
         Ok(UserVAddr(addr as u64))
@@ -159,18 +179,13 @@ impl UserVAddr {
     }
 
     #[inline(always)]
-    pub const fn is_null(self) -> bool {
-        self.0 == 0
-    }
-
-    #[inline(always)]
     pub const fn add(self, offset: usize) -> Result<UserVAddr> {
-        UserVAddr::new(self.0 as usize + offset)
+        UserVAddr::new_nonnull(self.0 as usize + offset)
     }
 
     #[inline(always)]
     pub const fn sub(self, offset: usize) -> Result<UserVAddr> {
-        UserVAddr::new(self.0 as usize - offset)
+        UserVAddr::new_nonnull(self.0 as usize - offset)
     }
 
     #[inline(always)]
@@ -183,14 +198,6 @@ impl UserVAddr {
             Some(end) if end <= KERNEL_BASE_ADDR as usize => Ok(()),
             Some(_end) => Err(Error::with_message(Errno::EFAULT, "invalid user pointer")),
             None => Err(Error::with_message(Errno::EFAULT, "overflow in access_ok")),
-        }
-    }
-
-    pub fn read_optional<T>(self) -> Result<Option<T>> {
-        if self.is_null() {
-            Ok(None)
-        } else {
-            self.read().map(Some)
         }
     }
 

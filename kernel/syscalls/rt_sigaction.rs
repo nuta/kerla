@@ -7,8 +7,8 @@ impl<'a> SyscallDispatcher<'a> {
     pub fn sys_rt_sigaction(
         &mut self,
         _signum: c_int,
-        _act: UserVAddr,
-        _oldact: UserVAddr,
+        _act: Option<UserVAddr>,
+        _oldact: Option<UserVAddr>,
     ) -> Result<isize> {
         // TODO:
         Ok(0)

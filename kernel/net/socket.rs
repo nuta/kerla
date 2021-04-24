@@ -111,25 +111,25 @@ pub fn parse_sockaddr(uaddr: UserVAddr, _len: usize) -> Result<SockAddr> {
 
 pub fn write_endpoint_as_sockaddr(
     sockaddr: &SockAddr,
-    dst: UserVAddr,
-    socklen: UserVAddr,
+    dst: Option<UserVAddr>,
+    socklen: Option<UserVAddr>,
 ) -> Result<()> {
     match sockaddr {
         SockAddr::In(sockaddr_in) => {
-            if !dst.is_null() {
+            if let Some(dst) = dst {
                 dst.write::<SockAddrIn>(sockaddr_in)?;
             }
 
-            if !socklen.is_null() {
+            if let Some(socklen) = socklen {
                 socklen.write::<socklen_t>(&(size_of::<SockAddrIn>() as u32))?;
             }
         }
         SockAddr::Un(sockaddr_un) => {
-            if !dst.is_null() {
+            if let Some(dst) = dst {
                 dst.write::<SockAddrUn>(sockaddr_un)?;
             }
 
-            if !socklen.is_null() {
+            if let Some(socklen) = socklen {
                 socklen.write::<socklen_t>(&(size_of::<SockAddrUn>() as u32))?;
             }
         }
