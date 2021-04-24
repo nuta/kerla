@@ -9,36 +9,11 @@ use crate::{
     user_buffer::UserBufferMut,
 };
 use alloc::{collections::BTreeSet, sync::Arc};
+use core::convert::TryInto;
 use smoltcp::socket::{UdpPacketMetadata, UdpSocketBuffer};
+use smoltcp::wire::IpEndpoint;
 
 use super::{process_packets, socket::*, SOCKETS, SOCKET_WAIT_QUEUE};
-
-impl From<Endpoint> for smoltcp::wire::IpEndpoint {
-    fn from(endpoint: Endpoint) -> smoltcp::wire::IpEndpoint {
-        smoltcp::wire::IpEndpoint {
-            port: endpoint.port,
-            addr: match endpoint.addr {
-                IpAddress::Unspecified => smoltcp::wire::IpAddress::Unspecified,
-                IpAddress::Ipv4(addr) => {
-                    smoltcp::wire::IpAddress::Ipv4(smoltcp::wire::Ipv4Address::from_bytes(&addr.0))
-                }
-            },
-        }
-    }
-}
-
-impl From<smoltcp::wire::IpEndpoint> for Endpoint {
-    fn from(endpoint: smoltcp::wire::IpEndpoint) -> Endpoint {
-        Endpoint {
-            port: endpoint.port,
-            addr: match endpoint.addr {
-                smoltcp::wire::IpAddress::Unspecified => IpAddress::Unspecified,
-                smoltcp::wire::IpAddress::Ipv4(addr) => IpAddress::Ipv4(Ipv4Address(addr.0)),
-                _ => unreachable!(),
-            },
-        }
-    }
-}
 
 static INUSE_ENDPOINTS: SpinLock<BTreeSet<u16>> = SpinLock::new(BTreeSet::new());
 
@@ -57,7 +32,8 @@ impl UdpSocket {
 }
 
 impl FileLike for UdpSocket {
-    fn bind(&self, mut endpoint: Endpoint) -> Result<()> {
+    fn bind(&self, sockaddr: SockAddr) -> Result<()> {
+        let mut endpoint: IpEndpoint = sockaddr.try_into()?;
         // TODO: Reject if the endpoint is already in use -- IIUC smoltcp
         //       does not check that.
         let mut inuse_endpoints = INUSE_ENDPOINTS.lock();
@@ -88,12 +64,13 @@ impl FileLike for UdpSocket {
     fn sendto(
         &self,
         mut buf: UserBuffer<'_>,
-        endpoint: Endpoint,
+        sockaddr: SockAddr,
         _options: &OpenOptions,
     ) -> Result<()> {
+        let endpoint: IpEndpoint = sockaddr.try_into()?;
         let mut sockets = SOCKETS.lock();
         let mut socket = sockets.get::<smoltcp::socket::UdpSocket>(self.handle);
-        let dst = socket.send(buf.remaining_len(), endpoint.into())?;
+        let dst = socket.send(buf.remaining_len(), endpoint)?;
         buf.read_bytes(dst)?;
 
         drop(socket);
@@ -107,7 +84,7 @@ impl FileLike for UdpSocket {
         mut buf: UserBufferMut<'_>,
         _flags: RecvFromFlags,
         options: &OpenOptions,
-    ) -> Result<(usize, Endpoint)> {
+    ) -> Result<(usize, SockAddr)> {
         SOCKET_WAIT_QUEUE.sleep_until(|| {
             let mut sockets = SOCKETS.lock();
             let mut socket = sockets.get::<smoltcp::socket::UdpSocket>(self.handle);

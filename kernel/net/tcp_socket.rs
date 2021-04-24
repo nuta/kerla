@@ -4,6 +4,7 @@ use crate::{
         inode::{FileLike, PollStatus},
         opened_file::OpenOptions,
     },
+    net::socket::SockAddr,
     user_buffer::UserBuffer,
     user_buffer::UserBufferMut,
 };
@@ -12,11 +13,12 @@ use crate::{
     result::{Errno, Result},
 };
 use alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
-use core::cmp::min;
+use core::{cmp::min, convert::TryInto};
 use crossbeam::atomic::AtomicCell;
 use smoltcp::socket::{SocketRef, TcpSocketBuffer};
+use smoltcp::wire::{IpAddress, IpEndpoint, Ipv4Address};
 
-use super::{process_packets, socket::*, SOCKETS, SOCKET_WAIT_QUEUE};
+use super::{process_packets, SOCKETS, SOCKET_WAIT_QUEUE};
 
 const BACKLOG_MAX: usize = 8;
 static INUSE_ENDPOINTS: SpinLock<BTreeSet<u16>> = SpinLock::new(BTreeSet::new());
@@ -34,7 +36,7 @@ fn get_ready_backlog_index(
 
 pub struct TcpSocket {
     handle: smoltcp::socket::SocketHandle,
-    local_endpoint: AtomicCell<Option<Endpoint>>,
+    local_endpoint: AtomicCell<Option<IpEndpoint>>,
     backlogs: SpinLock<Vec<Arc<TcpSocket>>>,
     num_backlogs: AtomicCell<usize>,
 }
@@ -86,7 +88,7 @@ impl FileLike for TcpSocket {
         self.refill_backlog_sockets(&mut backlogs)
     }
 
-    fn accept(&self, _options: &OpenOptions) -> Result<(Arc<dyn FileLike>, Endpoint)> {
+    fn accept(&self, _options: &OpenOptions) -> Result<(Arc<dyn FileLike>, SockAddr)> {
         SOCKET_WAIT_QUEUE.sleep_until(|| {
             let mut sockets = SOCKETS.lock();
             let mut backlogs = self.backlogs.lock();
@@ -101,8 +103,8 @@ impl FileLike for TcpSocket {
                     let mut sockets_lock = SOCKETS.lock();
                     let smol_socket: SocketRef<'_, smoltcp::socket::TcpSocket> =
                         sockets_lock.get(socket.handle);
-                    let endpoint = smol_socket.remote_endpoint().into();
-                    Ok(Some((socket as Arc<dyn FileLike>, endpoint)))
+                    let endpoint: IpEndpoint = smol_socket.remote_endpoint().into();
+                    Ok(Some((socket as Arc<dyn FileLike>, endpoint.into())))
                 }
                 None => {
                     // No accept'able sockets.
@@ -112,14 +114,14 @@ impl FileLike for TcpSocket {
         })
     }
 
-    fn bind(&self, endpoint: Endpoint) -> Result<()> {
+    fn bind(&self, sockaddr: SockAddr) -> Result<()> {
         // TODO: Reject if the endpoint is already in use -- IIUC smoltcp
         //       does not check that.
-        self.local_endpoint.store(Some(endpoint));
+        self.local_endpoint.store(Some(sockaddr.try_into()?));
         Ok(())
     }
 
-    fn getsockname(&self) -> Result<Endpoint> {
+    fn getsockname(&self) -> Result<SockAddr> {
         let endpoint = SOCKETS
             .lock()
             .get::<smoltcp::socket::TcpSocket>(self.handle)
@@ -132,7 +134,7 @@ impl FileLike for TcpSocket {
         Ok(endpoint.into())
     }
 
-    fn getpeername(&self) -> Result<Endpoint> {
+    fn getpeername(&self) -> Result<SockAddr> {
         let endpoint = SOCKETS
             .lock()
             .get::<smoltcp::socket::TcpSocket>(self.handle)
@@ -145,12 +147,14 @@ impl FileLike for TcpSocket {
         Ok(endpoint.into())
     }
 
-    fn connect(&self, endpoint: Endpoint, _options: &OpenOptions) -> Result<()> {
+    fn connect(&self, sockaddr: SockAddr, _options: &OpenOptions) -> Result<()> {
+        let remote_endpoint: IpEndpoint = sockaddr.try_into()?;
+
         // TODO: Reject if the endpoint is already in use -- IIUC smoltcp
         //       does not check that.
         let mut inuse_endpoints = INUSE_ENDPOINTS.lock();
-        let mut local_endpoint = self.local_endpoint.load().unwrap_or(Endpoint {
-            addr: IpAddress::Unspecified,
+        let mut local_endpoint = self.local_endpoint.load().unwrap_or(IpEndpoint {
+            addr: IpAddress::Ipv4(Ipv4Address::UNSPECIFIED),
             port: 0,
         });
         if local_endpoint.port == 0 {
@@ -170,8 +174,8 @@ impl FileLike for TcpSocket {
         SOCKETS
             .lock()
             .get::<smoltcp::socket::TcpSocket>(self.handle)
-            .connect(endpoint, local_endpoint)?;
-        inuse_endpoints.insert(endpoint.port);
+            .connect(remote_endpoint, local_endpoint)?;
+        inuse_endpoints.insert(remote_endpoint.port);
         drop(inuse_endpoints);
 
         // Submit a SYN packet.

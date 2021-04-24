@@ -27,7 +27,7 @@ use smoltcp::{
     wire::EthernetFrame,
 };
 
-mod socket;
+pub mod socket;
 mod tcp_socket;
 mod udp_socket;
 mod unix_socket;

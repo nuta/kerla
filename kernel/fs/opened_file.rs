@@ -223,35 +223,35 @@ impl OpenedFile {
         self.as_file()?.listen(backlog)
     }
 
-    pub fn accept(&mut self) -> Result<(Arc<dyn FileLike>, Endpoint)> {
+    pub fn accept(&mut self) -> Result<(Arc<dyn FileLike>, SockAddr)> {
         self.as_file()?.accept(&self.options)
     }
 
-    pub fn bind(&mut self, endpoint: Endpoint) -> Result<()> {
-        self.as_file()?.bind(endpoint)
+    pub fn bind(&mut self, sockaddr: SockAddr) -> Result<()> {
+        self.as_file()?.bind(sockaddr)
     }
 
-    pub fn getsockname(&mut self) -> Result<Endpoint> {
+    pub fn getsockname(&mut self) -> Result<SockAddr> {
         self.as_file()?.getsockname()
     }
 
-    pub fn getpeername(&mut self) -> Result<Endpoint> {
+    pub fn getpeername(&mut self) -> Result<SockAddr> {
         self.as_file()?.getpeername()
     }
 
-    pub fn connect(&mut self, endpoint: Endpoint) -> Result<()> {
-        self.as_file()?.connect(endpoint, &self.options)
+    pub fn connect(&mut self, sockaddr: SockAddr) -> Result<()> {
+        self.as_file()?.connect(sockaddr, &self.options)
     }
 
-    pub fn sendto(&mut self, buf: UserBuffer<'_>, endpoint: Endpoint) -> Result<()> {
-        self.as_file()?.sendto(buf, endpoint, &self.options)
+    pub fn sendto(&mut self, buf: UserBuffer<'_>, sockaddr: SockAddr) -> Result<()> {
+        self.as_file()?.sendto(buf, sockaddr, &self.options)
     }
 
     pub fn recvfrom(
         &mut self,
         buf: UserBufferMut<'_>,
         flags: RecvFromFlags,
-    ) -> Result<(usize, Endpoint)> {
+    ) -> Result<(usize, SockAddr)> {
         self.as_file()?.recvfrom(buf, flags, &self.options)
     }
 

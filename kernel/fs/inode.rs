@@ -61,7 +61,7 @@ pub trait FileLike: Send + Sync + Downcastable {
         Err(Error::new(Errno::EBADF))
     }
 
-    fn bind(&self, _endpoint: Endpoint) -> Result<()> {
+    fn bind(&self, _sockaddr: SockAddr) -> Result<()> {
         Err(Error::new(Errno::EBADF))
     }
 
@@ -69,11 +69,11 @@ pub trait FileLike: Send + Sync + Downcastable {
         Err(Error::new(Errno::EBADF))
     }
 
-    fn getsockname(&self) -> Result<Endpoint> {
+    fn getsockname(&self) -> Result<SockAddr> {
         Err(Error::new(Errno::EBADF))
     }
 
-    fn getpeername(&self) -> Result<Endpoint> {
+    fn getpeername(&self) -> Result<SockAddr> {
         Err(Error::new(Errno::EBADF))
     }
 
@@ -81,18 +81,18 @@ pub trait FileLike: Send + Sync + Downcastable {
         Ok(())
     }
 
-    fn accept(&self, _options: &OpenOptions) -> Result<(Arc<dyn FileLike>, Endpoint)> {
+    fn accept(&self, _options: &OpenOptions) -> Result<(Arc<dyn FileLike>, SockAddr)> {
         Err(Error::new(Errno::EBADF))
     }
 
-    fn connect(&self, _endpoint: Endpoint, _options: &OpenOptions) -> Result<()> {
+    fn connect(&self, _sockaddr: SockAddr, _options: &OpenOptions) -> Result<()> {
         Err(Error::new(Errno::EBADF))
     }
 
     fn sendto(
         &self,
         _buf: UserBuffer<'_>,
-        _endpoint: Endpoint,
+        _sockaddr: SockAddr,
         _options: &OpenOptions,
     ) -> Result<()> {
         Err(Error::new(Errno::EBADF))
@@ -103,7 +103,7 @@ pub trait FileLike: Send + Sync + Downcastable {
         _buf: UserBufferMut<'_>,
         _flags: RecvFromFlags,
         _options: &OpenOptions,
-    ) -> Result<(usize, Endpoint)> {
+    ) -> Result<(usize, SockAddr)> {
         Err(Error::new(Errno::EBADF))
     }
 }

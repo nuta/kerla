@@ -1,18 +1,16 @@
-use crate::{arch::UserVAddr, result::Result};
-use crate::{fs::opened_file::Fd, net::Endpoint};
+use crate::fs::opened_file::Fd;
+use crate::{arch::UserVAddr, net::socket::parse_sockaddr, result::Result};
 use crate::{process::current_process, syscalls::SyscallDispatcher};
-
-use super::parse_sockaddr;
 
 impl<'a> SyscallDispatcher<'a> {
     pub fn sys_connect(&mut self, fd: Fd, addr: UserVAddr, addr_len: usize) -> Result<isize> {
-        let endpoint: Endpoint = parse_sockaddr(addr, addr_len)?.into();
+        let sockaddr = parse_sockaddr(addr, addr_len)?;
         current_process()
             .opened_files
             .lock()
             .get(fd)?
             .lock()
-            .connect(endpoint)?;
+            .connect(sockaddr)?;
 
         Ok(0)
     }

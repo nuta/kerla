@@ -1,16 +1,9 @@
-use crate::{
-    arch::UserVAddr,
-    ctypes::*,
-    net::{Endpoint, IpAddress, Ipv4Address},
-};
-use crate::{
-    fs::opened_file::Fd,
-    result::{Errno, Result},
-};
+use crate::{arch::UserVAddr, ctypes::*};
+use crate::{fs::opened_file::Fd, result::Result};
 use bitflags::bitflags;
 use core::cmp::min;
 use core::mem::size_of;
-use penguin_utils::{alignment::align_up, endian::NetworkEndianExt};
+use penguin_utils::alignment::align_up;
 
 macro_rules! bitflags_from_user {
     ($st:tt, $input:expr) => {{
@@ -106,74 +99,6 @@ pub(self) struct IoVec {
     len: usize,
 }
 
-pub const AF_UNIX: i32 = 1;
-pub const AF_INET: i32 = 2;
-pub const SOCK_STREAM: i32 = 1;
-pub const SOCK_DGRAM: i32 = 2;
-pub const IPPROTO_TCP: i32 = 6;
-pub const IPPROTO_UDP: i32 = 17;
-
-#[allow(non_camel_case_types)]
-pub type sa_family_t = u16;
-#[allow(non_camel_case_types)]
-pub type socklen_t = u32;
-
-#[non_exhaustive]
-pub enum SockAddr {
-    In(SockAddrIn),
-}
-
-impl From<SockAddr> for Endpoint {
-    fn from(sockaddr: SockAddr) -> Self {
-        match sockaddr {
-            SockAddr::In(sockaddr_in) => Endpoint {
-                addr: IpAddress::Ipv4(Ipv4Address::from(sockaddr_in.addr)),
-                port: sockaddr_in.port,
-            },
-        }
-    }
-}
-
-/// `struct sockaddr_in`
-#[derive(Debug, Copy, Clone)]
-#[repr(C, packed)]
-pub struct SockAddrIn {
-    /// `AF_INET`
-    family: sa_family_t,
-    /// The port number in host's byte order.
-    port: u16,
-    /// The IPv4 address in host's byte order.
-    addr: u32,
-    /// Unused padding area.
-    zero: [u8; 8],
-}
-
-pub(self) fn parse_sockaddr(uaddr: UserVAddr, _len: usize) -> Result<SockAddr> {
-    // TODO: Check `len`
-    let sa_family = uaddr.read::<sa_family_t>()?;
-    let sockaddr = match sa_family as i32 {
-        AF_INET => {
-            let mut sockaddr_in = uaddr.read::<SockAddrIn>()?;
-            sockaddr_in.port = sockaddr_in.port.from_network_endian();
-            sockaddr_in.addr = sockaddr_in.addr.from_network_endian();
-            SockAddr::In(sockaddr_in)
-        }
-        AF_UNIX => {
-            // let offset = size_of::<sa_family_t>();
-            // let path = UserCStr::new(uaddr.add(offset)?, len.saturating_sub(offset))?;
-            // SockAddr::Unix(PathBuf::from(path.as_str()?))
-            // FIXME:
-            return Err(Errno::EACCES.into());
-        }
-        _ => {
-            // FIXME: Is EINVAL correct error code?
-            return Err(Errno::EINVAL.into());
-        }
-    };
-
-    Ok(sockaddr)
-}
-
 /// `struct timeval`
 #[derive(Debug, Copy, Clone)]
 #[repr(C, packed)]
@@ -190,42 +115,6 @@ impl Timeval {
 
 pub(self) fn parse_timeval(uaddr: UserVAddr) -> Result<Option<Timeval>> {
     uaddr.read_optional::<Timeval>()
-}
-
-pub fn write_endpoint_as_sockaddr(
-    endpoint: &Endpoint,
-    sockaddr: UserVAddr,
-    socklen: UserVAddr,
-) -> Result<()> {
-    match endpoint.addr {
-        IpAddress::Ipv4(addr) => {
-            if !sockaddr.is_null() {
-                let mut offset = 0;
-                // family
-                offset += sockaddr
-                    .add(offset)?
-                    .write::<sa_family_t>(&(AF_INET as sa_family_t))?;
-                // port
-                offset += sockaddr
-                    .add(offset)?
-                    .write_bytes(&endpoint.port.to_be_bytes())?;
-                // addr
-                offset += sockaddr.add(offset)?.write_bytes(&addr.0)?;
-                // zero
-                sockaddr.add(offset)?.write_bytes(&[0; 8])?;
-
-                let mut wrr = vec![0; 16];
-                sockaddr.read_bytes(&mut wrr).unwrap();
-            }
-
-            if !socklen.is_null() {
-                socklen.write::<socklen_t>(&(size_of::<SockAddrIn>() as u32))?;
-            }
-        }
-        _ => unreachable!(),
-    }
-
-    Ok(())
 }
 
 pub struct UserBufReader {

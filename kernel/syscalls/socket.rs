@@ -1,6 +1,5 @@
-use super::{AF_INET, AF_UNIX, IPPROTO_TCP, IPPROTO_UDP, SOCK_DGRAM, SOCK_STREAM};
 use crate::fs::inode::{FileLike, INode};
-use crate::net::{TcpSocket, UdpSocket, UnixSocket};
+use crate::net::{socket::*, TcpSocket, UdpSocket, UnixSocket};
 use crate::result::{Errno, Result};
 use crate::{
     ctypes::*,

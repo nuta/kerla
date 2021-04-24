@@ -1,7 +1,7 @@
-use super::{parse_sockaddr, MAX_READ_WRITE_LEN};
+use super::MAX_READ_WRITE_LEN;
 use crate::{arch::UserVAddr, fs::opened_file::Fd, result::Result};
 use crate::{
-    net::{Endpoint, SendToFlags},
+    net::{socket::*, SendToFlags},
     user_buffer::UserBuffer,
 };
 use crate::{process::current_process, syscalls::SyscallDispatcher};
@@ -18,14 +18,14 @@ impl<'a> SyscallDispatcher<'a> {
         addr_len: usize,
     ) -> Result<isize> {
         let len = min(len, MAX_READ_WRITE_LEN);
-        let endpoint: Endpoint = parse_sockaddr(dst_addr, addr_len)?.into();
+        let sockaddr = parse_sockaddr(dst_addr, addr_len)?;
 
         current_process()
             .opened_files
             .lock()
             .get(fd)?
             .lock()
-            .sendto(UserBuffer::from_uaddr(uaddr, len), endpoint)?;
+            .sendto(UserBuffer::from_uaddr(uaddr, len), sockaddr)?;
 
         // MAX_READ_WRITE_LEN limit guarantees total_len is in the range of isize.
         Ok(len as isize)
