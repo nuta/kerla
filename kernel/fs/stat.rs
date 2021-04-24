@@ -47,6 +47,8 @@ pub const S_IFREG: u32 = 0o100000;
 pub const S_IFLNK: u32 = 0o120000;
 
 pub const O_ACCMODE: u32 = 0o3;
+
+// FIXME: OpenFlags also define these values.
 #[allow(unused)]
 pub const O_RDONLY: u32 = 0o0;
 pub const O_WRONLY: u32 = 0o1;
