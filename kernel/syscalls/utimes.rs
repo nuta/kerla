@@ -1,5 +1,6 @@
+use crate::arch::UserVAddr;
 use crate::fs::path::Path;
-use crate::{arch::UserVAddr, result::Result};
+use crate::prelude::*;
 use crate::{process::current_process, syscalls::SyscallDispatcher};
 
 impl<'a> SyscallDispatcher<'a> {

@@ -1,4 +1,4 @@
-use crate::result::Result;
+use crate::prelude::*;
 use crate::user_buffer::UserBufferMut;
 use x86::random::rdrand_slice;
 

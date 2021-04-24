@@ -1,8 +1,8 @@
 use crate::{
     arch::UserVAddr,
     ctypes::*,
+    prelude::*,
     process::{current_process, PId, ProcessState, JOIN_WAIT_QUEUE},
-    result::Result,
     syscalls::SyscallDispatcher,
 };
 

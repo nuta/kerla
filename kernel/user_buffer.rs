@@ -1,5 +1,5 @@
 use crate::arch::UserVAddr;
-use crate::result::Result;
+use crate::prelude::*;
 use core::{cmp::min, mem::size_of, slice};
 
 enum Inner<'a> {

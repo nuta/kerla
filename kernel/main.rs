@@ -34,6 +34,7 @@ mod mm;
 mod net;
 mod pipe;
 mod poll;
+mod prelude;
 mod process;
 mod random;
 mod syscalls;

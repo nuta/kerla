@@ -1,7 +1,7 @@
 use super::CwdOrFd;
 use crate::fs::stat::{O_RDWR, O_WRONLY};
 use crate::fs::{inode::INode, opened_file::OpenFlags, path::Path, stat::FileMode};
-use crate::result::{Errno, Error, Result};
+use crate::prelude::*;
 use crate::{process::current_process, syscalls::SyscallDispatcher};
 
 fn create_file(path: &Path, flags: OpenFlags, mode: FileMode) -> Result<INode> {

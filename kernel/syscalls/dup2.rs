@@ -1,6 +1,6 @@
 use crate::fs::opened_file::{Fd, OpenOptions};
+use crate::prelude::*;
 use crate::process::current_process;
-use crate::result::Result;
 use crate::syscalls::SyscallDispatcher;
 
 impl<'a> SyscallDispatcher<'a> {

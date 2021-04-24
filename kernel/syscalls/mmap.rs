@@ -1,12 +1,9 @@
 use penguin_utils::alignment::is_aligned;
 
-use crate::fs::opened_file::Fd;
 use crate::{
-    arch::UserVAddr,
-    result::{Errno, Result},
+    arch::UserVAddr, arch::PAGE_SIZE, ctypes::*, fs::opened_file::Fd, mm::vm::VmAreaType,
+    prelude::*, process::current_process, syscalls::SyscallDispatcher,
 };
-use crate::{arch::PAGE_SIZE, ctypes::*, mm::vm::VmAreaType};
-use crate::{process::current_process, syscalls::SyscallDispatcher};
 
 impl<'a> SyscallDispatcher<'a> {
     pub fn sys_mmap(

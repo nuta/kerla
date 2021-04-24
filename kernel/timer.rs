@@ -1,9 +1,8 @@
+use crate::prelude::*;
 use crate::{
     arch::{SpinLock, TICK_HZ},
     process::{self, Process, ProcessState},
 };
-use alloc::sync::Arc;
-use alloc::vec::Vec;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use process::{current_process, switch};
 

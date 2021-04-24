@@ -1,5 +1,5 @@
 use crate::fs::{path::Path, stat::FileMode};
-use crate::result::{Errno, Error, Result};
+use crate::prelude::*;
 use crate::{process::current_process, syscalls::SyscallDispatcher};
 
 impl<'a> SyscallDispatcher<'a> {

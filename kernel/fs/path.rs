@@ -1,5 +1,4 @@
-use crate::alloc::borrow::ToOwned;
-use alloc::string::{String, ToString};
+use crate::prelude::*;
 use core::fmt;
 use core::ops::Deref;
 
@@ -142,7 +141,7 @@ impl PathBuf {
         };
 
         if path.is_absolute() {
-            self.path = path_str.to_string();
+            self.path = path_str.to_owned();
         } else {
             if self.path != "/" {
                 self.path.push('/');
@@ -174,7 +173,7 @@ impl AsRef<Path> for PathBuf {
 impl<'a> From<&Path> for PathBuf {
     fn from(path: &Path) -> PathBuf {
         PathBuf {
-            path: path.path.to_string(),
+            path: path.path.to_owned(),
         }
     }
 }
@@ -188,7 +187,7 @@ impl From<String> for PathBuf {
 impl From<&str> for PathBuf {
     fn from(path: &str) -> PathBuf {
         PathBuf {
-            path: path.to_string(),
+            path: path.to_owned(),
         }
     }
 }

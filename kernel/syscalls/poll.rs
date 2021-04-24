@@ -5,10 +5,11 @@ use crate::{
     ctypes::{c_int, c_nfds, c_short},
     fs::{inode::PollStatus, opened_file::Fd},
     poll::POLL_WAIT_QUEUE,
-    result::Result,
+    prelude::*,
+    process::current_process,
+    syscalls::SyscallDispatcher,
     timer::read_monotonic_clock,
 };
-use crate::{process::current_process, syscalls::SyscallDispatcher};
 
 use super::UserBufReader;
 
