@@ -1,5 +1,5 @@
 use super::{IoVec, IOV_MAX, MAX_READ_WRITE_LEN};
-use crate::{arch::UserVAddr, fs::opened_file::Fd, result::Result};
+use crate::{arch::UserVAddr, fs::opened_file::Fd, result::Result, user_buffer::UserBuffer};
 use crate::{process::current_process, syscalls::SyscallDispatcher};
 use core::cmp::min;
 
@@ -32,9 +32,7 @@ impl<'a> SyscallDispatcher<'a> {
                 continue;
             }
 
-            let mut buf = vec![0; iov.len]; // TODO: deny too long len
-            iov.base.read_bytes(&mut buf)?;
-            total_len += file.write(buf.as_slice().into())?;
+            total_len += file.write(UserBuffer::from_uaddr(iov.base, iov.len))?;
         }
 
         // MAX_READ_WRITE_LEN limit guarantees total_len is in the range of isize.
