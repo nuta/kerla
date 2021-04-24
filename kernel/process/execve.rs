@@ -33,6 +33,7 @@ pub fn execve(
     )
 }
 
+#[allow(clippy::too_many_arguments)]
 fn do_execve(
     parent: Option<Weak<Process>>,
     pid: PId,

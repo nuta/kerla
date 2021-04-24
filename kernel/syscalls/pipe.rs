@@ -20,17 +20,13 @@ impl<'a> SyscallHandler<'a> {
 
         let pipe = Pipe::new();
         let read_fd = current_process().opened_files.lock().open(
-            PathComponent::new_anonymous(
-                INode::FileLike(pipe.read_end() as Arc<dyn FileLike>).into(),
-            ),
-            options.into(),
+            PathComponent::new_anonymous(INode::FileLike(pipe.read_end() as Arc<dyn FileLike>)),
+            options,
         )?;
 
         let write_fd = current_process().opened_files.lock().open(
-            PathComponent::new_anonymous(
-                INode::FileLike(pipe.write_end() as Arc<dyn FileLike>).into(),
-            ),
-            options.into(),
+            PathComponent::new_anonymous(INode::FileLike(pipe.write_end() as Arc<dyn FileLike>)),
+            options,
         )?;
 
         let mut fds_writer = UserBufWriter::new(fds);

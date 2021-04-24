@@ -149,5 +149,5 @@ impl FileLike for PipeReader {
 }
 
 pub fn init() {
-    PIPE_WAIT_QUEUE.init(|| WaitQueue::new());
+    PIPE_WAIT_QUEUE.init(WaitQueue::new);
 }

@@ -309,7 +309,7 @@ impl OpenedFileTable {
                 })),
                 options,
             )
-            .and_then(|_| Ok(fd))
+            .map(|_| fd)
         })
     }
 
@@ -366,7 +366,7 @@ impl OpenedFileTable {
 
         self.alloc_fd(gte).and_then(|fd| {
             self.open_with_fixed_fd(fd, opened_file, options)
-                .and_then(|_| Ok(fd))
+                .map(|_| fd)
         })
     }
 

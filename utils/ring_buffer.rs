@@ -22,7 +22,7 @@ impl<T, const CAP: usize> RingBuffer<T, CAP> {
     }
 
     pub fn is_readable(&self) -> bool {
-        !(!self.full && self.rp == self.wp)
+        self.full || self.rp != self.wp
     }
 
     pub fn push(&mut self, data: T) -> Result<(), T>

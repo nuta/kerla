@@ -24,8 +24,7 @@ where
     fds.read_bytes(fds_vec.as_mut_slice())?;
 
     let mut ready_fds = 0;
-    for byte_i in 0..num_bytes {
-        let byte = &mut fds_vec[byte_i];
+    for (byte_i, byte) in fds_vec.iter_mut().enumerate().take(num_bytes) {
         for bit_i in 0..8 {
             let fd = Fd::new((byte_i * 8 + bit_i) as c_int);
             if *byte & (1 << bit_i) != 0 && fd.as_int() <= max_fd {

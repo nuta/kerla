@@ -177,17 +177,11 @@ impl INode {
     }
 
     pub fn is_file(&self) -> bool {
-        match self {
-            INode::FileLike(_) => true,
-            _ => false,
-        }
+        matches!(self, INode::FileLike(_))
     }
 
     pub fn is_dir(&self) -> bool {
-        match self {
-            INode::Directory(_) => true,
-            _ => false,
-        }
+        matches!(self, INode::Directory(_))
     }
 
     pub fn fsync(&self) -> Result<()> {

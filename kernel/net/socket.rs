@@ -74,7 +74,7 @@ impl TryFrom<SockAddr> for IpEndpoint {
                     IpAddress::Ipv4(smoltcp::wire::Ipv4Address(addr))
                 },
             }),
-            _ => return Err(Errno::EINVAL.into()),
+            _ => Err(Errno::EINVAL.into()),
         }
     }
 }

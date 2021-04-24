@@ -251,10 +251,9 @@ impl<'a> SyscallHandler<'a> {
                 UserVAddr::new(a2)?,
                 UserVAddr::new(a3)?,
                 UserVAddr::new(a4)?,
-                match UserVAddr::new(a5)? {
-                    Some(uaddr) => Some(uaddr.read::<Timeval>()?),
-                    None => None,
-                },
+                UserVAddr::new(a5)?
+                    .map(|uaddr| uaddr.read::<Timeval>())
+                    .transpose()?,
             ),
             SYS_DUP2 => self.sys_dup2(Fd::new(a1 as c_int), Fd::new(a2 as c_int)),
             SYS_GETCWD => self.sys_getcwd(UserVAddr::new_nonnull(a1)?, a2 as c_size),

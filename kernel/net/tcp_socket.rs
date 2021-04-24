@@ -103,8 +103,11 @@ impl FileLike for TcpSocket {
                     let mut sockets_lock = SOCKETS.lock();
                     let smol_socket: SocketRef<'_, smoltcp::socket::TcpSocket> =
                         sockets_lock.get(socket.handle);
-                    let endpoint: IpEndpoint = smol_socket.remote_endpoint().into();
-                    Ok(Some((socket as Arc<dyn FileLike>, endpoint.into())))
+
+                    Ok(Some((
+                        socket as Arc<dyn FileLike>,
+                        smol_socket.remote_endpoint().into(),
+                    )))
                 }
                 None => {
                     // No accept'able sockets.
