@@ -1,8 +1,6 @@
 use super::MAX_READ_WRITE_LEN;
 use crate::{arch::UserVAddr, fs::opened_file::Fd, result::Result};
-use crate::{
-    net::socket::write_endpoint_as_sockaddr, net::RecvFromFlags, user_buffer::UserBufferMut,
-};
+use crate::{net::socket::write_sockaddr, net::RecvFromFlags, user_buffer::UserBufferMut};
 use crate::{process::current_process, syscalls::SyscallHandler};
 use core::cmp::min;
 
@@ -25,7 +23,7 @@ impl<'a> SyscallHandler<'a> {
             .lock()
             .recvfrom(UserBufferMut::from_uaddr(uaddr, len), flags)?;
 
-        write_endpoint_as_sockaddr(&sockaddr, src_addr, addr_len)?;
+        write_sockaddr(&sockaddr, src_addr, addr_len)?;
 
         // MAX_READ_WRITE_LEN limit guarantees len is in the range of isize.
         Ok(read_len as isize)

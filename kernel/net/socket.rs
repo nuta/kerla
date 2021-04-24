@@ -94,7 +94,7 @@ impl From<IpEndpoint> for SockAddr {
     }
 }
 
-pub fn parse_sockaddr(uaddr: UserVAddr, len: usize) -> Result<SockAddr> {
+pub fn read_sockaddr(uaddr: UserVAddr, len: usize) -> Result<SockAddr> {
     let sa_family = uaddr.read::<sa_family_t>()?;
     let sockaddr = match sa_family as i32 {
         AF_INET => {
@@ -105,10 +105,7 @@ pub fn parse_sockaddr(uaddr: UserVAddr, len: usize) -> Result<SockAddr> {
             SockAddr::In(uaddr.read::<SockAddrIn>()?)
         }
         AF_UNIX => {
-            if len < size_of::<SockAddrUn>() {
-                return Err(Errno::EINVAL.into());
-            }
-
+            // TODO: SHould we check `len` for sockaddr_un as well?
             SockAddr::Un(uaddr.read::<SockAddrUn>()?)
         }
         _ => {
@@ -119,7 +116,7 @@ pub fn parse_sockaddr(uaddr: UserVAddr, len: usize) -> Result<SockAddr> {
     Ok(sockaddr)
 }
 
-pub fn write_endpoint_as_sockaddr(
+pub fn write_sockaddr(
     sockaddr: &SockAddr,
     dst: Option<UserVAddr>,
     socklen: Option<UserVAddr>,

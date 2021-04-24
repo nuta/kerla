@@ -1,7 +1,5 @@
 use crate::{arch::UserVAddr, fs::opened_file::Fd, result::Result};
-use crate::{
-    net::socket::write_endpoint_as_sockaddr, process::current_process, syscalls::SyscallHandler,
-};
+use crate::{net::socket::write_sockaddr, process::current_process, syscalls::SyscallHandler};
 
 impl<'a> SyscallHandler<'a> {
     pub fn sys_getsockname(
@@ -17,7 +15,7 @@ impl<'a> SyscallHandler<'a> {
             .lock()
             .getsockname()?;
 
-        write_endpoint_as_sockaddr(&endpoint, Some(sockaddr), Some(socklen))?;
+        write_sockaddr(&endpoint, Some(sockaddr), Some(socklen))?;
         Ok(0)
     }
 }

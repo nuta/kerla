@@ -1,7 +1,7 @@
 use crate::{
     arch::UserVAddr,
     fs::opened_file::{Fd, OpenOptions, PathComponent},
-    net::socket::write_endpoint_as_sockaddr,
+    net::socket::write_sockaddr,
     prelude::*,
     process::current_process,
     syscalls::SyscallHandler,
@@ -29,7 +29,7 @@ impl<'a> SyscallHandler<'a> {
             .opened_files
             .lock()
             .open(PathComponent::new_anonymous(sock.into()), options)?;
-        write_endpoint_as_sockaddr(&accepted_sockaddr, sockaddr, socklen)?;
+        write_sockaddr(&accepted_sockaddr, sockaddr, socklen)?;
         Ok(fd.as_usize() as isize)
     }
 }

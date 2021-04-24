@@ -18,7 +18,7 @@ impl<'a> SyscallHandler<'a> {
         addr_len: usize,
     ) -> Result<isize> {
         let len = min(len, MAX_READ_WRITE_LEN);
-        let sockaddr = parse_sockaddr(dst_addr, addr_len)?;
+        let sockaddr = read_sockaddr(dst_addr, addr_len)?;
 
         current_process()
             .opened_files
