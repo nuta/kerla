@@ -35,6 +35,7 @@ pub type socklen_t = u32;
 #[derive(Debug, Clone)]
 pub enum SockAddr {
     In(SockAddrIn),
+    Un(SockAddrUn),
 }
 
 /// `struct sockaddr_in`
@@ -51,6 +52,16 @@ pub struct SockAddrIn {
     zero: [u8; 8],
 }
 
+/// `struct sockaddr_un`
+#[derive(Debug, Copy, Clone)]
+#[repr(C, packed)]
+pub struct SockAddrUn {
+    /// `AF_UNIX`
+    family: sa_family_t,
+    /// The unix domain socket file path.
+    path: [u8; 108],
+}
+
 impl TryFrom<SockAddr> for IpEndpoint {
     type Error = Error;
     fn try_from(sockaddr: SockAddr) -> Result<IpEndpoint> {
@@ -63,6 +74,7 @@ impl TryFrom<SockAddr> for IpEndpoint {
                     IpAddress::Ipv4(smoltcp::wire::Ipv4Address(addr))
                 },
             }),
+            _ => return Err(Errno::EINVAL.into()),
         }
     }
 }
@@ -87,13 +99,7 @@ pub fn parse_sockaddr(uaddr: UserVAddr, _len: usize) -> Result<SockAddr> {
     let sa_family = uaddr.read::<sa_family_t>()?;
     let sockaddr = match sa_family as i32 {
         AF_INET => SockAddr::In(uaddr.read::<SockAddrIn>()?),
-        AF_UNIX => {
-            // let offset = size_of::<sa_family_t>();
-            // let path = UserCStr::new(uaddr.add(offset)?, len.saturating_sub(offset))?;
-            // SockAddr::Unix(PathBuf::from(path.as_str()?))
-            // FIXME:
-            return Err(Errno::EACCES.into());
-        }
+        AF_UNIX => SockAddr::Un(uaddr.read::<SockAddrUn>()?),
         _ => {
             // FIXME: Is EINVAL correct error code?
             return Err(Errno::EINVAL.into());
@@ -116,6 +122,15 @@ pub fn write_endpoint_as_sockaddr(
 
             if !socklen.is_null() {
                 socklen.write::<socklen_t>(&(size_of::<SockAddrIn>() as u32))?;
+            }
+        }
+        SockAddr::Un(sockaddr_un) => {
+            if !dst.is_null() {
+                dst.write::<SockAddrUn>(sockaddr_un)?;
+            }
+
+            if !socklen.is_null() {
+                socklen.write::<socklen_t>(&(size_of::<SockAddrUn>() as u32))?;
             }
         }
     }
