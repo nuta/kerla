@@ -7,15 +7,23 @@ use super::{
 use crate::{
     arch::{PageFaultReason, UserVAddr, PAGE_SIZE},
     fs::opened_file::OpenOptions,
-    process::current_process,
+    process::{current_process, kill_current_process},
 };
 use core::cmp::min;
 use core::slice;
 
 pub fn handle_page_fault(unaligned_vaddr: UserVAddr, _reason: PageFaultReason) {
-    // FIXME: Kill the current process if vaddr is invalid.
-    let aligned_vaddr =
-        UserVAddr::new_nonnull(align_down(unaligned_vaddr.value(), PAGE_SIZE)).unwrap();
+    let aligned_vaddr = match UserVAddr::new_nonnull(align_down(unaligned_vaddr.value(), PAGE_SIZE))
+    {
+        Ok(uaddr) => uaddr,
+        _ => {
+            debug_warn!(
+                "invalid memory access at {}, killing the current process...",
+                unaligned_vaddr
+            );
+            kill_current_process()
+        }
+    };
     let current = current_process();
     let mut vm = current.vm.as_ref().unwrap().lock();
 
@@ -27,8 +35,11 @@ pub fn handle_page_fault(unaligned_vaddr: UserVAddr, _reason: PageFaultReason) {
     {
         Some(vma) => vma,
         None => {
-            // FIXME: Kill the current process
-            todo!();
+            debug_warn!(
+                "no VMAs for address {}, killing the current process...",
+                unaligned_vaddr
+            );
+            kill_current_process();
         }
     };
 

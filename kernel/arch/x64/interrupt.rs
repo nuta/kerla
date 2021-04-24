@@ -1,7 +1,10 @@
 use super::{
     apic::ack_interrupt, ioapic::VECTOR_IRQ_BASE, serial::SERIAL_IRQ, PageFaultReason, UserVAddr,
 };
-use crate::{interrupt::handle_irq, mm::page_fault::handle_page_fault, timer::handle_timer_irq};
+use crate::{
+    interrupt::handle_irq, mm::page_fault::handle_page_fault, process::kill_current_process,
+    timer::handle_timer_irq,
+};
 
 use x86::{controlregs::cr2, current::rflags::RFlags, irq::*};
 
@@ -149,8 +152,12 @@ unsafe extern "C" fn x64_handle_interrupt(vec: u8, frame: *const InterruptFrame)
             let unaligned_vaddr = match UserVAddr::new(cr2() as usize) {
                 Ok(Some(uvaddr)) => uvaddr,
                 Ok(None) | Err(_) => {
-                    // TODO: Kill the current user process.
-                    todo!();
+                    // The user process tried to access the kernel address.
+                    debug_warn!(
+                        "invalid memory access {}, killing the current process...",
+                        cr2()
+                    );
+                    kill_current_process();
                 }
             };
 

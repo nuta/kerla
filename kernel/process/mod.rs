@@ -48,6 +48,11 @@ pub fn current_process() -> &'static Arc<Process> {
     CURRENT.get()
 }
 
+pub fn kill_current_process() -> ! {
+    // TODO:
+    todo!()
+}
+
 pub fn init() {
     JOIN_WAIT_QUEUE.init(WaitQueue::new);
     SCHEDULER.init(|| SpinLock::new(Scheduler::new()));

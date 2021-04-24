@@ -94,14 +94,24 @@ impl From<IpEndpoint> for SockAddr {
     }
 }
 
-pub fn parse_sockaddr(uaddr: UserVAddr, _len: usize) -> Result<SockAddr> {
-    // TODO: Check `len`
+pub fn parse_sockaddr(uaddr: UserVAddr, len: usize) -> Result<SockAddr> {
     let sa_family = uaddr.read::<sa_family_t>()?;
     let sockaddr = match sa_family as i32 {
-        AF_INET => SockAddr::In(uaddr.read::<SockAddrIn>()?),
-        AF_UNIX => SockAddr::Un(uaddr.read::<SockAddrUn>()?),
+        AF_INET => {
+            if len < size_of::<SockAddrIn>() {
+                return Err(Errno::EINVAL.into());
+            }
+
+            SockAddr::In(uaddr.read::<SockAddrIn>()?)
+        }
+        AF_UNIX => {
+            if len < size_of::<SockAddrUn>() {
+                return Err(Errno::EINVAL.into());
+            }
+
+            SockAddr::Un(uaddr.read::<SockAddrUn>()?)
+        }
         _ => {
-            // FIXME: Is EINVAL correct error code?
             return Err(Errno::EINVAL.into());
         }
     };
