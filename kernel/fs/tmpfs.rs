@@ -198,8 +198,12 @@ impl FileLike for File {
         mut buf: UserBufferMut<'_>,
         _options: &OpenOptions,
     ) -> Result<usize> {
-        // FIXME: What if the offset is beyond data?
-        buf.write_bytes(&self.data.lock()[offset..])
+        let data = self.data.lock();
+        if offset > data.len() {
+            return Ok(0);
+        }
+
+        buf.write_bytes(&data[offset..])
     }
 
     fn write(

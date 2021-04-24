@@ -42,7 +42,10 @@ impl FileLike for InitramFsFile {
         mut buf: UserBufferMut<'_>,
         _options: &OpenOptions,
     ) -> Result<usize> {
-        // FIXME: What if the offset is beyond data?
+        if offset > self.data.len() {
+            return Ok(0);
+        }
+
         buf.write_bytes(&self.data[offset..])
     }
 
