@@ -2,10 +2,10 @@ use crate::fs::path::Path;
 use crate::result::Result;
 use crate::{
     process::current_process,
-    syscalls::{AtFlags, CwdOrFd, SyscallDispatcher},
+    syscalls::{AtFlags, CwdOrFd, SyscallHandler},
 };
 
-impl<'a> SyscallDispatcher<'a> {
+impl<'a> SyscallHandler<'a> {
     pub fn sys_linkat(
         &mut self,
         src_dir: CwdOrFd,

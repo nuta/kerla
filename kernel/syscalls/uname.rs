@@ -1,13 +1,13 @@
-use crate::syscalls::SyscallDispatcher;
+use crate::syscalls::SyscallHandler;
 use crate::{arch::UserVAddr, result::Result};
 
-use super::UserBufWriter;
+use crate::user_buffer::UserBufWriter;
 
 /// The maximum length of a field in `struct utsname` including the trailing
 /// null character.
 const UTS_FIELD_LEN: usize = 65;
 
-impl<'a> SyscallDispatcher<'a> {
+impl<'a> SyscallHandler<'a> {
     pub fn sys_uname(&mut self, buf: UserVAddr) -> Result<isize> {
         let mut writer = UserBufWriter::new(buf);
         // sysname

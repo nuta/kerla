@@ -7,13 +7,13 @@ use crate::{
     poll::POLL_WAIT_QUEUE,
     prelude::*,
     process::current_process,
-    syscalls::SyscallDispatcher,
+    syscalls::SyscallHandler,
     timer::read_monotonic_clock,
 };
 
-use super::UserBufReader;
+use crate::user_buffer::UserBufReader;
 
-impl<'a> SyscallDispatcher<'a> {
+impl<'a> SyscallHandler<'a> {
     pub fn sys_poll(&mut self, fds: UserVAddr, nfds: c_nfds, timeout: c_int) -> Result<isize> {
         let started_at = read_monotonic_clock();
         POLL_WAIT_QUEUE.sleep_until(|| {

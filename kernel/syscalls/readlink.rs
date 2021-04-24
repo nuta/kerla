@@ -1,5 +1,5 @@
 use crate::result::Result;
-use crate::syscalls::SyscallDispatcher;
+use crate::syscalls::SyscallHandler;
 use crate::{
     arch::UserVAddr,
     fs::{opened_file::Fd, path::Path},
@@ -7,9 +7,9 @@ use crate::{
     result::Errno,
 };
 
-use super::UserBufWriter;
+use crate::user_buffer::UserBufWriter;
 
-impl<'a> SyscallDispatcher<'a> {
+impl<'a> SyscallHandler<'a> {
     pub fn sys_readlink(&mut self, path: &Path, buf: UserVAddr, buf_size: usize) -> Result<isize> {
         let resolved_path = if path.as_str().starts_with("/proc/self/fd/") {
             // TODO: Implement procfs

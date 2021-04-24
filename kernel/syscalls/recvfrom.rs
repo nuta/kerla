@@ -3,10 +3,10 @@ use crate::{arch::UserVAddr, fs::opened_file::Fd, result::Result};
 use crate::{
     net::socket::write_endpoint_as_sockaddr, net::RecvFromFlags, user_buffer::UserBufferMut,
 };
-use crate::{process::current_process, syscalls::SyscallDispatcher};
+use crate::{process::current_process, syscalls::SyscallHandler};
 use core::cmp::min;
 
-impl<'a> SyscallDispatcher<'a> {
+impl<'a> SyscallHandler<'a> {
     pub fn sys_recvfrom(
         &mut self,
         fd: Fd,

@@ -7,11 +7,9 @@ use crate::{
     poll::POLL_WAIT_QUEUE,
     prelude::*,
     process::current_process,
-    syscalls::SyscallDispatcher,
-    timer::read_monotonic_clock,
+    syscalls::SyscallHandler,
+    timer::{read_monotonic_clock, Timeval},
 };
-
-use super::Timeval;
 
 fn check_fd_statuses<F>(max_fd: c_int, fds: UserVAddr, is_ready: F) -> Result<isize>
 where
@@ -54,7 +52,7 @@ where
     Ok(ready_fds)
 }
 
-impl<'a> SyscallDispatcher<'a> {
+impl<'a> SyscallHandler<'a> {
     pub fn sys_select(
         &mut self,
         max_fd: c_int,

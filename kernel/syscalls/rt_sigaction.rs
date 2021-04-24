@@ -1,9 +1,9 @@
 use crate::arch::UserVAddr;
 use crate::ctypes::*;
 use crate::result::Result;
-use crate::syscalls::SyscallDispatcher;
+use crate::syscalls::SyscallHandler;
 
-impl<'a> SyscallDispatcher<'a> {
+impl<'a> SyscallHandler<'a> {
     pub fn sys_rt_sigaction(
         &mut self,
         _signum: c_int,

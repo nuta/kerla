@@ -1,13 +1,13 @@
-use crate::syscalls::SyscallDispatcher;
+use crate::syscalls::SyscallHandler;
 use crate::{
     arch::UserVAddr,
     result::{Errno, Result},
 };
 use crate::{ctypes::*, process::current_process};
 
-use super::UserBufWriter;
+use crate::user_buffer::UserBufWriter;
 
-impl<'a> SyscallDispatcher<'a> {
+impl<'a> SyscallHandler<'a> {
     pub fn sys_getcwd(&mut self, buf: UserVAddr, size: c_size) -> Result<isize> {
         let cwd = current_process()
             .root_fs

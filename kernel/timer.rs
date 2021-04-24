@@ -1,6 +1,7 @@
-use crate::prelude::*;
 use crate::{
     arch::{SpinLock, TICK_HZ},
+    ctypes::*,
+    prelude::*,
     process::{self, Process, ProcessState},
 };
 use core::sync::atomic::{AtomicUsize, Ordering};
@@ -80,6 +81,20 @@ impl MonotonicClock {
 pub fn read_monotonic_clock() -> MonotonicClock {
     MonotonicClock {
         ticks: MONOTONIC_TICKS.load(Ordering::Relaxed),
+    }
+}
+
+/// `struct timeval`
+#[derive(Debug, Copy, Clone)]
+#[repr(C, packed)]
+pub struct Timeval {
+    tv_sec: c_time,
+    tv_usec: c_suseconds,
+}
+
+impl Timeval {
+    pub fn as_msecs(&self) -> usize {
+        (self.tv_sec as usize) * 1000 + (self.tv_usec as usize) / 1000
     }
 }
 

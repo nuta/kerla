@@ -1,4 +1,4 @@
-use crate::syscalls::SyscallDispatcher;
+use crate::syscalls::SyscallHandler;
 
 use super::gdt::{KERNEL_CS, USER_CS32};
 use x86::msr::{self, rdmsr, wrmsr};
@@ -37,8 +37,8 @@ extern "C" fn x64_handle_syscall(
     n: usize,
     frame: *const SyscallFrame,
 ) -> isize {
-    let mut context = SyscallDispatcher::new(unsafe { &*frame });
-    context
+    let mut handler = SyscallHandler::new(unsafe { &*frame });
+    handler
         .dispatch(a1, a2, a3, a4, a5, a6, n)
         .unwrap_or_else(|err| -(err.errno() as isize))
 }

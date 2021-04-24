@@ -1,8 +1,8 @@
 use crate::fs::{path::Path, stat::FileMode};
 use crate::prelude::*;
-use crate::{process::current_process, syscalls::SyscallDispatcher};
+use crate::{process::current_process, syscalls::SyscallHandler};
 
-impl<'a> SyscallDispatcher<'a> {
+impl<'a> SyscallHandler<'a> {
     pub fn sys_mkdir(&mut self, path: &Path, mode: FileMode) -> Result<isize> {
         let (parent_dir, name) = path
             .parent_and_basename()

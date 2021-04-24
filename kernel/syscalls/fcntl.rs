@@ -1,6 +1,6 @@
 use crate::fs::opened_file::{Fd, OpenFlags, OpenOptions};
 use crate::result::{Errno, Result};
-use crate::syscalls::SyscallDispatcher;
+use crate::syscalls::SyscallHandler;
 use crate::{ctypes::*, process::current_process};
 
 const _F_DUPFD: c_int = 0;
@@ -13,7 +13,7 @@ const F_SETFL: c_int = 4;
 const F_LINUX_SPECIFIC_BASE: c_int = 1024;
 const F_DUPFD_CLOEXEC: c_int = F_LINUX_SPECIFIC_BASE + 6;
 
-impl<'a> SyscallDispatcher<'a> {
+impl<'a> SyscallHandler<'a> {
     pub fn sys_fcntl(&mut self, fd: Fd, cmd: c_int, arg: usize) -> Result<isize> {
         let mut opened_files = current_process().opened_files.lock();
         match cmd {

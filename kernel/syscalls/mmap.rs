@@ -2,10 +2,10 @@ use penguin_utils::alignment::is_aligned;
 
 use crate::{
     arch::UserVAddr, arch::PAGE_SIZE, ctypes::*, fs::opened_file::Fd, mm::vm::VmAreaType,
-    prelude::*, process::current_process, syscalls::SyscallDispatcher,
+    prelude::*, process::current_process, syscalls::SyscallHandler,
 };
 
-impl<'a> SyscallDispatcher<'a> {
+impl<'a> SyscallHandler<'a> {
     pub fn sys_mmap(
         &mut self,
         addr_hint: Option<UserVAddr>,

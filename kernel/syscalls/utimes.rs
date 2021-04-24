@@ -1,9 +1,9 @@
 use crate::arch::UserVAddr;
 use crate::fs::path::Path;
 use crate::prelude::*;
-use crate::{process::current_process, syscalls::SyscallDispatcher};
+use crate::{process::current_process, syscalls::SyscallHandler};
 
-impl<'a> SyscallDispatcher<'a> {
+impl<'a> SyscallHandler<'a> {
     pub fn sys_utimes(&mut self, path: &Path, _times: UserVAddr) -> Result<isize> {
         // TODO: Currently we don't modify the file metadata: Return ENOENT if
         //       the file exists for touch(1).

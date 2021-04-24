@@ -4,10 +4,10 @@ use crate::{
     net::{socket::*, SendToFlags},
     user_buffer::UserBuffer,
 };
-use crate::{process::current_process, syscalls::SyscallDispatcher};
+use crate::{process::current_process, syscalls::SyscallHandler};
 use core::cmp::min;
 
-impl<'a> SyscallDispatcher<'a> {
+impl<'a> SyscallHandler<'a> {
     pub fn sys_sendto(
         &mut self,
         fd: Fd,

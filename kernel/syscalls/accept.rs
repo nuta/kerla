@@ -4,10 +4,10 @@ use crate::{
     net::socket::write_endpoint_as_sockaddr,
     prelude::*,
     process::current_process,
-    syscalls::SyscallDispatcher,
+    syscalls::SyscallHandler,
 };
 
-impl<'a> SyscallDispatcher<'a> {
+impl<'a> SyscallHandler<'a> {
     pub fn sys_accept(
         &mut self,
         fd: Fd,

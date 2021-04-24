@@ -1,12 +1,12 @@
 use super::{IoVec, IOV_MAX, MAX_READ_WRITE_LEN};
 use crate::prelude::*;
 use crate::{arch::UserVAddr, fs::opened_file::Fd, user_buffer::UserBuffer};
-use crate::{process::current_process, syscalls::SyscallDispatcher};
+use crate::{process::current_process, syscalls::SyscallHandler};
 use core::cmp::min;
 
 use core::mem::size_of;
 
-impl<'a> SyscallDispatcher<'a> {
+impl<'a> SyscallHandler<'a> {
     pub fn sys_writev(&mut self, fd: Fd, iov_base: UserVAddr, iov_count: usize) -> Result<isize> {
         let iov_count = min(iov_count, IOV_MAX);
 

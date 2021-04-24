@@ -10,11 +10,11 @@ use crate::{
     pipe::Pipe,
     result::Result,
 };
-use crate::{process::current_process, syscalls::SyscallDispatcher};
+use crate::{process::current_process, syscalls::SyscallHandler};
 
-use super::UserBufWriter;
+use crate::user_buffer::UserBufWriter;
 
-impl<'a> SyscallDispatcher<'a> {
+impl<'a> SyscallHandler<'a> {
     pub fn sys_pipe(&mut self, fds: UserVAddr) -> Result<isize> {
         let options = OpenOptions::empty();
 

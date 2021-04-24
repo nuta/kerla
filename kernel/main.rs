@@ -24,6 +24,8 @@ mod printk;
 mod result;
 #[macro_use]
 mod arch;
+#[macro_use]
+mod user_buffer;
 mod boot;
 mod ctypes;
 mod drivers;
@@ -41,4 +43,3 @@ mod syscalls;
 mod test_runner;
 mod timer;
 mod tty;
-mod user_buffer;

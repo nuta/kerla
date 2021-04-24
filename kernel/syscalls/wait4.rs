@@ -3,7 +3,7 @@ use crate::{
     ctypes::*,
     prelude::*,
     process::{current_process, PId, ProcessState, JOIN_WAIT_QUEUE},
-    syscalls::SyscallDispatcher,
+    syscalls::SyscallHandler,
 };
 
 use bitflags::bitflags;
@@ -15,7 +15,7 @@ bitflags! {
     }
 }
 
-impl<'a> SyscallDispatcher<'a> {
+impl<'a> SyscallHandler<'a> {
     pub fn sys_wait4(
         &mut self,
         pid: PId,

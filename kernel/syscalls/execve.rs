@@ -1,11 +1,11 @@
-use super::dispatcher::UserCStr;
 use crate::arch::UserVAddr;
 use crate::fs::path::Path;
 use crate::prelude::*;
 use crate::process::{switch, ProcessState};
+use crate::user_buffer::UserCStr;
 use crate::{
     process::{current_process, execve},
-    syscalls::SyscallDispatcher,
+    syscalls::SyscallHandler,
 };
 use core::mem::size_of;
 
@@ -14,7 +14,7 @@ const ARG_LEN_MAX: usize = 4096;
 const ENV_MAX: usize = 512;
 const ENV_LEN_MAX: usize = 4096;
 
-impl<'a> SyscallDispatcher<'a> {
+impl<'a> SyscallHandler<'a> {
     pub fn sys_execve(
         &mut self,
         path: &Path,

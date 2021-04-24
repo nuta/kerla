@@ -1,5 +1,5 @@
 use crate::random::{read_insecure_random, read_secure_random};
-use crate::syscalls::SyscallDispatcher;
+use crate::syscalls::SyscallHandler;
 use crate::{arch::UserVAddr, result::Result};
 use crate::{ctypes::c_uint, user_buffer::UserBufferMut};
 use bitflags::bitflags;
@@ -14,7 +14,7 @@ bitflags! {
     }
 }
 
-impl<'a> SyscallDispatcher<'a> {
+impl<'a> SyscallHandler<'a> {
     pub fn sys_getrandom(
         &mut self,
         buf: UserVAddr,

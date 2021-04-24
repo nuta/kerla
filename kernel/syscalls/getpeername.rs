@@ -1,9 +1,9 @@
 use crate::{arch::UserVAddr, fs::opened_file::Fd, result::Result};
 use crate::{
-    net::socket::write_endpoint_as_sockaddr, process::current_process, syscalls::SyscallDispatcher,
+    net::socket::write_endpoint_as_sockaddr, process::current_process, syscalls::SyscallHandler,
 };
 
-impl<'a> SyscallDispatcher<'a> {
+impl<'a> SyscallHandler<'a> {
     pub fn sys_getpeername(
         &mut self,
         fd: Fd,

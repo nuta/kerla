@@ -2,7 +2,7 @@ use super::CwdOrFd;
 use crate::fs::stat::{O_RDWR, O_WRONLY};
 use crate::fs::{inode::INode, opened_file::OpenFlags, path::Path, stat::FileMode};
 use crate::prelude::*;
-use crate::{process::current_process, syscalls::SyscallDispatcher};
+use crate::{process::current_process, syscalls::SyscallHandler};
 
 fn create_file(path: &Path, flags: OpenFlags, mode: FileMode) -> Result<INode> {
     if flags.contains(OpenFlags::O_DIRECTORY) {
@@ -21,7 +21,7 @@ fn create_file(path: &Path, flags: OpenFlags, mode: FileMode) -> Result<INode> {
         .create_file(name, mode)
 }
 
-impl<'a> SyscallDispatcher<'a> {
+impl<'a> SyscallHandler<'a> {
     pub fn sys_open(&mut self, path: &Path, flags: OpenFlags, mode: FileMode) -> Result<isize> {
         trace!("open(\"{}\")", path.as_str());
         if flags.contains(OpenFlags::O_CREAT) {

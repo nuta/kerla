@@ -5,7 +5,7 @@ use crate::{
     ctypes::*,
     fs::opened_file::{OpenOptions, PathComponent},
 };
-use crate::{process::current_process, syscalls::SyscallDispatcher};
+use crate::{process::current_process, syscalls::SyscallHandler};
 use alloc::sync::Arc;
 use bitflags::bitflags;
 
@@ -27,7 +27,7 @@ impl From<SocketFlags> for OpenOptions {
 
 const SOCKET_TYPE_MASK: c_int = 0xff;
 
-impl<'a> SyscallDispatcher<'a> {
+impl<'a> SyscallHandler<'a> {
     pub fn sys_socket(&mut self, domain: i32, type_: i32, protocol: i32) -> Result<isize> {
         let socket_type = type_ & SOCKET_TYPE_MASK;
         let flags = bitflags_from_user!(SocketFlags, type_ & !SOCKET_TYPE_MASK)?;
