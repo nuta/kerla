@@ -33,6 +33,7 @@ def main():
     parser.add_argument("--arch", choices=["x64"])
     parser.add_argument("--gui", action="store_true")
     parser.add_argument("--gdb", action="store_true")
+    parser.add_argument("--kvm", action="store_true")
     parser.add_argument("--qemu")
     parser.add_argument("kernel_elf", help="The kernel ELF executable.")
     args = parser.parse_args()
@@ -63,6 +64,8 @@ def main():
         argv += ["-nographic"]
     if args.gdb:
         argv += ["-gdb", "tcp::7789", "-S"]
+    if args.kvm:
+        argv += ["-accel", "kvm"]
 
     p = subprocess.run(argv, preexec_fn=os.setsid)
     if p.returncode != 33:

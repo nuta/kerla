@@ -85,6 +85,7 @@ run: build
 	$(PYTHON3) tools/run-qemu.py              \
 		--arch $(ARCH)                    \
 		$(if $(GUI),--gui,)               \
+		$(if $(KVM),--kvm,)               \
 		$(if $(GDB),--gdb,)               \
 		$(if $(QEMU),--qemu $(QEMU),)     \
 		$(kernel_elf)
