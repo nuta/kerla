@@ -2,7 +2,7 @@ from . import Package
 
 COMMANDS = [
     "sh", "echo", "cat", "ls", "cp", "ln", "mv", "env", "mkdir", "touch",
-    "rm", "rmdir", "sleep", "uname", "clear", "head", "tail",
+    "rm", "rmdir", "sleep", "uname", "clear", "head", "tail", "grep",
     "nslookup", "wget", "httpd",
 ]
 
@@ -38,6 +38,7 @@ class Busybox(Package):
         self.set_kconfig("MKDIR", True)
         self.set_kconfig("TOUCH", True)
         self.set_kconfig("RM", True)
+        self.set_kconfig("GREP", True)
         self.set_kconfig("RMDIR", True)
         self.set_kconfig("SLEEP", True)
         self.set_kconfig("CLEAR", True)

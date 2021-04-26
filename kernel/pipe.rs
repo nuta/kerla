@@ -18,6 +18,8 @@ static PIPE_WAIT_QUEUE: Once<WaitQueue> = Once::new();
 
 struct PipeInner {
     buf: RingBuffer<u8, PIPE_SIZE>,
+    closed_by_reader: bool,
+    closed_by_writer: bool,
 }
 
 pub struct Pipe(Arc<SpinLock<PipeInner>>);
@@ -26,6 +28,8 @@ impl Pipe {
     pub fn new() -> Pipe {
         Pipe(Arc::new(SpinLock::new(PipeInner {
             buf: RingBuffer::new(),
+            closed_by_reader: false,
+            closed_by_writer: false,
         })))
     }
 
@@ -47,9 +51,13 @@ impl FileLike for PipeWriter {
         mut buf: UserBuffer<'_>,
         options: &OpenOptions,
     ) -> Result<usize> {
-        // TODO: Implement EPIPE and SIGPIPE
-
         let ret_value = PIPE_WAIT_QUEUE.sleep_until(|| {
+            let mut pipe = self.0.lock();
+            if pipe.closed_by_reader {
+                // TODO: SIGPIPE?
+                return Err(Errno::EPIPE.into());
+            }
+
             let mut written_len = 0;
             loop {
                 let mut tmp = [0; 512];
@@ -58,7 +66,7 @@ impl FileLike for PipeWriter {
                     break;
                 }
 
-                match self.0.lock().buf.push_slice(&tmp[..copied_len]) {
+                match pipe.buf.push_slice(&tmp[..copied_len]) {
                     0 => break,
                     len => {
                         written_len += len;
@@ -101,6 +109,13 @@ impl FileLike for PipeWriter {
     }
 }
 
+impl Drop for PipeWriter {
+    fn drop(&mut self) {
+        self.0.lock().closed_by_writer = true;
+        PIPE_WAIT_QUEUE.wake_all();
+    }
+}
+
 pub struct PipeReader(Arc<SpinLock<PipeInner>>);
 
 impl FileLike for PipeReader {
@@ -114,17 +129,17 @@ impl FileLike for PipeReader {
         mut buf: UserBufferMut<'_>,
         options: &OpenOptions,
     ) -> Result<usize> {
-        // TODO: Return Ok(0) if there're no writers.
-
         let ret_value = PIPE_WAIT_QUEUE.sleep_until(|| {
+            let mut pipe = self.0.lock();
+
             let mut read_len = 0;
-            while let Some(src) = self.0.lock().buf.pop_slice(buf.remaining_len()) {
+            while let Some(src) = pipe.buf.pop_slice(buf.remaining_len()) {
                 read_len += buf.write_bytes(src)?;
             }
 
             if read_len > 0 {
                 Ok(Some(read_len))
-            } else if options.nonblock {
+            } else if options.nonblock || pipe.closed_by_writer {
                 Ok(Some(0))
             } else {
                 Ok(None)
@@ -145,6 +160,13 @@ impl FileLike for PipeReader {
         }
 
         Ok(status)
+    }
+}
+
+impl Drop for PipeReader {
+    fn drop(&mut self) {
+        self.0.lock().closed_by_reader = false;
+        PIPE_WAIT_QUEUE.wake_all();
     }
 }
 
