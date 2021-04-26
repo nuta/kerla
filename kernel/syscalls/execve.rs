@@ -57,7 +57,7 @@ impl<'a> SyscallHandler<'a> {
             current.opened_files.clone(),
         )?;
 
-        current_process().set_state(ProcessState::Execved);
+        current.set_state(ProcessState::Sleeping);
         switch();
         unreachable!();
     }

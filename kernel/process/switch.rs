@@ -18,7 +18,7 @@ pub fn switch() {
     // of the currently running thread.
     let interrupt_enabled = is_interrupt_enabled();
 
-    let prev_thread = CURRENT.get();
+    let prev_thread = current_process();
     let next_thread = {
         let scheduler = SCHEDULER.lock();
 
@@ -44,7 +44,7 @@ pub fn switch() {
 
     // Save locks that will be released later.
     debug_assert!(HELD_LOCKS.get().is_empty());
-    HELD_LOCKS.as_mut().push((*prev_thread).clone());
+    HELD_LOCKS.as_mut().push(prev_thread.clone());
     HELD_LOCKS.as_mut().push(next_thread.clone());
 
     // Since these locks won't be dropped until the current (prev) thread is

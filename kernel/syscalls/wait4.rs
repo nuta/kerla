@@ -52,7 +52,7 @@ impl<'a> SyscallHandler<'a> {
         current_process()
             .children
             .lock()
-            .retain(|p| p.pid != got_pid && p.state() != ProcessState::Execved);
+            .retain(|p| p.pid != got_pid);
 
         if let Some(status) = status {
             status.write::<c_int>(&status_value)?;

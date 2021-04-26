@@ -62,7 +62,6 @@ pub enum ProcessState {
     Runnable,
     Sleeping,
     ExitedWith(c_int),
-    Execved,
 }
 
 /// The process control block.
@@ -116,7 +115,7 @@ impl Process {
         executable_path: Arc<PathComponent>,
         console: Arc<PathComponent>,
         argv: &[&[u8]],
-    ) -> Result<Arc<Process>> {
+    ) -> Result<()> {
         assert!(console.inode.is_file());
 
         let mut opened_files = OpenedFileTable::new();
@@ -162,7 +161,7 @@ impl Process {
         )?;
 
         PROCESSES.lock().insert(process.pid, process.clone());
-        Ok(process)
+        Ok(())
     }
 
     pub fn state(&self) -> ProcessState {
