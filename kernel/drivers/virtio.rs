@@ -145,6 +145,33 @@ impl VirtQueue {
     pub fn enqueue(&mut self, chain: &[VirtqDescBuffer]) -> Result<()> {
         debug_assert!(!chain.is_empty());
 
+        // Try freeing used descriptors.
+        if (self.num_free_descs as usize) < chain.len() {
+            while self.last_used_index != self.used().index {
+                let used_elem_index = self.used_elem(self.last_used_index).id as u16;
+
+                // Enqueue the popped chain back into the free list.
+                self.free_head = used_elem_index;
+
+                // Count the number of descriptors in the chain.
+                let mut num_freed = 0;
+                let mut next_desc_index = used_elem_index;
+                loop {
+                    let desc = self.desc(next_desc_index);
+                    num_freed += 1;
+
+                    if (desc.flags & VIRTQ_DESC_F_NEXT) == 0 {
+                        break;
+                    }
+
+                    next_desc_index = desc.next;
+                }
+
+                self.num_free_descs += num_freed;
+                self.last_used_index = self.last_used_index.wrapping_add(1);
+            }
+        }
+
         // Check if we have the enough number of free descriptors.
         if (self.num_free_descs as usize) < chain.len() {
             return Err(Errno::ENOMEM.into());
@@ -176,9 +203,9 @@ impl VirtQueue {
             }
         }
 
-        let avail_elem_index = self.avail().index % self.num_descs;
+        let avail_elem_index = self.avail().index;
         *self.avail_elem_mut(avail_elem_index) = head_index;
-        self.avail_mut().index += 1;
+        self.avail_mut().index = self.avail_mut().index.wrapping_add(1);
 
         Ok(())
     }
@@ -196,7 +223,7 @@ impl VirtQueue {
         }
 
         let head = *self.used_elem(self.last_used_index);
-        self.last_used_index += 1;
+        self.last_used_index = self.last_used_index.wrapping_add(1);
 
         let mut used_descs = Vec::new();
         let mut next_desc_index = head.id as u16;
@@ -239,9 +266,22 @@ impl VirtQueue {
         self.num_descs
     }
 
+    fn desc(&mut self, index: u16) -> &VirtqDesc {
+        unsafe {
+            &*self
+                .descs
+                .as_ptr::<VirtqDesc>()
+                .offset((index % self.num_descs) as isize)
+        }
+    }
+
     fn desc_mut(&mut self, index: u16) -> &mut VirtqDesc {
-        debug_assert!(index < self.num_descs);
-        unsafe { &mut *self.descs.as_mut_ptr::<VirtqDesc>().offset(index as isize) }
+        unsafe {
+            &mut *self
+                .descs
+                .as_mut_ptr::<VirtqDesc>()
+                .offset((index % self.num_descs) as isize)
+        }
     }
 
     fn avail(&self) -> &VirtqAvail {
@@ -253,13 +293,12 @@ impl VirtQueue {
     }
 
     fn avail_elem_mut(&mut self, index: u16) -> &mut u16 {
-        debug_assert!(index < self.num_descs);
         unsafe {
             &mut *self
                 .avail
                 .add(size_of::<VirtqAvail>())
                 .as_mut_ptr::<u16>()
-                .offset(index as isize)
+                .offset((index % self.num_descs) as isize)
         }
     }
 
@@ -268,7 +307,6 @@ impl VirtQueue {
     }
 
     fn used_elem(&self, index: u16) -> &VirtqUsedElem {
-        debug_assert!(index < self.num_descs);
         unsafe {
             &*self
                 .used
