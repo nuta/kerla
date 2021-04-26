@@ -1,7 +1,4 @@
-use crate::{
-    arch::SpinLock,
-    process::{Process, WaitQueue},
-};
+use crate::{arch::SpinLock, process::Process};
 use crate::{arch::SyscallFrame, result::Result};
 use alloc::sync::Arc;
 use alloc::vec::Vec;
@@ -24,7 +21,6 @@ pub fn fork(parent: &Arc<Process>, parent_frame: &SyscallFrame) -> Result<Arc<Pr
         vm: Some(Arc::new(SpinLock::new(vm))),
         opened_files: Arc::new(SpinLock::new(opened_files)),
         root_fs: parent.root_fs.clone(),
-        wait_queue: WaitQueue::new(),
         arch: SpinLock::new(arch),
     });
 

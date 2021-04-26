@@ -75,7 +75,6 @@ pub struct Process {
     pub vm: Option<Arc<SpinLock<Vm>>>,
     pub opened_files: Arc<SpinLock<OpenedFileTable>>,
     pub root_fs: Arc<SpinLock<RootFs>>,
-    pub wait_queue: WaitQueue,
 }
 
 impl Process {
@@ -108,7 +107,6 @@ impl Process {
             vm: None,
             pid: PId::new(0),
             root_fs: INITIAL_ROOT_FS.clone(),
-            wait_queue: WaitQueue::new(),
             opened_files: Arc::new(SpinLock::new(OpenedFileTable::new())),
         }))
     }

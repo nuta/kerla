@@ -184,7 +184,6 @@ fn do_execve(
         vm: Some(Arc::new(SpinLock::new(vm))),
         pid,
         opened_files,
-        wait_queue: WaitQueue::new(),
     });
 
     if let Some(parent) = parent.and_then(|parent| parent.upgrade()) {
