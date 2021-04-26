@@ -15,7 +15,7 @@ where
     fn run(&self) {
         print!("{} ... ", core::any::type_name::<T>());
         self();
-        println!("\x1b[92mok\x1b[0m");
+        print!("\x1b[92mok\x1b[0m\n");
     }
 }
 
@@ -24,7 +24,8 @@ pub fn run_tests(tests: &[&dyn Testable]) {
     for test in tests {
         test.run();
     }
-    println!("\n\x1b[92mPassed all tests :)\x1b[0m");
+    print!("\n");
+    println!("\x1b[92mPassed all tests :)\x1b[0m\n");
 }
 
 pub fn end_tests() -> ! {
@@ -45,7 +46,7 @@ fn panic(info: &PanicInfo) -> ! {
 
     ALREADY_PANICED.store(true, Ordering::SeqCst);
 
-    println!("\x1b[1;91mfail\x1b[0m\n{}", info);
+    print!("\x1b[1;91mfail\x1b[0m\n{}\n", info);
     semihosting_halt(ExitStatus::Failure);
     loop {}
 }

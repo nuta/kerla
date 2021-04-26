@@ -101,11 +101,11 @@ fn process_memory_map_entry(
     };
 
     trace!(
-        "multiboot2: {:016x}-{:016x}  {}\t({})",
+        "multiboot2: {:>14}: {:016x}-{:016x} {}",
+        type_name,
         base,
         base + len,
         ByteSize::new(len),
-        type_name,
     );
 }
 
