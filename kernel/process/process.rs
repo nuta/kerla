@@ -187,6 +187,7 @@ impl Process {
 
     pub fn exit(self: &Arc<Process>, status: c_int) -> ! {
         self.set_state(ProcessState::ExitedWith(status));
+        PROCESSES.lock().remove(&self.pid);
         JOIN_WAIT_QUEUE.wake_all();
         switch();
         unreachable!();

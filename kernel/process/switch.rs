@@ -12,8 +12,7 @@ cpu_local! {
     static ref HELD_LOCKS: ArrayVec<Arc<Process>, 2> = ArrayVec::new_const();
 }
 
-/// Yields execution to another thread. When the currently running thread is resumed
-// in future, it will be
+/// Yields execution to another thread.
 pub fn switch() {
     // Save the current interrupt enable flag to restore it in the next execution
     // of the currently running thread.
@@ -59,6 +58,15 @@ pub fn switch() {
         lock.page_table().switch();
     }
 
+    // Drop `next_thread` here because `switch_thread` won't return when the current
+    // process is being destroyed (e.g. by exit(2)) and it leads to a memory leak.
+    //
+    // To cheat the borrow checker we do so by `Arc::decrement_strong_count`.
+    debug_assert!(Arc::strong_count(&next_thread) > 1);
+    unsafe {
+        Arc::decrement_strong_count(Arc::as_ptr(&next_thread));
+    }
+
     // Switch into the next thread.
     CURRENT.as_mut().set(next_thread.clone());
     arch::switch_thread(&mut *prev_arch, &mut *next_arch);
@@ -66,6 +74,10 @@ pub fn switch() {
     // Don't call destructors as they're unlocked in `after_switch`.
     mem::forget(prev_arch);
     mem::forget(next_arch);
+
+    // Don't call destructors as we've already decremented (dropped) the
+    // reference count by `Arc::decrement_strong_count` above.
+    mem::forget(next_thread);
 
     // Now we're in the next thread. Release held locks and continue executing.
     after_switch();
