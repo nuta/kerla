@@ -1,31 +1,24 @@
 //! A virtio device driver library.
-use crate::drivers::ioport::IoPort;
+use crate::prelude::*;
 use crate::result::{Errno, Result};
 use crate::{
     arch::{PAddr, VAddr, PAGE_SIZE},
     mm::page_allocator::{alloc_pages, AllocPageFlags},
 };
-use alloc::vec::Vec;
 use bitflags::bitflags;
+use core::cmp::min;
 use core::convert::TryInto;
 use core::mem::size_of;
 use core::sync::atomic::{self, Ordering};
 use penguin_utils::alignment::align_up;
 
+use super::transports::VirtioTransport;
+
 const VIRTIO_STATUS_ACK: u8 = 1;
 const VIRTIO_STATUS_DRIVER: u8 = 2;
 const VIRTIO_STATUS_DRIVER_OK: u8 = 4;
-const VIRTIO_STATUS_FEAT_OK: u8 = 82;
-
-const VIRTIO_REG_DEVICE_FEATS: u16 = 0x00;
-const VIRTIO_REG_DRIVER_FEATS: u16 = 0x04;
-const VIRTIO_REG_QUEUE_ADDR_PFN: u16 = 0x08;
-const VIRTIO_REG_NUM_DESCS: u16 = 0x0c;
-const VIRTIO_REG_QUEUE_SELECT: u16 = 0x0e;
-const VIRTIO_REG_QUEUE_NOTIFY: u16 = 0x10;
-const VIRTIO_REG_DEVICE_STATUS: u16 = 0x12;
-const VIRTIO_REG_ISR_STATUS: u16 = 0x13;
-const VIRTIO_REG_DEVICE_CONFIG_BASE: u16 = 0x14;
+const VIRTIO_STATUS_FEAT_OK: u8 = 8;
+const VIRTIO_F_VERSION_1: u64 = 1 << 32;
 
 const VIRTQ_DESC_F_NEXT: u16 = 1;
 const VIRTQ_DESC_F_WRITE: u16 = 2;
@@ -85,7 +78,7 @@ pub struct VirtqUsedChain {
 /// A virtqueue.
 pub struct VirtQueue {
     index: u16,
-    ioport: IoPort,
+    transport: Arc<dyn VirtioTransport>,
     num_descs: u16,
     last_used_index: u16,
     free_head: u16,
@@ -96,9 +89,12 @@ pub struct VirtQueue {
 }
 
 impl VirtQueue {
-    pub fn new(index: u16, ioport: IoPort) -> VirtQueue {
-        ioport.write16(VIRTIO_REG_QUEUE_SELECT, index);
-        let num_descs = ioport.read16(VIRTIO_REG_NUM_DESCS);
+    pub fn new(index: u16, transport: Arc<dyn VirtioTransport>) -> VirtQueue {
+        transport.select_queue(index);
+
+        let num_descs = min(transport.queue_max_size(), 512);
+        transport.set_queue_size(num_descs);
+
         let avail_ring_off = size_of::<VirtqDesc>() * (num_descs as usize);
         let avail_ring_size: usize = size_of::<u16>() * (3 + (num_descs as usize));
         let used_ring_off = align_up(avail_ring_off + avail_ring_size, PAGE_SIZE);
@@ -112,13 +108,16 @@ impl VirtQueue {
         )
         .expect("failed to allocate virtuqeue");
 
-        ioport.write32(
-            VIRTIO_REG_QUEUE_ADDR_PFN,
-            (virtqueue_paddr.value() / PAGE_SIZE) as u32,
-        );
+        let descs = virtqueue_paddr;
+        let avail = virtqueue_paddr.add(avail_ring_off);
+        let used = virtqueue_paddr.add(used_ring_off);
+
+        transport.set_queue_desc_paddr(descs);
+        transport.set_queue_driver_paddr(avail);
+        transport.set_queue_device_paddr(used);
+        transport.enable_queue();
 
         // Add descriptors into the free list.
-        let descs = virtqueue_paddr.as_vaddr();
         for i in 0..num_descs {
             let desc = unsafe { &mut *descs.as_mut_ptr::<VirtqDesc>().offset(i as isize) };
             desc.next = if i == num_descs - 1 { 0 } else { i + 1 };
@@ -126,14 +125,14 @@ impl VirtQueue {
 
         VirtQueue {
             index,
-            ioport,
+            transport,
             num_descs,
             last_used_index: 0,
             free_head: 0,
             num_free_descs: num_descs,
-            descs,
-            avail: virtqueue_paddr.add(avail_ring_off).as_vaddr(),
-            used: virtqueue_paddr.add(used_ring_off).as_vaddr(),
+            descs: descs.as_vaddr(),
+            avail: avail.as_vaddr(),
+            used: used.as_vaddr(),
         }
     }
 
@@ -213,7 +212,7 @@ impl VirtQueue {
     /// Notifies the device to start processing descriptors.
     pub fn notify(&self) {
         atomic::fence(Ordering::Release);
-        self.ioport.write16(VIRTIO_REG_QUEUE_NOTIFY, self.index);
+        self.transport.notify_queue(self.index);
     }
 
     /// Returns a chain of descriptors processed by the device.
@@ -325,46 +324,61 @@ bitflags! {
 }
 
 pub struct Virtio {
-    ioport: IoPort,
+    transport: Arc<dyn VirtioTransport>,
     virtqueues: Vec<VirtQueue>,
 }
 
 impl Virtio {
-    pub fn new(ioport: IoPort) -> Virtio {
+    pub fn new(transport: Arc<dyn VirtioTransport>) -> Virtio {
         Virtio {
-            ioport,
+            transport,
             virtqueues: Vec::new(),
         }
     }
 
     /// Initialize the virtio device. It aborts if any of the features is not
     /// supported.
-    pub fn initialize(&mut self, features: u32, num_virtqueues: u16) -> Result<()> {
-        // "3.1.1 Driver Requirements: Device Initialization"
-        self.write_device_status(0); // Reset the device.
-        self.write_device_status(self.read_device_status() | VIRTIO_STATUS_ACK);
-        self.write_device_status(self.read_device_status() | VIRTIO_STATUS_DRIVER);
+    pub fn initialize(&mut self, mut features: u64, num_virtqueues: u16) -> Result<()> {
+        features |= VIRTIO_F_VERSION_1;
 
-        if (self.read_device_features() & features) != features {
+        // "3.1.1 Driver Requirements: Device Initialization"
+        self.transport.write_device_status(0); // Reset the device.
+        self.transport
+            .write_device_status(self.transport.read_device_status() | VIRTIO_STATUS_ACK);
+        self.transport
+            .write_device_status(self.transport.read_device_status() | VIRTIO_STATUS_DRIVER);
+
+        if (self.transport.read_device_features() & features) != features {
             return Err(Errno::EINVAL.into());
         }
 
-        self.write_driver_features(features);
-        self.write_device_status(self.read_device_status() | VIRTIO_STATUS_FEAT_OK);
+        self.transport.write_driver_features(features);
+        self.transport
+            .write_device_status(self.transport.read_device_status() | VIRTIO_STATUS_FEAT_OK);
 
-        if (self.read_device_status() & VIRTIO_STATUS_FEAT_OK) == 0 {
+        if (self.transport.read_device_status() & VIRTIO_STATUS_FEAT_OK) == 0 {
             return Err(Errno::EINVAL.into());
         }
 
         // Initialize virtqueues.
         let mut virtqueues = Vec::new();
         for index in 0..num_virtqueues {
-            virtqueues.push(VirtQueue::new(index, self.ioport));
+            virtqueues.push(VirtQueue::new(index, self.transport.clone()));
         }
         self.virtqueues = virtqueues;
 
-        self.write_device_status(self.read_device_status() | VIRTIO_STATUS_DRIVER_OK);
+        self.transport
+            .write_device_status(self.transport.read_device_status() | VIRTIO_STATUS_DRIVER_OK);
+
         Ok(())
+    }
+
+    pub fn read_device_config8(&self, offset: u16) -> u8 {
+        self.transport.read_device_config8(offset)
+    }
+
+    pub fn read_isr_status(&self) -> IsrStatus {
+        self.transport.read_isr_status()
     }
 
     /// Returns the `i`-th virtqueue.
@@ -375,29 +389,5 @@ impl Virtio {
     /// Returns the `i`-th virtqueue.
     pub fn virtq_mut(&mut self, i: u16) -> &mut VirtQueue {
         self.virtqueues.get_mut(i as usize).unwrap()
-    }
-
-    pub fn read_device_config8(&self, offset: u16) -> u8 {
-        self.ioport.read8(VIRTIO_REG_DEVICE_CONFIG_BASE + offset)
-    }
-
-    pub fn read_isr_status(&self) -> IsrStatus {
-        IsrStatus::from_bits(self.ioport.read8(VIRTIO_REG_ISR_STATUS)).unwrap()
-    }
-
-    fn read_device_status(&self) -> u8 {
-        self.ioport.read8(VIRTIO_REG_DEVICE_STATUS)
-    }
-
-    fn write_device_status(&self, value: u8) {
-        self.ioport.write8(VIRTIO_REG_DEVICE_STATUS, value);
-    }
-
-    fn read_device_features(&self) -> u32 {
-        self.ioport.read32(VIRTIO_REG_DEVICE_FEATS)
-    }
-
-    fn write_driver_features(&self, value: u32) {
-        self.ioport.write32(VIRTIO_REG_DRIVER_FEATS, value)
     }
 }

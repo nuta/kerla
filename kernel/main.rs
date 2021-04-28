@@ -11,6 +11,8 @@
 #![test_runner(crate::test_runner::run_tests)]
 #![reexport_test_harness_main = "test_main"]
 #![allow(clippy::upper_case_acronyms)]
+// FIXME:
+#![allow(unaligned_references)]
 
 #[macro_use]
 extern crate alloc;

@@ -6,12 +6,12 @@ pub mod driver;
 pub mod ioport;
 pub mod pci;
 pub mod virtio;
-pub mod virtio_net;
 
 pub use driver::*;
 
 use alloc::boxed::Box;
-use virtio_net::VirtioNetBuilder;
+
+use self::virtio::virtio_net::VirtioNetBuilder;
 
 pub(super) static DRIVER_BUILDERS: SpinLock<Vec<Box<dyn DriverBuilder>>> =
     SpinLock::new(Vec::new());
@@ -33,19 +33,4 @@ pub fn init() {
     DRIVER_BUILDERS
         .lock()
         .push(Box::new(VirtioNetBuilder::new()));
-
-    // Scan PCI devices.
-    for device in pci::enumerate_pci_devices() {
-        trace!(
-            "pci: found a device: id={:04x}:{:04x}, bar0={:016x?}, irq={}",
-            device.config().vendor_id(),
-            device.config().device_id(),
-            device.config().bar0(),
-            device.config().interrupt_line()
-        );
-
-        for builder in DRIVER_BUILDERS.lock().iter() {
-            builder.attach_pci(&device).ok();
-        }
-    }
 }

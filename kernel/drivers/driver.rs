@@ -1,5 +1,5 @@
 use super::pci::PciDevice;
-use crate::result::Result;
+use crate::{boot::VirtioMmioDevice, result::Result};
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct MacAddress([u8; 6]);
@@ -24,4 +24,5 @@ pub trait EthernetDriver: Driver {
 
 pub trait DriverBuilder: Send + Sync {
     fn attach_pci(&self, pci_device: &PciDevice) -> Result<()>;
+    fn attach_virtio_mmio(&self, mmio_device: &VirtioMmioDevice) -> Result<()>;
 }

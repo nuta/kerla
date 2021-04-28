@@ -1,4 +1,7 @@
 use crate::arch::PAddr;
+use crate::drivers::DRIVER_BUILDERS;
+use crate::prelude::*;
+use arrayvec::ArrayVec;
 use core::convert::TryInto;
 use core::{mem::size_of, mem::MaybeUninit};
 use penguin_utils::alignment::is_aligned;
@@ -26,12 +29,7 @@ pub struct PciConfig {
     latency_timer: u8,
     header_type: u8,
     bist: u8,
-    bar0: u32,
-    bar1: u32,
-    bar2: u32,
-    bar3: u32,
-    bar4: u32,
-    bar5: u32,
+    bar: [u32; 6],
     cardbus_cis_ptr: u32,
     subsystem_vendor: u16,
     subsystem: u16,
@@ -51,15 +49,23 @@ pub enum Bar {
     MemoryMapped { paddr: PAddr },
 }
 
+#[derive(Debug)]
+pub struct PciCapability {
+    pub id: u8,
+    pub data: Vec<u8>,
+}
+
 impl PciConfig {
-    pub fn bar0(&self) -> Bar {
-        if self.bar0 & 1 == 0 {
+    pub fn bar(&self, index: usize) -> Bar {
+        assert!(index < 5);
+        let bar = self.bar[index];
+        if bar & 1 == 0 {
             Bar::MemoryMapped {
-                paddr: PAddr::new((self.bar0 & !0b1111) as usize),
+                paddr: PAddr::new((bar & !0b1111) as usize),
             }
         } else {
             Bar::IOMapped {
-                port: (self.bar0 & !0b1111).try_into().unwrap(),
+                port: (bar & !0b1111).try_into().unwrap(),
             }
         }
     }
@@ -87,6 +93,7 @@ pub struct PciDevice {
     config: PciConfig,
     bus: u8,
     slot: u8,
+    capabilities: ArrayVec<PciCapability, 16>,
 }
 
 impl PciDevice {
@@ -104,8 +111,13 @@ impl PciDevice {
             value | (1 << 2),
         );
     }
+
+    pub fn capabilities(&self) -> &[PciCapability] {
+        &self.capabilities
+    }
 }
 
+#[derive(Copy, Clone)]
 struct PciBus {}
 
 impl PciBus {
@@ -156,6 +168,26 @@ impl PciBus {
 
         Some(unsafe { config.assume_init() })
     }
+
+    pub fn read_capabilities(&self, bus: u8, slot: u8) -> ArrayVec<PciCapability, 16> {
+        let mut caps = ArrayVec::new();
+
+        let mut cap_off = self.read8(bus, slot, 0x34) as u32;
+        while cap_off != 0 {
+            let id = self.read8(bus, slot, cap_off);
+            let next_off = self.read8(bus, slot, cap_off + 1);
+            let len = self.read8(bus, slot, cap_off + 2);
+            let mut data = Vec::with_capacity(len as usize);
+            for i in 0..len {
+                data.push(self.read8(bus, slot, cap_off + i as u32));
+            }
+
+            caps.push(PciCapability { id, data });
+            cap_off = next_off as u32;
+        }
+
+        caps
+    }
 }
 
 pub struct PciScanner {
@@ -186,13 +218,32 @@ impl Iterator for PciScanner {
             self.slot += 1;
 
             if let Some(config) = config {
+                let capabilities = self.bus.read_capabilities(self.bus_no, self.slot - 1);
                 return Some(PciDevice {
                     bus: self.bus_no,
                     slot: self.slot - 1,
                     config,
+                    capabilities,
                 });
             }
         }
         None
+    }
+}
+
+pub fn init() {
+    // Scan PCI devices.
+    for device in enumerate_pci_devices() {
+        trace!(
+            "pci: found a device: id={:04x}:{:04x}, bar0={:016x?}, irq={}",
+            device.config().vendor_id(),
+            device.config().device_id(),
+            device.config().bar(0),
+            device.config().interrupt_line()
+        );
+
+        for builder in DRIVER_BUILDERS.lock().iter() {
+            builder.attach_pci(&device).ok();
+        }
     }
 }

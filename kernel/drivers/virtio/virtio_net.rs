@@ -1,22 +1,25 @@
 //! A virtio-net device driver.
-use super::{
-    pci::PciDevice,
-    register_ethernet_driver,
-    virtio::{IsrStatus, Virtio},
-    DriverBuilder, MacAddress,
-};
-use super::{Driver, EthernetDriver};
-use crate::result::{Errno, Result};
+use super::virtio::{IsrStatus, Virtio};
+use crate::net::receive_ethernet_frame;
 use crate::{
     arch::{SpinLock, VAddr, PAGE_SIZE},
+    boot::VirtioMmioDevice,
+    drivers::{
+        pci::PciDevice,
+        virtio::transports::{virtio_mmio::VirtioMmio, virtio_pci::VirtioPci, VirtioTransport},
+        Driver, DriverBuilder, EthernetDriver, MacAddress,
+    },
     interrupt::attach_irq,
     mm::page_allocator::{alloc_pages, AllocPageFlags},
 };
-use crate::{drivers::ioport::IoPort, net::receive_ethernet_frame};
+use crate::{
+    drivers::register_ethernet_driver,
+    result::{Errno, Result},
+};
 use alloc::sync::Arc;
 use core::mem::size_of;
 use penguin_utils::alignment::align_up;
-const VIRTIO_NET_F_MAC: u32 = 1 << 5;
+const VIRTIO_NET_F_MAC: u64 = 1 << 5;
 
 const VIRTIO_NET_QUEUE_RX: u16 = 0;
 const VIRTIO_NET_QUEUE_TX: u16 = 1;
@@ -53,8 +56,8 @@ pub struct VirtioNet {
 }
 
 impl VirtioNet {
-    pub fn new(ioport: IoPort) -> Result<VirtioNet> {
-        let mut virtio = Virtio::new(ioport);
+    pub fn new(transport: Arc<dyn VirtioTransport>) -> Result<VirtioNet> {
+        let mut virtio = Virtio::new(transport);
         virtio.initialize(VIRTIO_NET_F_MAC, 2 /* RX and TX queues. */)?;
 
         // Read the MAC address.
@@ -205,25 +208,51 @@ impl VirtioNetBuilder {
 
 impl DriverBuilder for VirtioNetBuilder {
     fn attach_pci(&self, pci_device: &PciDevice) -> Result<()> {
-        if pci_device.config().vendor_id() != 0x1af4 && pci_device.config().device_id() != 0x1000 {
+        // Check if the device is a network card ("4.1.2 PCI Device Discovery").
+        if pci_device.config().vendor_id() == 0x1af4
+            && pci_device.config().device_id() != 0x1040 + 1
+        {
             return Err(Errno::EINVAL.into());
         }
 
-        let ioport = match pci_device.config().bar0() {
-            super::pci::Bar::IOMapped { port } => IoPort::new(port),
-            bar0 => {
-                warn!("virtio: unsupported type of BAR#0: {:x?}", bar0);
-                return Err(Errno::EINVAL.into());
-            }
-        };
+        trace!("virtio-net: found the device (over PCI)");
+        let driver = VirtioPci::attach_pci(pci_device, VirtioNet::new)?;
 
-        trace!("virtio-net: found the device");
-        pci_device.enable_bus_master();
+        register_ethernet_driver(driver.clone());
+        attach_irq(pci_device.config().interrupt_line(), move || {
+            driver.lock().handle_irq();
+        });
 
-        let driver = Arc::new(SpinLock::new(VirtioNet::new(ioport)?));
+        Ok(())
+    }
+
+    fn attach_virtio_mmio(&self, mmio_device: &VirtioMmioDevice) -> Result<()> {
+        let mmio = mmio_device.mmio_base.as_vaddr();
+        let magic = unsafe { *mmio.as_ptr::<u32>() };
+        let virtio_version = unsafe { *mmio.add(4).as_ptr::<u32>() };
+        let device_id = unsafe { *mmio.add(8).as_ptr::<u32>() };
+
+        if magic != 0x74726976 {
+            return Err(Errno::EINVAL.into());
+        }
+
+        if virtio_version != 2 {
+            warn!("unsupported virtio device version: {}", virtio_version);
+            return Err(Errno::EINVAL.into());
+        }
+
+        // It looks like a virtio device. Check if the device is a network card.
+        if device_id != 1 {
+            return Err(Errno::EINVAL.into());
+        }
+
+        trace!("virtio-net: found the device (over MMIO)");
+
+        let transport = Arc::new(VirtioMmio::new(mmio_device.mmio_base));
+        let driver = Arc::new(SpinLock::new(VirtioNet::new(transport)?));
         register_ethernet_driver(driver.clone());
 
-        attach_irq(pci_device.config().interrupt_line(), move || {
+        attach_irq(mmio_device.irq, move || {
             driver.lock().handle_irq();
         });
 
