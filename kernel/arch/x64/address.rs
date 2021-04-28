@@ -1,8 +1,8 @@
 use crate::result::{Errno, Error, Result};
-use core::fmt;
 use core::{
+    fmt,
     mem::{size_of, MaybeUninit},
-    slice,
+    ptr, slice,
 };
 use penguin_utils::alignment::align_down;
 
@@ -85,6 +85,14 @@ impl VAddr {
     pub const unsafe fn as_mut_ptr<T>(self) -> *mut T {
         debug_assert!(self.0 >= KERNEL_BASE_ADDR);
         self.0 as *mut _
+    }
+
+    pub unsafe fn read_volatile<T: Copy>(self) -> T {
+        ptr::read_volatile(self.as_ptr::<T>())
+    }
+
+    pub unsafe fn write_volatile<T: Copy>(self, value: T) {
+        ptr::write_volatile(self.as_mut_ptr(), value);
     }
 
     pub fn write_bytes(self, buf: &[u8]) {
