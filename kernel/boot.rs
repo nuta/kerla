@@ -28,8 +28,15 @@ pub struct RamArea {
     pub len: usize,
 }
 
+pub struct VirtioMmioDevice {
+    pub mmio_base: PAddr,
+    pub irq: u8,
+}
+
 pub struct BootInfo {
     pub ram_areas: ArrayVec<RamArea, 8>,
+    pub virtio_mmio_devices: ArrayVec<VirtioMmioDevice, 4>,
+    pub pci_enabled: bool,
 }
 
 static LOGGER: PrintkLogger = PrintkLogger;
@@ -70,6 +77,15 @@ pub fn boot_kernel(bootinfo: &BootInfo) -> ! {
     tmpfs::init();
     initramfs::init();
     drivers::init();
+
+    if bootinfo.pci_enabled {
+        drivers::pci::init();
+    }
+
+    if !bootinfo.virtio_mmio_devices.is_empty() {
+        drivers::virtio::init(&bootinfo.virtio_mmio_devices);
+    }
+
     net::init();
 
     // Prepare the root file system.

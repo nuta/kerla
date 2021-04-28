@@ -1,6 +1,6 @@
 use super::{
     address::{PAddr, VAddr},
-    apic, cpu_local, gdt, idt, ioapic, multiboot, pit, printchar, serial, syscall, tss,
+    apic, bootinfo, cpu_local, gdt, idt, ioapic, pit, printchar, serial, syscall, tss,
 };
 use crate::boot::{boot_kernel, init_logger};
 
@@ -65,7 +65,7 @@ unsafe fn init_pic() {
 /// Initializes the CPU. This function is called exactly once in the Bootstrap
 /// Processor (BSP).
 #[no_mangle]
-unsafe extern "C" fn bsp_early_init(multiboot_magic: u32, multiboot_info: u64) -> ! {
+unsafe extern "C" fn bsp_early_init(boot_magic: u32, boot_params: u64) -> ! {
     extern "C" {
         static __bsp_cpu_local: u8;
     }
@@ -75,7 +75,8 @@ unsafe extern "C" fn bsp_early_init(multiboot_magic: u32, multiboot_info: u64) -
     init_logger();
     printchar('\n');
 
-    let boot_info = multiboot::parse(multiboot_magic, PAddr::new(multiboot_info as usize));
+    let boot_info = bootinfo::parse(boot_magic, PAddr::new(boot_params as usize));
+
     init_pic();
     common_setup(VAddr::new(&__bsp_cpu_local as *const _ as usize));
     boot_kernel(&boot_info);

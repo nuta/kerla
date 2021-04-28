@@ -36,14 +36,49 @@ multiboot_header:
 .long -(0x1badb002 + 0x00000000)
 
 // The entry point jumped from the bootloader.
-.code32
+.code64
 .global boot
 boot:
+    // Check if the CPU is in the 64-bit mode: this block must be valid for
+    // both 64-bit and 32-bit modes.
+    //
+    // We support the following boot protocols:
+    //
+    //   GRUB: Multiboot 0.x or 2 (32-bit), EBX points to the multiboot info
+    //   Firecracker: Linux/x86 Boot Protocol (64-bit), ESI points to boot_params
+    mov edi, eax
+    mov ecx, 0xc0000080
+    rdmsr
+    test  eax, 0x0100
+    mov eax, edi
+    jz boot32
+
+    // Booted directly in 64-bit mode. To simplify the boot code, we switch back
+    // into the 32-bit mode and start executing the 32-bit boot code.
+    lgdt [boot_gdtr]
+    mov eax, 0xb002b002 // magic for boot_params
+    mov ebx, esi        // struct boot_params *
+    sub rsp, 8
+    mov dword ptr [rsp], offset swtich_back_to_32bit
+    mov dword ptr [rsp + 4], 24
+    retf
+
+.code32
+swtich_back_to_32bit:
+    mov dx, 16
+    mov ds, dx
+    mov ss, dx
+    mov es, dx
+    mov fs, dx
+    mov gs, dx
+
+.code32
+boot32:
     cli
     cld
 
     // Set the boot (later reused for the cpu-local idle thread) stack.
-    lea esp, [__boot_stack]
+    mov esp, offset __boot_stack
 
     // Save the multiboot magic and 64-bit physical address of multiboot info onto the stack.
     push 0      // Upper 32-bits.
