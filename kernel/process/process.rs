@@ -183,6 +183,10 @@ impl Process {
     }
 
     pub fn exit(self: &Arc<Process>, status: c_int) -> ! {
+        if self.pid == Pid::new(1) {
+            panic!("init (pid=0) tried to exit")
+        }
+
         self.set_state(ProcessState::ExitedWith(status));
         PROCESSES.lock().remove(&self.pid);
         JOIN_WAIT_QUEUE.wake_all();
