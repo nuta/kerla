@@ -46,8 +46,13 @@ unsafe extern "C" fn x64_handle_interrupt(vec: u8, frame: *const InterruptFrame)
     let frame = &*frame;
 
     // FIXME: Check "Legacy replacement" mapping
-    const TIMER_IRQ: u8 = 2;
-    if vec != VECTOR_IRQ_BASE + TIMER_IRQ && vec != 14 && vec != 36 {
+    const TIMER_IRQ: u8 = 0;
+    const TIMER_IRQ2: u8 = 2;
+    if vec != VECTOR_IRQ_BASE + TIMER_IRQ
+        && vec != VECTOR_IRQ_BASE + TIMER_IRQ2
+        && vec != 14
+        && vec != 36
+    {
         trace!(
             "interrupt({}): rip={:x}, rsp={:x}, err={:x}, cr2={:x}",
             vec,
@@ -64,7 +69,7 @@ unsafe extern "C" fn x64_handle_interrupt(vec: u8, frame: *const InterruptFrame)
 
             let irq = vec - VECTOR_IRQ_BASE;
             match irq {
-                TIMER_IRQ => {
+                TIMER_IRQ | TIMER_IRQ2 => {
                     handle_timer_irq();
                 }
                 SERIAL_IRQ => {

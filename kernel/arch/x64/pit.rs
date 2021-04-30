@@ -10,5 +10,6 @@ pub unsafe fn init() {
     outb(0x40, (DIVISOR >> 8) as u8);
 
     // FIXME: Check "Legacy replacement" mapping
+    enable_irq(0);
     enable_irq(2);
 }
