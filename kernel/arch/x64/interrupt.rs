@@ -161,7 +161,7 @@ unsafe extern "C" fn x64_handle_interrupt(vec: u8, frame: *const InterruptFrame)
                 }
             };
 
-            handle_page_fault(unaligned_vaddr, reason);
+            handle_page_fault(unaligned_vaddr, frame.rip as usize, reason);
         }
         X87_FPU_VECTOR => {
             // TODO:

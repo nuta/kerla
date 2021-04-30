@@ -12,14 +12,15 @@ use crate::{
 use core::cmp::min;
 use core::slice;
 
-pub fn handle_page_fault(unaligned_vaddr: UserVAddr, _reason: PageFaultReason) {
+pub fn handle_page_fault(unaligned_vaddr: UserVAddr, ip: usize, _reason: PageFaultReason) {
     let aligned_vaddr = match UserVAddr::new_nonnull(align_down(unaligned_vaddr.value(), PAGE_SIZE))
     {
         Ok(uaddr) => uaddr,
         _ => {
             debug_warn!(
-                "invalid memory access at {}, killing the current process...",
-                unaligned_vaddr
+                "invalid memory access at {} (ip={:x}), killing the current process...",
+                unaligned_vaddr,
+                ip
             );
             kill_current_process()
         }
