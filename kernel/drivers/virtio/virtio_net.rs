@@ -6,7 +6,10 @@ use crate::{
     boot::VirtioMmioDevice,
     drivers::{
         pci::PciDevice,
-        virtio::transports::{virtio_mmio::VirtioMmio, virtio_pci::VirtioPci, VirtioTransport},
+        virtio::{
+            transports::{virtio_mmio::VirtioMmio, virtio_pci::VirtioPci, VirtioTransport},
+            virtio::VirtqUsedChain,
+        },
         Driver, DriverBuilder, EthernetDriver, MacAddress,
     },
     interrupt::attach_irq,
@@ -19,6 +22,7 @@ use crate::{
 use alloc::sync::Arc;
 use core::mem::size_of;
 use penguin_utils::alignment::align_up;
+
 const VIRTIO_NET_F_MAC: u64 = 1 << 5;
 
 const VIRTIO_NET_QUEUE_RX: u16 = 0;
@@ -35,6 +39,7 @@ struct VirtioNetHeader {
     gso_size: u16,
     checksum_start: u16,
     checksum_offset: u16,
+    num_buffer: u16,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -117,19 +122,24 @@ impl VirtioNet {
 
         let rx_virtq = self.virtio.virtq_mut(VIRTIO_NET_QUEUE_RX);
 
-        while let Some(used) = rx_virtq.pop_used() {
-            debug_assert!(used.descs.len() == 1);
-            let (addr, len) = match used.descs[0] {
-                super::virtio::VirtqDescBuffer::WritableFromDevice { addr, len } => (addr, len),
+        while let Some(VirtqUsedChain { descs, total_len }) = rx_virtq.pop_used() {
+            debug_assert!(descs.len() == 1);
+            let addr = match descs[0] {
+                super::virtio::VirtqDescBuffer::WritableFromDevice { addr, .. } => addr,
                 super::virtio::VirtqDescBuffer::ReadOnlyFromDevice { .. } => unreachable!(),
             };
 
-            trace!("virtio-net: received {} octets (paddr={})", len, addr);
+            trace!(
+                "virtio-net: received {} octets (paddr={}, payload_len={})",
+                total_len,
+                addr,
+                total_len - size_of::<VirtioNetHeader>()
+            );
 
             let buffer = unsafe {
                 core::slice::from_raw_parts(
                     addr.as_ptr::<u8>().add(size_of::<VirtioNetHeader>()),
-                    len - size_of::<VirtioNetHeader>(),
+                    total_len - size_of::<VirtioNetHeader>(),
                 )
             };
             receive_ethernet_frame(buffer);
@@ -175,6 +185,7 @@ impl EthernetDriver for VirtioNet {
         header.gso_size = 0;
         header.checksum_start = 0;
         header.checksum_offset = 0;
+        header.num_buffer = 1;
 
         // Copy the payload into the our buffer.
         unsafe {
