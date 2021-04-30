@@ -179,17 +179,17 @@ impl VirtioTransport for VirtioPci {
     fn write_driver_features(&self, value: u64) {
         unsafe {
             self.common_cfg
-                .add(offset_of!(CommonCfg, device_feature_select))
+                .add(offset_of!(CommonCfg, driver_feature_select))
                 .write_volatile::<u32>(0);
             self.common_cfg
-                .add(offset_of!(CommonCfg, device_feature))
+                .add(offset_of!(CommonCfg, driver_feature))
                 .write_volatile::<u32>((value & 0xffff_ffff) as u32);
 
             self.common_cfg
-                .add(offset_of!(CommonCfg, device_feature_select))
+                .add(offset_of!(CommonCfg, driver_feature_select))
                 .write_volatile::<u32>(1);
             self.common_cfg
-                .add(offset_of!(CommonCfg, device_feature))
+                .add(offset_of!(CommonCfg, driver_feature))
                 .write_volatile::<u32>((value >> 32) as u32);
         }
     }
