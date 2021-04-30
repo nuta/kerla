@@ -183,7 +183,7 @@ impl Process {
     }
 
     pub fn exit(self: &Arc<Process>, status: c_int) -> ! {
-        if self.pid == Pid::new(1) {
+        if self.pid == PId::new(1) {
             panic!("init (pid=0) tried to exit")
         }
 
