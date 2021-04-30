@@ -348,7 +348,14 @@ impl Virtio {
         self.transport
             .write_device_status(self.transport.read_device_status() | VIRTIO_STATUS_DRIVER);
 
-        if (self.transport.read_device_features() & features) != features {
+        let device_features = self.transport.read_device_features();
+        if (device_features & features) != features {
+            warn!(
+                "virtio: feature negotiation failure: driver={:x}, device={:x}, unspported={:x}",
+                features,
+                device_features,
+                features & !device_features
+            );
             return Err(Errno::EINVAL.into());
         }
 
