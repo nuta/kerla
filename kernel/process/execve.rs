@@ -84,7 +84,7 @@ fn do_execve(
         );
     }
 
-    let elf = Elf::parse(&buf);
+    let elf = Elf::parse(&buf)?;
     let ip = elf.entry()?;
     let _sp = UserVAddr::new(0xdead_0000_beef_beef)?;
 
