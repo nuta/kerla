@@ -18,14 +18,14 @@ pub fn switch() {
     // of the currently running thread.
     let interrupt_enabled = is_interrupt_enabled();
 
-    let prev_thread = current_process();
+    let prev_thread = current_process().clone();
     let next_thread = {
         let scheduler = SCHEDULER.lock();
 
         // Push back the currently running thread to the runqueue if it's still
         // ready for running, in other words, it's not blocked.
         if prev_thread.pid != PId::new(0) && prev_thread.state() == ProcessState::Runnable {
-            scheduler.enqueue((*prev_thread).clone());
+            scheduler.enqueue(prev_thread.clone());
         }
 
         // Pick a thread to run next.
@@ -37,7 +37,7 @@ pub fn switch() {
 
     debug_assert!(next_thread.state() == ProcessState::Runnable);
 
-    if Arc::ptr_eq(prev_thread, &next_thread) {
+    if Arc::ptr_eq(&prev_thread, &next_thread) {
         // Continue executing the current process.
         return;
     }
