@@ -158,8 +158,9 @@ unsafe extern "C" fn x64_handle_interrupt(vec: u8, frame: *const InterruptFrame)
                 Ok(Some(uvaddr)) => uvaddr,
                 Ok(None) | Err(_) => {
                     debug_warn!(
-                        "user tried to access a kernel address {:x}, killing the current process...",
-                        cr2()
+                        "user tried to access a kernel address {:x} (rip={:x}), killing the current process...",
+                        cr2(),
+                        frame.rip,
                     );
                     kill_current_process();
                 }
