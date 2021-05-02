@@ -3,7 +3,7 @@ use super::{
     gdt::{USER_CS64, USER_DS},
     syscall::SyscallFrame,
     tss::TSS,
-    UserVAddr, KERNEL_STACK_SIZE,
+    SpinLockGuard, UserVAddr, KERNEL_STACK_SIZE,
 };
 use super::{cpu_local::cpu_local_head, gdt::USER_RPL};
 use crate::mm::page_allocator::{alloc_pages, AllocPageFlags};
@@ -23,6 +23,7 @@ extern "C" {
     fn kthread_entry();
     fn userland_entry();
     fn forked_child_entry();
+    fn signal_handler_entry();
     fn do_switch_thread(prev_rsp: *const u64, next_rsp: *const u64);
 }
 
@@ -186,6 +187,49 @@ impl Thread {
             interrupt_stack,
             syscall_stack,
         })
+    }
+
+    pub(super) unsafe fn set_signal_entry(
+        mut this: SpinLockGuard<'_, Thread>,
+        user_rip: u64,
+        user_rsp: u64,
+        arg1: u64,
+        arg2: u64,
+        arg3: u64,
+        is_current_process: bool,
+    ) {
+        let mut tmp = [0u64; 8];
+        let mut rsp = if is_current_process {
+            tmp.as_mut_ptr().add(tmp.len())
+        } else {
+            this.rsp as *mut u64
+        };
+
+        // Registers to be restored in signal_handler_entry().
+        rsp = push_stack(rsp, user_rsp); // User RSP.
+        rsp = push_stack(rsp, user_rip); // User RIP.
+        rsp = push_stack(rsp, 0x202); // User RFLAGS (interrupts enabled).
+        rsp = push_stack(rsp, arg1); // User RDI.
+        rsp = push_stack(rsp, arg2); // User RSI.
+        rsp = push_stack(rsp, arg3); // User RDX.
+
+        if is_current_process {
+            // Resume the user process directly from the signal handler.
+            drop(this);
+            asm!("mov rsp, rax; jmp direct_signal_handler_entry", in("rax") rsp);
+        } else {
+            // Registers to be restored in do_switch_thread().
+            rsp = push_stack(rsp, signal_handler_entry as *const u8 as u64); // RIP.
+            rsp = push_stack(rsp, 0); // Initial RBP.
+            rsp = push_stack(rsp, 0); // Initial RBX.
+            rsp = push_stack(rsp, 0); // Initial R12.
+            rsp = push_stack(rsp, 0); // Initial R13.
+            rsp = push_stack(rsp, 0); // Initial R14.
+            rsp = push_stack(rsp, 0); // Initial R15.
+            rsp = push_stack(rsp, 0x02); // RFLAGS (interrupts disabled).
+
+            this.rsp = rsp as u64;
+        }
     }
 }
 

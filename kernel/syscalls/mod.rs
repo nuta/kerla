@@ -8,7 +8,7 @@ use crate::{
         stat::FileMode,
     },
     net::{RecvFromFlags, SendToFlags},
-    process::PId,
+    process::{current_process, PId},
     result::{Errno, Error, Result},
     syscalls::{getrandom::GetRandomFlags, wait4::WaitOptions},
     timer::Timeval,
@@ -52,6 +52,7 @@ pub(self) mod read;
 pub(self) mod readlink;
 pub(self) mod recvfrom;
 pub(self) mod rt_sigaction;
+pub(self) mod rt_sigreturn;
 pub(self) mod select;
 pub(self) mod sendto;
 pub(self) mod set_tid_address;
@@ -103,7 +104,8 @@ const SYS_LSTAT: usize = 6;
 const SYS_POLL: usize = 7;
 const SYS_MMAP: usize = 9;
 const SYS_BRK: usize = 12;
-const SYS_SIGACTION: usize = 13;
+const SYS_RT_SIGACTION: usize = 13;
+const SYS_RT_SIGRETURN: usize = 15;
 const SYS_IOCTL: usize = 16;
 const SYS_WRITEV: usize = 20;
 const SYS_PIPE: usize = 22;
@@ -152,11 +154,11 @@ fn resolve_path(uaddr: usize) -> Result<PathBuf> {
 }
 
 pub struct SyscallHandler<'a> {
-    pub frame: &'a SyscallFrame,
+    pub frame: &'a mut SyscallFrame,
 }
 
 impl<'a> SyscallHandler<'a> {
-    pub fn new(frame: &'a SyscallFrame) -> SyscallHandler<'a> {
+    pub fn new(frame: &'a mut SyscallFrame) -> SyscallHandler<'a> {
         SyscallHandler { frame }
     }
 
@@ -188,10 +190,15 @@ impl<'a> SyscallHandler<'a> {
             );
         }
 
-        self.do_dispatch(a1, a2, a3, a4, a5, a6, n).map_err(|err| {
+        current_process().syscall_frame.store(Some(*self.frame));
+
+        let ret = self.do_dispatch(a1, a2, a3, a4, a5, a6, n).map_err(|err| {
             debug_warn!("{}: error: {:?}", syscall_name_by_number(n), err);
             err
-        })
+        });
+
+        current_process().syscall_frame.store(None);
+        ret
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -270,9 +277,8 @@ impl<'a> SyscallHandler<'a> {
             SYS_SETGROUPS => Ok(0), // TODO:
             SYS_SET_TID_ADDRESS => self.sys_set_tid_address(UserVAddr::new_nonnull(a1)?),
             SYS_PIPE => self.sys_pipe(UserVAddr::new_nonnull(a1)?),
-            SYS_SIGACTION => {
-                self.sys_rt_sigaction(a1 as c_int, UserVAddr::new(a2)?, UserVAddr::new(a3)?)
-            }
+            SYS_RT_SIGACTION => self.sys_rt_sigaction(a1 as c_int, a2, UserVAddr::new(a3)?),
+            SYS_RT_SIGRETURN => self.sys_rt_sigreturn(),
             SYS_EXECVE => self.sys_execve(
                 &resolve_path(a1)?,
                 UserVAddr::new_nonnull(a2)?,

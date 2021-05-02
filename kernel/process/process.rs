@@ -1,8 +1,11 @@
 use core::sync::atomic::{AtomicI32, Ordering};
 
-use super::*;
+use super::{
+    signal::{Signal, SignalDelivery},
+    *,
+};
 use crate::{
-    arch::{self, SpinLock},
+    arch::{self, restore_signaled_stack, setup_signal_handler_stack, SpinLock, SyscallFrame},
     boot::INITIAL_ROOT_FS,
     ctypes::*,
     fs::{mount::RootFs, opened_file},
@@ -74,6 +77,9 @@ pub struct Process {
     pub vm: Option<Arc<SpinLock<Vm>>>,
     pub opened_files: Arc<SpinLock<OpenedFileTable>>,
     pub root_fs: Arc<SpinLock<RootFs>>,
+    pub signals: SpinLock<SignalDelivery>,
+    pub syscall_frame: AtomicCell<Option<SyscallFrame>>,
+    pub signaled_frame: AtomicCell<Option<SyscallFrame>>,
 }
 
 impl Process {
@@ -107,6 +113,9 @@ impl Process {
             pid: PId::new(0),
             root_fs: INITIAL_ROOT_FS.clone(),
             opened_files: Arc::new(SpinLock::new(OpenedFileTable::new())),
+            signals: SpinLock::new(SignalDelivery::new()),
+            syscall_frame: AtomicCell::new(None),
+            signaled_frame: AtomicCell::new(None),
         }))
     }
 
@@ -168,13 +177,25 @@ impl Process {
         self.state.load()
     }
 
+    /// This function may not return if `self` is current process and it has
+    /// pending signals. **Ensure no locks are held!**
     pub fn set_state(self: &Arc<Process>, new_state: ProcessState) {
         let scheduler = SCHEDULER.lock();
         let old_state = self.state.swap(new_state);
-        if old_state != ProcessState::Runnable && new_state == ProcessState::Runnable {
-            scheduler.enqueue(self.clone());
-        } else {
-            scheduler.remove(self);
+        match new_state {
+            ProcessState::Runnable => {
+                if old_state != ProcessState::Runnable {
+                    scheduler.enqueue(self.clone());
+                }
+            }
+            ProcessState::Sleeping => {
+                scheduler.remove(self);
+                drop(scheduler);
+                self.try_delivering_signal();
+            }
+            ProcessState::ExitedWith(_) => {
+                scheduler.remove(self);
+            }
         }
     }
 
@@ -188,6 +209,12 @@ impl Process {
         }
 
         self.set_state(ProcessState::ExitedWith(status));
+        if let Some(parent) = self.parent.as_ref() {
+            if let Some(parent) = parent.upgrade() {
+                parent.signal(Signal::SIGCHLD);
+            }
+        }
+
         PROCESSES.lock().remove(&self.pid);
         JOIN_WAIT_QUEUE.wake_all();
         switch();
@@ -196,5 +223,61 @@ impl Process {
 
     pub fn vm(&self) -> SpinLockGuard<'_, Vm> {
         self.vm.as_ref().expect("not a user process").lock()
+    }
+
+    /// This function may not return if `self` is current process and it has
+    /// pending signals. **Ensure no locks are held!**
+    pub fn signal(self: &Arc<Process>, signal: Signal) {
+        self.signals.lock().signal(signal);
+        self.try_delivering_signal();
+    }
+
+    /// This function may not return if `self` is current process and it has
+    /// pending signals. **Ensure no locks are held!**
+    pub fn try_delivering_signal(self: &Arc<Process>) {
+        if self.state.load() != ProcessState::Sleeping {
+            return;
+        }
+
+        // TODO: sigmask
+
+        let pending_signal = { self.signals.lock().pop_pending() };
+        if let Some((signal, sigaction)) = pending_signal {
+            match sigaction {
+                signal::SigAction::Ignore => {}
+                signal::SigAction::Handler { handler } => {
+                    if let Some(frame) = self.syscall_frame.load() {
+                        trace!("delivering {:?} to {:?}", signal, self.pid,);
+                        self.signaled_frame.store(Some(frame));
+
+                        // This function may not return if `self` is current process and it has
+                        // pending signals.
+                        setup_signal_handler_stack(
+                            &self.arch,
+                            // The vm is only None if `self` is a kernel thread. It's safe to
+                            // assume it's always Some.
+                            &self.vm.as_ref().unwrap(),
+                            &frame,
+                            signal,
+                            handler,
+                            self.pid == current_process().pid,
+                        )
+                        .unwrap();
+
+                        self.set_state(ProcessState::Runnable);
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn restore_signaled_user_stack(&self, current_frame: &mut SyscallFrame) {
+        // TODO: Kill the process if syscall_frame is empty, i.e., the user
+        //       intentionally called sigreturn(2).
+
+        if let Some(signaled_frame) = self.signaled_frame.load() {
+            restore_signaled_stack(current_frame, &signaled_frame);
+            self.signaled_frame.store(None);
+        }
     }
 }

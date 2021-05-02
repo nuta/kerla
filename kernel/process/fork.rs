@@ -4,7 +4,7 @@ use alloc::sync::Arc;
 use alloc::vec::Vec;
 use crossbeam::atomic::AtomicCell;
 
-use super::{alloc_pid, ProcessState, PROCESSES, SCHEDULER};
+use super::{alloc_pid, signal::SignalDelivery, ProcessState, PROCESSES, SCHEDULER};
 
 /// Creates a new process. The calling process (`self`) will be the parent
 /// process of the created process. Returns the created child process.
@@ -22,6 +22,9 @@ pub fn fork(parent: &Arc<Process>, parent_frame: &SyscallFrame) -> Result<Arc<Pr
         opened_files: Arc::new(SpinLock::new(opened_files)),
         root_fs: parent.root_fs.clone(),
         arch: SpinLock::new(arch),
+        signals: SpinLock::new(SignalDelivery::new()),
+        syscall_frame: AtomicCell::new(None),
+        signaled_frame: AtomicCell::new(None),
     });
 
     parent.children.lock().push(child.clone());

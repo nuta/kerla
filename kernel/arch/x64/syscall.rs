@@ -8,6 +8,7 @@ use x86::msr::{self, rdmsr, wrmsr};
 const SYSCALL_RFLAGS_MASK: u64 = 0x200;
 
 #[repr(C, packed)]
+#[derive(Clone, Copy)]
 pub struct SyscallFrame {
     pub(super) r15: u64,
     pub(super) r14: u64,
@@ -35,9 +36,9 @@ extern "C" fn x64_handle_syscall(
     a5: usize,
     a6: usize,
     n: usize,
-    frame: *const SyscallFrame,
+    frame: *mut SyscallFrame,
 ) -> isize {
-    let mut handler = SyscallHandler::new(unsafe { &*frame });
+    let mut handler = SyscallHandler::new(unsafe { &mut *frame });
     handler
         .dispatch(a1, a2, a3, a4, a5, a6, n)
         .unwrap_or_else(|err| -(err.errno() as isize))

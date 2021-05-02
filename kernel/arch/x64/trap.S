@@ -253,6 +253,45 @@ forked_child_entry:
     swapgs
     iretq
 
+.global signal_handler_entry, direct_signal_handler_entry
+signal_handler_entry:
+    // Release held locks before enabling interrupts.
+    call after_switch
+
+direct_signal_handler_entry:
+    // Sanitize registers to prevent information leak.
+    xor rax, rax
+    xor rbx, rbx
+    xor r8, r8
+    xor r9, r9
+    xor r10, r10
+    xor r12, r12
+    xor r13, r13
+    xor r14, r14
+    xor r15, r15
+    xor rbp, rbp
+
+    // RCX: user RIP (set by SYSCALL)
+    // R11: user RFLAGS (set by SYSCALL)
+    // RDI: arg1
+    // RSI: arg2
+    // RDX: arg3
+    pop rdx
+    pop rsi
+    pop rdi
+    pop r11
+    pop rcx
+
+    pop rsp
+
+    // Ensure that interrupts are disabled since SWAPGS and SYSRETQ are not a
+    // atomic operation. If an interrupt occurred between SWAPGS and SYSRETQ
+    // (thus the GS base points to the user one), the interrupt handler won't
+    // perform SWAPGS since the interrupt has occurred in kernel mode.
+    cli
+    swapgs
+    sysretq
+
 /// fn do_switch_thread(prev_rsp: u64, next_rsp: u64);
 ///
 /// Saves the current context into `prev` and restore the context from `next`.

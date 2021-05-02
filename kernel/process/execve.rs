@@ -5,7 +5,7 @@ use crate::fs::{
     path::Path,
 };
 use crate::mm::page_allocator::{alloc_pages, AllocPageFlags};
-use crate::process::*;
+use crate::process::{signal::SignalDelivery, *};
 use crate::result::{Errno, Error, Result};
 use alloc::sync::Weak;
 use alloc::vec::Vec;
@@ -184,6 +184,9 @@ fn do_execve(
         vm: Some(Arc::new(SpinLock::new(vm))),
         pid,
         opened_files,
+        signals: SpinLock::new(SignalDelivery::new()),
+        syscall_frame: AtomicCell::new(None),
+        signaled_frame: AtomicCell::new(None),
     });
 
     if let Some(parent) = parent.and_then(|parent| parent.upgrade()) {

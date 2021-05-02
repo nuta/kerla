@@ -21,6 +21,7 @@ mod init_stack;
 #[allow(clippy::module_inception)]
 mod process;
 mod scheduler;
+pub mod signal;
 mod switch;
 mod wait_queue;
 
