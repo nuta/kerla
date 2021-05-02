@@ -157,9 +157,8 @@ unsafe extern "C" fn x64_handle_interrupt(vec: u8, frame: *const InterruptFrame)
             let unaligned_vaddr = match UserVAddr::new(cr2() as usize) {
                 Ok(Some(uvaddr)) => uvaddr,
                 Ok(None) | Err(_) => {
-                    // The user process tried to access the kernel address.
                     debug_warn!(
-                        "invalid memory access {}, killing the current process...",
+                        "user tried to access a kernel address {:x}, killing the current process...",
                         cr2()
                     );
                     kill_current_process();
