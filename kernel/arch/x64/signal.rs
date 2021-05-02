@@ -27,7 +27,7 @@ pub fn setup_signal_handler_stack(
     // Prepare the sigreturn stack in the userspace.
     let (trampoline_rip, user_rsp) = {
         // `thread` can be an arbitrary process. Temporarily switch the page
-        // table to its virtual memory space.
+        // table to access its virtual memory space.
         vm.lock().page_table().switch();
 
         let mut user_rsp = UserVAddr::new_nonnull(frame.rsp as usize)?;
