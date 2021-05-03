@@ -18,6 +18,15 @@ ifeq ($(V),)
 .SILENT:
 endif
 
+# $(IMAGE): Use a Docker image for initramfs.
+ifeq ($(IMAGE),)
+INITRAMFS_PATH := build/penguin.initramfs
+else
+IMAGE_FILENAME := $(subst /,.s,$(IMAGE))
+INITRAMFS_PATH := build/$(IMAGE_FILENAME).initramfs
+INIT_SCRIPT := $(shell tools/inspect-init-in-docker-image.py $(IMAGE))
+endif
+
 topdir      := $(PWD)
 build_mode  := $(if $(RELEASE),release,debug)
 target_json := kernel/arch/$(ARCH)/$(ARCH).json
@@ -41,6 +50,8 @@ TESTCARGOFLAGS += --package penguin-kernel -Z unstable-options
 TESTCARGOFLAGS += --config "target.$(ARCH).runner = '$(PYTHON3) $(topdir)/tools/run-qemu.py --arch $(ARCH)'"
 WATCHFLAGS += --clear
 export CARGO_FROM_MAKE=1
+export INITRAMFS_PATH
+export INIT_SCRIPT
 
 #
 #  Build Commands
@@ -66,7 +77,7 @@ build-crate:
 	$(CARGO) build $(CARGOFLAGS) --manifest-path kernel/Cargo.toml
 
 .PHONY: initramfs
-initramfs: initramfs.bin
+initramfs: $(INITRAMFS_PATH)
 
 .PHONY: buildw
 buildw:
@@ -131,7 +142,13 @@ clean:
 #
 #  Build Rules
 #
-initramfs.bin: $(wildcard packages/*.py) Makefile
+build/penguin.initramfs: $(wildcard packages/*.py) Makefile
+	mkdir -p build
 	$(PYTHON3) packages/__init__.py                       \
 		--build-dir build/initramfs                   \
-		-o initramfs.bin
+		-o $@
+
+build/$(IMAGE_FILENAME).initramfs: tools/docker2initramfs.py Makefile
+	$(PROGRESS) "EXPORT" $(IMAGE)
+	mkdir -p build
+	$(PYTHON3) tools/docker2initramfs.py $@ $(IMAGE)

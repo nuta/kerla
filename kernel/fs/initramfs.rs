@@ -298,5 +298,8 @@ impl FileSystem for InitramFs {
 }
 
 pub fn init() {
-    INITRAM_FS.init(|| Arc::new(InitramFs::new(include_bytes!("../../initramfs.bin"))));
+    INITRAM_FS.init(|| {
+        let image = include_bytes!(concat!("../../", env!("INITRAMFS_PATH")));
+        Arc::new(InitramFs::new(image))
+    });
 }

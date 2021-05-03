@@ -109,22 +109,35 @@ pub fn boot_kernel(bootinfo: &BootInfo) -> ! {
         .expect("failed to open /dev/console");
 
     // Open the init's executable.
+    let argv0 = if option_env!("INIT_SCRIPT").is_some() {
+        "/bin/sh"
+    } else {
+        "/sbin/init"
+    };
+    info!("argv0={}", argv0);
     let executable_path = root_fs
-        .lookup_path(Path::new("/sbin/init"), true)
-        .expect("failed to open /sbin/init");
+        .lookup_path(Path::new(argv0), true)
+        .expect("failed to open the init executable");
 
     // We cannot initialize the process subsystem until INITIAL_ROOT_FS is initialized.
     INITIAL_ROOT_FS.init(|| Arc::new(SpinLock::new(root_fs)));
     process::init();
 
     // Create the init process.
-    Process::new_init_process(
-        INITIAL_ROOT_FS.clone(),
-        executable_path,
-        console,
-        &[b"/sbin/init"],
-    )
-    .expect("failed to execute /sbin/init");
+    if let Some(script) = option_env!("INIT_SCRIPT") {
+        let argv = &[b"sh", b"-c", script.as_bytes()];
+        Process::new_init_process(INITIAL_ROOT_FS.clone(), executable_path, console, argv).expect(
+            concat!("failed to execute the init script: ", env!("INIT_SCRIPT")),
+        );
+    } else {
+        Process::new_init_process(
+            INITIAL_ROOT_FS.clone(),
+            executable_path,
+            console,
+            &[b"/sbin/init"],
+        )
+        .expect("failed to execute /sbin/init");
+    }
 
     // We've done the kernel initialization. Switch into the init...
     switch();
