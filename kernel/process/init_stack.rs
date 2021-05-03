@@ -21,6 +21,8 @@ pub enum Auxv {
     Phnum(usize),
     /// The size of a page.
     Pagesz(usize),
+    /// 16 random bytes. Used for stack canary.
+    Random([u8; 16]),
 }
 
 fn push_bytes_to_stack(sp: &mut VAddr, stack_bottom: VAddr, buf: &[u8]) -> Result<()> {
@@ -43,13 +45,28 @@ fn push_usize_to_stack(sp: &mut VAddr, stack_bottom: VAddr, value: usize) -> Res
     Ok(())
 }
 
-fn push_auxv_entry_to_stack(sp: &mut VAddr, stack_bottom: VAddr, auxv: &Auxv) -> Result<()> {
+fn push_aux_data_to_stack(sp: &mut VAddr, stack_bottom: VAddr, auxv: &Auxv) -> Result<()> {
+    match auxv {
+        Auxv::Random(values) => push_bytes_to_stack(sp, stack_bottom, values.as_slice())?,
+        _ => {}
+    }
+
+    Ok(())
+}
+
+fn push_auxv_entry_to_stack(
+    sp: &mut VAddr,
+    stack_bottom: VAddr,
+    auxv: &Auxv,
+    data_ptr: Option<UserVAddr>,
+) -> Result<()> {
     let (auxv_type, value) = match auxv {
         Auxv::Null => (0, 0),
         Auxv::Phdr(uaddr) => (3, uaddr.value()),
         Auxv::Phent(value) => (4, *value),
         Auxv::Phnum(value) => (5, *value),
         Auxv::Pagesz(value) => (6, *value),
+        Auxv::Random(_) => (25, data_ptr.unwrap().as_isize() as usize),
     };
 
     push_usize_to_stack(sp, stack_bottom, value)?;
@@ -71,6 +88,7 @@ pub(super) fn estimate_user_init_stack_size(
     let aux_data_len = auxv.iter().fold(0, |l, aux| {
         l + match aux {
             Auxv::Null | Auxv::Phdr(_) | Auxv::Phent(_) | Auxv::Phnum(_) | Auxv::Pagesz(_) => 0,
+            Auxv::Random(_) => 16,
         }
     });
 
@@ -95,8 +113,15 @@ pub(super) fn init_user_stack(
         user_stack_top.sub(offset)
     };
 
+    // Write auxv data.
+    let mut auxv_ptrs = Vec::with_capacity(auxv.len());
+    for auxv in auxv.iter().rev() {
+        push_aux_data_to_stack(&mut sp, stack_bottom, auxv)?;
+        auxv_ptrs.push(Some(kernel_sp_to_user_sp(sp)?));
+    }
+
     // Write envp strings.
-    let mut envp_ptrs = Vec::with_capacity(argv.len());
+    let mut envp_ptrs = Vec::with_capacity(envp.len());
     for env in envp {
         push_bytes_to_stack(&mut sp, stack_bottom, &[0])?;
         push_bytes_to_stack(&mut sp, stack_bottom, env)?;
@@ -115,9 +140,9 @@ pub(super) fn init_user_stack(
     sp = sp.align_down(size_of::<usize>());
 
     // Push auxiliary vector entries.
-    push_auxv_entry_to_stack(&mut sp, stack_bottom, &Auxv::Null)?;
-    for aux in auxv {
-        push_auxv_entry_to_stack(&mut sp, stack_bottom, aux)?;
+    push_auxv_entry_to_stack(&mut sp, stack_bottom, &Auxv::Null, None)?;
+    for (aux, data) in auxv.iter().zip(auxv_ptrs) {
+        push_auxv_entry_to_stack(&mut sp, stack_bottom, aux, data)?;
     }
 
     // Push environment pointers (`const char **envp`).

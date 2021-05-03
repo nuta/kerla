@@ -1,12 +1,15 @@
 use super::elf::{Elf, ProgramHeader};
-use crate::fs::{
-    mount::RootFs,
-    opened_file::{OpenOptions, OpenedFileTable},
-    path::Path,
-};
 use crate::mm::page_allocator::{alloc_pages, AllocPageFlags};
 use crate::process::{signal::SignalDelivery, *};
 use crate::result::{Errno, Error, Result};
+use crate::{
+    fs::{
+        mount::RootFs,
+        opened_file::{OpenOptions, OpenedFileTable},
+        path::Path,
+    },
+    random::read_secure_random,
+};
 use alloc::sync::Weak;
 use alloc::vec::Vec;
 use crossbeam::atomic::AtomicCell;
@@ -95,6 +98,10 @@ fn do_execve(
         }
     }
 
+    // use core::slice::SlicePattern;
+    let mut random_bytes = [0u8; 16];
+    read_secure_random(((&mut random_bytes) as &mut [u8]).into())?;
+
     // Set up the user stack.
     let auxv = &[
         Auxv::Phdr(
@@ -105,6 +112,7 @@ fn do_execve(
         Auxv::Phnum(elf.program_headers().len()),
         Auxv::Phent(size_of::<ProgramHeader>()),
         Auxv::Pagesz(PAGE_SIZE),
+        Auxv::Random(random_bytes),
     ];
     const USER_STACK_LEN: usize = 128 * 1024; // TODO: Implement rlimit
     let init_stack_top = file_header_top.sub(file_header_len)?;
