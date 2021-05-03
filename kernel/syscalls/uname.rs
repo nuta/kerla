@@ -15,7 +15,10 @@ impl<'a> SyscallHandler<'a> {
         // nodename
         writer.write_bytes_or_zeroes(b"", UTS_FIELD_LEN)?;
         // release
-        writer.write_bytes_or_zeroes(b"", UTS_FIELD_LEN)?;
+        // We use a hard-coded release number instead of using our own version
+        // because glibc checks the kernel version to determine supported
+        // Linux's kernel features.
+        writer.write_bytes_or_zeroes(b"4.0.0", UTS_FIELD_LEN)?;
         // version
         writer.write_bytes_or_zeroes(b"penguin", UTS_FIELD_LEN)?;
         // machine
