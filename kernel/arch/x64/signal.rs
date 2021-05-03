@@ -25,7 +25,7 @@ pub fn setup_signal_handler_stack(
     is_current_process: bool,
 ) -> Result<()> {
     // Prepare the sigreturn stack in the userspace.
-    let (trampoline_rip, user_rsp) = {
+    let user_rsp = {
         // `thread` can be an arbitrary process. Temporarily switch the page
         // table to access its virtual memory space.
         vm.lock().page_table().switch();
@@ -47,7 +47,7 @@ pub fn setup_signal_handler_stack(
             current_vm.lock().page_table().switch();
         }
 
-        (trampoline_rip, user_rsp)
+        user_rsp
     };
 
     let arg1 = signal as u64; // int signal
