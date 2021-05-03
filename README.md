@@ -4,9 +4,9 @@ Penguin Kernel
 Rwrite Linux Kenrel in Rust *just for fun*!
 
 ## Running a Docker Image (experimental)
-You can run a Docker image instead of our initramfs built from `packages` directory.
+You can run a Docker image as a root file system (not as a container!) on Penguin Kenrel instead of our initramfs built from `packages` directory.
 
-For example, to [nuta/helloworld](https://hub.docker.com/r/nuta/helloworld) image ([Dockerfile](https://gist.github.com/nuta/4c9ecd0d1a401dc5be88095bea5a991a)), try the following command:
+For example, to run [nuta/helloworld](https://hub.docker.com/r/nuta/helloworld) image ([Dockerfile](https://gist.github.com/nuta/4c9ecd0d1a401dc5be88095bea5a991a)), try the following command:
 
 ```
 $ make IMAGE=nuta/helloworld run
@@ -25,7 +25,7 @@ $ make IMAGE=nuta/helloworld run
 
 This feature is in the very early stage and I guess **almost all images out there won't work** because:
 
-- They tend to be too large to embed into the kernel image.
+- They tend to be too large to be embedded into the kernel image.
 - They might use unimplemented features (e.g. position-independent executables used in Alpine Linux).
 
 ## Road Map
