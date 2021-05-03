@@ -24,7 +24,7 @@ INITRAMFS_PATH := build/penguin.initramfs
 else
 IMAGE_FILENAME := $(subst /,.s,$(IMAGE))
 INITRAMFS_PATH := build/$(IMAGE_FILENAME).initramfs
-INIT_SCRIPT := $(shell tools/inspect-init-in-docker-image.py $(IMAGE))
+export INIT_SCRIPT := $(shell tools/inspect-init-in-docker-image.py $(IMAGE))
 endif
 
 topdir      := $(PWD)
@@ -51,7 +51,6 @@ TESTCARGOFLAGS += --config "target.$(ARCH).runner = '$(PYTHON3) $(topdir)/tools/
 WATCHFLAGS += --clear
 export CARGO_FROM_MAKE=1
 export INITRAMFS_PATH
-export INIT_SCRIPT
 
 #
 #  Build Commands

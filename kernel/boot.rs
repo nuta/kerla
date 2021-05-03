@@ -114,7 +114,6 @@ pub fn boot_kernel(bootinfo: &BootInfo) -> ! {
     } else {
         "/sbin/init"
     };
-    info!("argv0={}", argv0);
     let executable_path = root_fs
         .lookup_path(Path::new(argv0), true)
         .expect("failed to open the init executable");
@@ -126,10 +125,11 @@ pub fn boot_kernel(bootinfo: &BootInfo) -> ! {
     // Create the init process.
     if let Some(script) = option_env!("INIT_SCRIPT") {
         let argv = &[b"sh", b"-c", script.as_bytes()];
-        Process::new_init_process(INITIAL_ROOT_FS.clone(), executable_path, console, argv).expect(
-            concat!("failed to execute the init script: ", env!("INIT_SCRIPT")),
-        );
+        info!("running init script: {:?}", script);
+        Process::new_init_process(INITIAL_ROOT_FS.clone(), executable_path, console, argv)
+            .expect("failed to execute the init script: ");
     } else {
+        info!("running /sbin/init");
         Process::new_init_process(
             INITIAL_ROOT_FS.clone(),
             executable_path,
