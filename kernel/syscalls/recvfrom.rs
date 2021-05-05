@@ -16,10 +16,8 @@ impl<'a> SyscallHandler<'a> {
     ) -> Result<isize> {
         let len = min(len, MAX_READ_WRITE_LEN);
 
-        let (read_len, sockaddr) = current_process()
-            .opened_files
-            .lock()
-            .get(fd)?
+        let opened_file = current_process().get_opened_file_by_fd(fd)?;
+        let (read_len, sockaddr) = opened_file
             .lock()
             .recvfrom(UserBufferMut::from_uaddr(uaddr, len), flags)?;
 

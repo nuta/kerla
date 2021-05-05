@@ -20,10 +20,8 @@ impl<'a> SyscallHandler<'a> {
         let len = min(len, MAX_READ_WRITE_LEN);
         let sockaddr = read_sockaddr(dst_addr, addr_len)?;
 
-        current_process()
-            .opened_files
-            .lock()
-            .get(fd)?
+        let opened_file = current_process().get_opened_file_by_fd(fd)?;
+        opened_file
             .lock()
             .sendto(UserBuffer::from_uaddr(uaddr, len), sockaddr)?;
 
