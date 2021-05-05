@@ -137,7 +137,7 @@ impl Cmdline {
         let mut virtio_mmio_devices = ArrayVec::new();
         if !s.is_empty() {
             for config in s.split(' ') {
-                let mut words = config.splitn(2, "=");
+                let mut words = config.splitn(2, '=');
                 match (words.next(), words.next()) {
                     (Some("pci"), Some("off")) => {
                         warn!("bootinfo: PCI disabled");
@@ -148,7 +148,7 @@ impl Cmdline {
                         let _size = size_and_rest.next().unwrap();
                         let rest = size_and_rest.next().unwrap();
 
-                        let mut addr_and_irq = rest.splitn(2, ":");
+                        let mut addr_and_irq = rest.splitn(2, ':');
                         let addr = usize::from_str_radix(addr_and_irq.next().unwrap(), 16).unwrap();
                         let irq = addr_and_irq.next().unwrap().parse().unwrap();
 

@@ -203,7 +203,6 @@ impl Thread {
             0x90, // nop (for alignment)
         ];
 
-        #[must_use]
         fn push_to_user_stack(rsp: UserVAddr, value: u64) -> Result<UserVAddr> {
             let rsp = rsp.sub(8)?;
             rsp.write::<u64>(&value)?;

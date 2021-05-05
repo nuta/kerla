@@ -44,7 +44,7 @@ fn get_bar_for_cfg_type(pci_device: &PciDevice, cfg_type: u8) -> Option<(&PciCap
         Bar::MemoryMapped { paddr } => Some((cap, paddr.as_vaddr().add(offset))),
         _ => {
             warn!("virtio-pci only supports memory-mapped I/O access for now");
-            return None;
+            None
         }
     }
 }
