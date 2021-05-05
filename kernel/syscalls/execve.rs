@@ -1,11 +1,8 @@
+use crate::arch::UserVAddr;
 use crate::fs::path::Path;
 use crate::prelude::*;
 use crate::user_buffer::UserCStr;
-use crate::{arch::UserVAddr, process::Process};
-use crate::{
-    process::{current_process, execve},
-    syscalls::SyscallHandler,
-};
+use crate::{process::current_process, syscalls::SyscallHandler};
 use core::mem::size_of;
 
 const ARG_MAX: usize = 512;
@@ -20,7 +17,7 @@ impl<'a> SyscallHandler<'a> {
         argv_uaddr: UserVAddr,
         envp_uaddr: UserVAddr,
     ) -> Result<isize> {
-        let current = current_process();
+        let mut current = current_process();
         let executable = current.root_fs.lock().lookup_path(path, true)?;
 
         let mut argv = Vec::new();
@@ -45,17 +42,7 @@ impl<'a> SyscallHandler<'a> {
 
         let argv_slice: Vec<&[u8]> = argv.as_slice().iter().map(|s| s.as_bytes()).collect();
         let envp_slice: Vec<&[u8]> = envp.as_slice().iter().map(|s| s.as_bytes()).collect();
-
-        execve(
-            current.parent.clone(),
-            current.pid,
-            executable,
-            &argv_slice,
-            &envp_slice,
-            current.root_fs.clone(),
-            current.opened_files.clone(),
-        )?;
-
-        Process::execved(current);
+        current.execve(self.frame, executable, &argv_slice, &envp_slice)?;
+        Ok(0)
     }
 }

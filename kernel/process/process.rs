@@ -1,26 +1,28 @@
-use core::sync::atomic::{AtomicI32, Ordering};
-
 use super::{
+    elf::{Elf, ProgramHeader},
     signal::{Signal, SignalDelivery},
     *,
 };
+use crate::mm::page_allocator::{alloc_pages, AllocPageFlags};
+use crate::prelude::*;
 use crate::{
     arch::{self, SpinLock, SyscallFrame},
     boot::INITIAL_ROOT_FS,
     ctypes::*,
-    fs::{mount::RootFs, opened_file},
-    mm::vm::Vm,
-    process::execve,
-    result::{Errno, Result},
+    fs::{
+        mount::RootFs,
+        opened_file::{OpenOptions, OpenedFileTable},
+        path::Path,
+    },
+    mm::vm::{Vm, VmAreaType},
+    random::read_secure_random,
 };
-
 use alloc::collections::BTreeMap;
 use alloc::sync::{Arc, Weak};
 use alloc::vec::Vec;
-
 use arch::SpinLockGuard;
-
-use opened_file::OpenedFileTable;
+use core::sync::atomic::{AtomicI32, Ordering};
+use goblin::elf64::program_header::PT_LOAD;
 
 pub static PROCESSES: SpinLock<BTreeMap<PId, Arc<SpinLock<Process>>>> =
     SpinLock::new(BTreeMap::new());
@@ -157,17 +159,25 @@ impl Process {
             OpenOptions::empty(),
         )?;
 
-        let process = execve(
-            None,
-            PId::new(1),
-            executable_path,
-            argv,
-            &[],
+        let entry = setup_userspace(executable_path, argv, &[], &root_fs)?;
+        let pid = PId::new(1);
+        let stack_bottom = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)?;
+        let kernel_sp = stack_bottom.as_vaddr().add(KERNEL_STACK_SIZE);
+        let process = Arc::new(SpinLock::new(Process {
+            pid,
+            parent: None,
+            children: Vec::new(),
+            state: ProcessState::Runnable,
+            arch: arch::Thread::new_user_thread(entry.ip, entry.user_sp, kernel_sp),
+            vm: Some(Arc::new(SpinLock::new(entry.vm))),
+            opened_files: Arc::new(SpinLock::new(opened_files)),
             root_fs,
-            Arc::new(SpinLock::new(opened_files)),
-        )?;
+            signals: SignalDelivery::new(),
+            signaled_frame: None,
+        }));
 
-        PROCESSES.lock().insert(process.lock().pid, process.clone());
+        PROCESSES.lock().insert(pid, process.clone());
+        SCHEDULER.lock().enqueue(pid);
         Ok(())
     }
 
@@ -262,10 +272,168 @@ impl Process {
         }
     }
 
-    pub fn execved(mut held_lock: SpinLockGuard<'_, Process>) -> ! {
-        held_lock.state = ProcessState::Sleeping;
-        drop(held_lock);
-        switch();
-        unreachable!();
+    pub fn execve(
+        &mut self,
+        frame: &mut SyscallFrame,
+        executable_path: Arc<PathComponent>,
+        argv: &[&[u8]],
+        envp: &[&[u8]],
+    ) -> Result<()> {
+        self.opened_files.lock().close_cloexec_files();
+        let entry = setup_userspace(executable_path, argv, envp, &self.root_fs)?;
+
+        // FIXME: Should we prevent try_delivering_signal()?
+        self.signaled_frame = None;
+
+        entry.vm.page_table().switch();
+        self.vm = Some(Arc::new(SpinLock::new(entry.vm)));
+
+        self.arch
+            .setup_execve_stack(frame, entry.ip, entry.user_sp)?;
+        Ok(())
     }
+}
+
+struct UserspaceEntry {
+    vm: Vm,
+    ip: UserVAddr,
+    user_sp: UserVAddr,
+}
+
+fn setup_userspace(
+    executable_path: Arc<PathComponent>,
+    argv: &[&[u8]],
+    envp: &[&[u8]],
+    root_fs: &Arc<SpinLock<RootFs>>,
+) -> Result<UserspaceEntry> {
+    do_setup_userspace(executable_path, argv, envp, root_fs, true)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn do_setup_userspace(
+    executable_path: Arc<PathComponent>,
+    argv: &[&[u8]],
+    envp: &[&[u8]],
+    root_fs: &Arc<SpinLock<RootFs>>,
+    handle_shebang: bool,
+) -> Result<UserspaceEntry> {
+    // Read the ELF header in the executable file.
+    let file_header_len = PAGE_SIZE;
+    let file_header_top = USER_STACK_TOP;
+    let file_header_pages = alloc_pages(file_header_len / PAGE_SIZE, AllocPageFlags::KERNEL)?;
+    let buf =
+        unsafe { core::slice::from_raw_parts_mut(file_header_pages.as_mut_ptr(), file_header_len) };
+
+    let executable = executable_path.inode.as_file()?;
+    executable.read(0, buf.into(), &OpenOptions::readwrite())?;
+
+    if handle_shebang && buf.starts_with(b"#!") && buf.contains(&b'\n') {
+        let mut argv: Vec<&[u8]> = buf[2..buf.iter().position(|&ch| ch == b'\n').unwrap()]
+            .split(|&ch| ch == b' ')
+            .collect();
+        if argv.is_empty() {
+            return Err(Errno::EINVAL.into());
+        }
+
+        let executable_pathbuf = executable_path.resolve_absolute_path();
+        argv.push(executable_pathbuf.as_str().as_bytes());
+
+        let shebang_path = root_fs.lock().lookup_path(
+            Path::new(core::str::from_utf8(argv[0]).map_err(|_| Error::new(Errno::EINVAL))?),
+            true,
+        )?;
+
+        return do_setup_userspace(shebang_path, &argv, envp, root_fs, false);
+    }
+
+    let elf = Elf::parse(&buf)?;
+    let ip = elf.entry()?;
+
+    let mut end_of_image = 0;
+    for phdr in elf.program_headers() {
+        if phdr.p_type == PT_LOAD {
+            end_of_image = max(end_of_image, (phdr.p_vaddr + phdr.p_memsz) as usize);
+        }
+    }
+
+    let mut random_bytes = [0u8; 16];
+    read_secure_random(((&mut random_bytes) as &mut [u8]).into())?;
+
+    // Set up the user stack.
+    let auxv = &[
+        Auxv::Phdr(
+            file_header_top
+                .sub(file_header_len)?
+                .add(elf.header().e_phoff as usize)?,
+        ),
+        Auxv::Phnum(elf.program_headers().len()),
+        Auxv::Phent(size_of::<ProgramHeader>()),
+        Auxv::Pagesz(PAGE_SIZE),
+        Auxv::Random(random_bytes),
+    ];
+    const USER_STACK_LEN: usize = 128 * 1024; // TODO: Implement rlimit
+    let init_stack_top = file_header_top.sub(file_header_len)?;
+    let user_stack_bottom = init_stack_top.sub(USER_STACK_LEN).unwrap().value();
+    let user_heap_bottom = align_up(end_of_image, PAGE_SIZE);
+    let init_stack_len = align_up(estimate_user_init_stack_size(argv, envp, auxv), PAGE_SIZE);
+    if user_heap_bottom >= user_stack_bottom || init_stack_len >= USER_STACK_LEN {
+        return Err(Errno::E2BIG.into());
+    }
+
+    let init_stack_pages = alloc_pages(init_stack_len / PAGE_SIZE, AllocPageFlags::KERNEL)?;
+    let user_sp = init_user_stack(
+        init_stack_top,
+        init_stack_pages.as_vaddr().add(init_stack_len),
+        init_stack_pages.as_vaddr(),
+        argv,
+        envp,
+        auxv,
+    )?;
+
+    let mut vm = Vm::new(
+        UserVAddr::new_nonnull(user_stack_bottom).unwrap(),
+        UserVAddr::new_nonnull(user_heap_bottom).unwrap(),
+    )?;
+    for i in 0..(file_header_len / PAGE_SIZE) {
+        vm.page_table_mut().map_user_page(
+            file_header_top
+                .sub(((file_header_len / PAGE_SIZE) - i) * PAGE_SIZE)
+                .unwrap(),
+            file_header_pages.add(i * PAGE_SIZE),
+        );
+    }
+
+    for i in 0..(init_stack_len / PAGE_SIZE) {
+        vm.page_table_mut().map_user_page(
+            init_stack_top
+                .sub(((init_stack_len / PAGE_SIZE) - i) * PAGE_SIZE)
+                .unwrap(),
+            init_stack_pages.add(i * PAGE_SIZE),
+        );
+    }
+
+    // Register program headers in the virtual memory space.
+    for phdr in elf.program_headers() {
+        if phdr.p_type != PT_LOAD {
+            continue;
+        }
+
+        let area_type = if phdr.p_filesz > 0 {
+            VmAreaType::File {
+                file: executable.clone(),
+                offset: phdr.p_offset as usize,
+                file_size: phdr.p_filesz as usize,
+            }
+        } else {
+            VmAreaType::Anonymous
+        };
+
+        vm.add_vm_area(
+            UserVAddr::new_nonnull(phdr.p_vaddr as usize)?,
+            phdr.p_memsz as usize,
+            area_type,
+        )?;
+    }
+
+    Ok(UserspaceEntry { vm, ip, user_sp })
 }

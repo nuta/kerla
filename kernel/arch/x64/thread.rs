@@ -191,6 +191,17 @@ impl Thread {
         })
     }
 
+    pub fn setup_execve_stack(
+        &self,
+        frame: &mut SyscallFrame,
+        ip: UserVAddr,
+        user_sp: UserVAddr,
+    ) -> Result<()> {
+        frame.rip = ip.as_isize() as u64;
+        frame.rsp = user_sp.as_isize() as u64;
+        Ok(())
+    }
+
     pub unsafe fn setup_signal_stack(
         &self,
         frame: &mut SyscallFrame,

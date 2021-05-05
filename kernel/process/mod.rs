@@ -1,7 +1,6 @@
 use crate::{
     arch::{self, SpinLock, SpinLockGuard},
     fs::opened_file::*,
-    mm::vm::{Vm, VmAreaType},
 };
 
 use alloc::sync::Arc;
@@ -15,7 +14,6 @@ use penguin_utils::once::Once;
 use penguin_utils::{alignment::align_up, lazy::Lazy};
 
 mod elf;
-mod execve;
 mod fork;
 mod init_stack;
 #[allow(clippy::module_inception)]
@@ -25,7 +23,6 @@ pub mod signal;
 mod switch;
 mod wait_queue;
 
-pub use execve::*;
 pub use fork::*;
 pub use init_stack::*;
 pub use process::*;
