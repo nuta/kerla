@@ -3,7 +3,7 @@ use super::{
     gdt::{USER_CS64, USER_DS},
     syscall::SyscallFrame,
     tss::TSS,
-    UserVAddr, KERNEL_STACK_SIZE,
+    UserVAddr, KERNEL_STACK_SIZE, PAGE_SIZE,
 };
 use super::{cpu_local::cpu_local_head, gdt::USER_RPL};
 use crate::result::Result;
@@ -38,10 +38,10 @@ unsafe fn push_stack(mut rsp: *mut u64, value: u64) -> *mut u64 {
 impl Thread {
     #[allow(unused)]
     pub fn new_kthread(ip: VAddr, sp: VAddr) -> Thread {
-        let interrupt_stack = alloc_pages(1, AllocPageFlags::KERNEL)
+        let interrupt_stack = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
             .expect("failed to allocate kernel stack")
             .as_vaddr();
-        let syscall_stack = alloc_pages(1, AllocPageFlags::KERNEL)
+        let syscall_stack = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
             .expect("failed to allocate kernel stack")
             .as_vaddr();
 
@@ -74,10 +74,10 @@ impl Thread {
     }
 
     pub fn new_user_thread(ip: UserVAddr, sp: UserVAddr, kernel_sp: VAddr) -> Thread {
-        let interrupt_stack = alloc_pages(1, AllocPageFlags::KERNEL)
+        let interrupt_stack = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
             .expect("failed to allocate kernel stack")
             .as_vaddr();
-        let syscall_stack = alloc_pages(1, AllocPageFlags::KERNEL)
+        let syscall_stack = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
             .expect("failed to allocate kernel stack")
             .as_vaddr();
         // TODO: Check the size of XSAVE area.
@@ -118,10 +118,10 @@ impl Thread {
     }
 
     pub fn new_idle_thread() -> Thread {
-        let interrupt_stack = alloc_pages(1, AllocPageFlags::KERNEL)
+        let interrupt_stack = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
             .expect("failed to allocate kernel stack")
             .as_vaddr();
-        let syscall_stack = alloc_pages(1, AllocPageFlags::KERNEL)
+        let syscall_stack = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
             .expect("failed to allocate kernel stack")
             .as_vaddr();
 
@@ -141,8 +141,8 @@ impl Thread {
             .as_vaddr();
 
         let rsp = unsafe {
-            let kernel_sp =
-                alloc_pages(1, AllocPageFlags::KERNEL).expect("failed allocate kernel stack");
+            let kernel_sp = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
+                .expect("failed allocate kernel stack");
             let mut rsp: *mut u64 = kernel_sp.as_mut_ptr();
 
             // Registers to be restored by IRET.
@@ -175,10 +175,10 @@ impl Thread {
             rsp
         };
 
-        let interrupt_stack = alloc_pages(1, AllocPageFlags::KERNEL)
+        let interrupt_stack = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
             .expect("failed allocate kernel stack")
             .as_vaddr();
-        let syscall_stack = alloc_pages(1, AllocPageFlags::KERNEL)
+        let syscall_stack = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
             .expect("failed allocate kernel stack")
             .as_vaddr();
 
