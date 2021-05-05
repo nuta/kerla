@@ -190,14 +190,15 @@ impl<'a> SyscallHandler<'a> {
             );
         }
 
-        current_process().syscall_frame.store(Some(*self.frame));
-
         let ret = self.do_dispatch(a1, a2, a3, a4, a5, a6, n).map_err(|err| {
             debug_warn!("{}: error: {:?}", syscall_name_by_number(n), err);
             err
         });
 
-        current_process().syscall_frame.store(None);
+        if let Err(err) = current_process().try_delivering_signal(self.frame) {
+            debug_warn!("failed to setup the signal stack: {:?}", err);
+        }
+
         ret
     }
 

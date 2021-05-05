@@ -9,7 +9,7 @@ use arrayvec::ArrayVec;
 use core::mem::{self};
 
 cpu_local! {
-    static ref HELD_LOCKS: ArrayVec<Arc<Process>, 2> = ArrayVec::new_const();
+    static ref HELD_LOCKS: ArrayVec<Arc<SpinLock<Process>>, 2> = ArrayVec::new_const();
 }
 
 /// Yields execution to another thread.
@@ -18,42 +18,42 @@ pub fn switch() {
     // of the currently running thread.
     let interrupt_enabled = is_interrupt_enabled();
 
-    let prev_thread = current_process().clone();
-    let next_thread = {
+    let prev_proc = current_process_arc().clone();
+    let (prev_pid, prev_state) = {
+        let prev = prev_proc.lock();
+        (prev.pid(), prev.state)
+    };
+    let next_proc = {
         let scheduler = SCHEDULER.lock();
 
         // Push back the currently running thread to the runqueue if it's still
         // ready for running, in other words, it's not blocked.
-        if prev_thread.pid != PId::new(0) && prev_thread.state() == ProcessState::Runnable {
-            scheduler.enqueue(prev_thread.clone());
+        if prev_pid != PId::new(0) && prev_state == ProcessState::Runnable {
+            scheduler.enqueue(prev_pid);
         }
 
         // Pick a thread to run next.
         match scheduler.pick_next() {
-            Some(next) => next,
+            Some(next_pid) => PROCESSES.lock().get(&next_pid).unwrap().clone(),
             None => IDLE_THREAD.get().get().clone(),
         }
     };
 
-    debug_assert!(next_thread.state() == ProcessState::Runnable);
-
-    if Arc::ptr_eq(&prev_thread, &next_thread) {
+    if Arc::ptr_eq(&prev_proc, &next_proc) {
         // Continue executing the current process.
         return;
     }
 
+    let mut prev = prev_proc.lock();
+    let mut next = next_proc.lock();
+    debug_assert!(next.state() == ProcessState::Runnable);
+
     // Save locks that will be released later.
     debug_assert!(HELD_LOCKS.get().is_empty());
-    HELD_LOCKS.as_mut().push(prev_thread.clone());
-    HELD_LOCKS.as_mut().push(next_thread.clone());
+    HELD_LOCKS.as_mut().push(prev_proc.clone());
+    HELD_LOCKS.as_mut().push(next_proc.clone());
 
-    // Since these locks won't be dropped until the current (prev) thread is
-    // resumed next time, we'll unlock these locks in `after_switch` in the next
-    // thread's context.
-    let mut prev_arch = prev_thread.arch.lock();
-    let mut next_arch = next_thread.arch.lock();
-
-    if let Some(vm) = next_thread.vm.as_ref() {
+    if let Some(vm) = next.vm.as_ref() {
         let lock = vm.lock();
         lock.page_table().switch();
     }
@@ -62,22 +62,26 @@ pub fn switch() {
     // process is being destroyed (e.g. by exit(2)) and it leads to a memory leak.
     //
     // To cheat the borrow checker we do so by `Arc::decrement_strong_count`.
-    debug_assert!(Arc::strong_count(&next_thread) > 1);
+    debug_assert!(Arc::strong_count(&next_proc) > 1);
     unsafe {
-        Arc::decrement_strong_count(Arc::as_ptr(&next_thread));
+        Arc::decrement_strong_count(Arc::as_ptr(&prev_proc));
+        Arc::decrement_strong_count(Arc::as_ptr(&next_proc));
     }
 
     // Switch into the next thread.
-    CURRENT.as_mut().set(next_thread.clone());
-    arch::switch_thread(&mut *prev_arch, &mut *next_arch);
+    CURRENT.as_mut().set(next_proc.clone());
+    arch::switch_thread(&mut prev.arch, &mut next.arch);
 
-    // Don't call destructors as they're unlocked in `after_switch`.
-    mem::forget(prev_arch);
-    mem::forget(next_arch);
+    // Don't call destructors: we'll unlock these locks in `after_switch` in the
+    // next thread's context because these lock guards won't be dropped until the
+    // current (prev) thread is resumed next time.
+    mem::forget(prev);
+    mem::forget(next);
 
     // Don't call destructors as we've already decremented (dropped) the
     // reference count by `Arc::decrement_strong_count` above.
-    mem::forget(next_thread);
+    mem::forget(prev_proc);
+    mem::forget(next_proc);
 
     // Now we're in the next thread. Release held locks and continue executing.
     after_switch();
@@ -93,9 +97,9 @@ pub fn switch() {
 
 #[no_mangle]
 pub extern "C" fn after_switch() {
-    for thread in HELD_LOCKS.as_mut().drain(..) {
+    for proc in HELD_LOCKS.as_mut().drain(..) {
         unsafe {
-            thread.arch.force_unlock();
+            proc.force_unlock();
         }
     }
 }

@@ -1,5 +1,5 @@
 use crate::{
-    arch::{self, SpinLock},
+    arch::{self, SpinLock, SpinLockGuard},
     fs::opened_file::*,
     mm::vm::{Vm, VmAreaType},
 };
@@ -34,18 +34,22 @@ pub use switch::*;
 pub use wait_queue::*;
 
 cpu_local! {
-    static ref CURRENT: Lazy<Arc<Process>> = Lazy::new();
+    static ref CURRENT: Lazy<Arc<SpinLock<Process>>> = Lazy::new();
 }
 
 cpu_local! {
     // TODO: Should be pub(super)
-    pub static ref IDLE_THREAD: Lazy<Arc<Process>> = Lazy::new();
+    pub static ref IDLE_THREAD: Lazy<Arc<SpinLock<Process>>> = Lazy::new();
 }
 
 static SCHEDULER: Once<SpinLock<Scheduler>> = Once::new();
 pub static JOIN_WAIT_QUEUE: Once<WaitQueue> = Once::new();
 
-pub fn current_process() -> &'static Arc<Process> {
+pub fn current_process() -> SpinLockGuard<'static, Process> {
+    CURRENT.get().lock()
+}
+
+pub fn current_process_arc() -> &'static Arc<SpinLock<Process>> {
     CURRENT.get()
 }
 

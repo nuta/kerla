@@ -24,8 +24,9 @@ impl<'a> SyscallHandler<'a> {
         _rusage: Option<UserVAddr>,
     ) -> Result<isize> {
         let (got_pid, status_value) = JOIN_WAIT_QUEUE.sleep_until(|| {
-            let children = current_process().children.lock();
-            for child in children.iter() {
+            let current = current_process();
+            for child in current.children.iter() {
+                let child = child.lock();
                 if pid.as_i32() > 0 && child.pid != pid {
                     // Wait for the specific PID.
                     continue;
@@ -51,8 +52,7 @@ impl<'a> SyscallHandler<'a> {
         // Evict joined or unused processs objects.
         current_process()
             .children
-            .lock()
-            .retain(|p| p.pid != got_pid);
+            .retain(|p| p.lock().pid != got_pid);
 
         if let Some(status) = status {
             status.write::<c_int>(&status_value)?;

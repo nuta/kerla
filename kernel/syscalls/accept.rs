@@ -14,12 +14,8 @@ impl<'a> SyscallHandler<'a> {
         sockaddr: Option<UserVAddr>,
         socklen: Option<UserVAddr>,
     ) -> Result<isize> {
-        let (sock, accepted_sockaddr) = current_process()
-            .opened_files
-            .lock()
-            .get(fd)?
-            .lock()
-            .accept()?;
+        let opened_file = current_process().get_opened_file_by_fd(fd)?;
+        let (sock, accepted_sockaddr) = opened_file.lock().accept()?;
 
         let options = OpenOptions {
             nonblock: false,

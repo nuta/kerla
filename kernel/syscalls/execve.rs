@@ -1,8 +1,7 @@
-use crate::arch::UserVAddr;
 use crate::fs::path::Path;
 use crate::prelude::*;
-use crate::process::{switch, ProcessState};
 use crate::user_buffer::UserCStr;
+use crate::{arch::UserVAddr, process::Process};
 use crate::{
     process::{current_process, execve},
     syscalls::SyscallHandler,
@@ -57,8 +56,6 @@ impl<'a> SyscallHandler<'a> {
             current.opened_files.clone(),
         )?;
 
-        current.set_state(ProcessState::Sleeping);
-        switch();
-        unreachable!();
+        Process::execved(current);
     }
 }

@@ -39,6 +39,10 @@ impl SignalDelivery {
         Ok(())
     }
 
+    pub fn is_pending(&self) -> bool {
+        self.pending != 0
+    }
+
     pub fn pop_pending(&mut self) -> Option<(Signal, SigAction)> {
         if self.pending == 0 {
             return None;

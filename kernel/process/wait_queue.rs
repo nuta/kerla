@@ -1,11 +1,11 @@
-use super::{current_process, switch, Process, ProcessState};
-use crate::arch::SpinLock;
+use super::{current_process, current_process_arc, switch, Process, ProcessState};
 use crate::result::Result;
+use crate::{arch::SpinLock, result::Errno};
 
 use alloc::{collections::VecDeque, sync::Arc};
 
 pub struct WaitQueue {
-    queue: SpinLock<VecDeque<Arc<Process>>>,
+    queue: SpinLock<VecDeque<Arc<SpinLock<Process>>>>,
 }
 
 impl WaitQueue {
@@ -36,7 +36,14 @@ impl WaitQueue {
             //  3. Enqueue the current thread into the wait queue.
             //  4. Enter the sleep state despite a RX packet exists on the queue!
             current_process().set_state(ProcessState::Sleeping);
-            self.queue.lock().push_back(current_process().clone());
+            self.queue.lock().push_back(current_process_arc().clone());
+
+            if current_process().is_signal_pending() {
+                self.queue
+                    .lock()
+                    .retain(|proc| !Arc::ptr_eq(&proc, current_process_arc()));
+                return Err(Errno::EINTR.into());
+            }
 
             let ret_value = match sleep_if_none() {
                 Ok(Some(ret_value)) => Some(Ok(ret_value)),
@@ -49,7 +56,7 @@ impl WaitQueue {
                 current_process().set_state(ProcessState::Runnable);
                 self.queue
                     .lock()
-                    .retain(|proc| !Arc::ptr_eq(&proc, current_process()));
+                    .retain(|proc| !Arc::ptr_eq(&proc, current_process_arc()));
                 return ret_value;
             }
 
@@ -61,14 +68,14 @@ impl WaitQueue {
     pub fn _wake_one(&self) {
         let mut queue = self.queue.lock();
         if let Some(process) = queue.pop_front() {
-            process.resume();
+            process.lock().set_state(ProcessState::Runnable);
         }
     }
 
     pub fn wake_all(&self) {
         let mut queue = self.queue.lock();
         while let Some(process) = queue.pop_front() {
-            process.resume();
+            process.lock().set_state(ProcessState::Runnable);
         }
     }
 }

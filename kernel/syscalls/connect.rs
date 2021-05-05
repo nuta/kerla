@@ -5,13 +5,8 @@ use crate::{process::current_process, syscalls::SyscallHandler};
 impl<'a> SyscallHandler<'a> {
     pub fn sys_connect(&mut self, fd: Fd, addr: UserVAddr, addr_len: usize) -> Result<isize> {
         let sockaddr = read_sockaddr(addr, addr_len)?;
-        current_process()
-            .opened_files
-            .lock()
-            .get(fd)?
-            .lock()
-            .connect(sockaddr)?;
-
+        let opened_file = current_process().get_opened_file_by_fd(fd)?;
+        opened_file.lock().connect(sockaddr)?;
         Ok(0)
     }
 }

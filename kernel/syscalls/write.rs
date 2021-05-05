@@ -8,10 +8,8 @@ impl<'a> SyscallHandler<'a> {
     pub fn sys_write(&mut self, fd: Fd, uaddr: UserVAddr, len: usize) -> Result<isize> {
         let len = min(len, MAX_READ_WRITE_LEN);
 
-        let written_len = current_process()
-            .opened_files
-            .lock()
-            .get(fd)?
+        let opened_file = current_process().get_opened_file_by_fd(fd)?;
+        let written_len = opened_file
             .lock()
             .write(UserBuffer::from_uaddr(uaddr, len))?;
 

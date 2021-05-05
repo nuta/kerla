@@ -4,13 +4,8 @@ use crate::{process::current_process, syscalls::SyscallHandler};
 
 impl<'a> SyscallHandler<'a> {
     pub fn sys_listen(&mut self, fd: Fd, backlog: c_int) -> Result<isize> {
-        current_process()
-            .opened_files
-            .lock()
-            .get(fd)?
-            .lock()
-            .listen(backlog)?;
-
+        let opened_file = current_process().get_opened_file_by_fd(fd)?;
+        opened_file.lock().listen(backlog)?;
         Ok(0)
     }
 }

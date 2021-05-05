@@ -5,7 +5,7 @@ use super::{
     *,
 };
 use crate::{
-    arch::{self, restore_signaled_stack, setup_signal_handler_stack, SpinLock, SyscallFrame},
+    arch::{self, SpinLock, SyscallFrame},
     boot::INITIAL_ROOT_FS,
     ctypes::*,
     fs::{mount::RootFs, opened_file},
@@ -20,10 +20,10 @@ use alloc::vec::Vec;
 
 use arch::SpinLockGuard;
 
-use crossbeam::atomic::AtomicCell;
 use opened_file::OpenedFileTable;
 
-pub static PROCESSES: SpinLock<BTreeMap<PId, Arc<Process>>> = SpinLock::new(BTreeMap::new());
+pub static PROCESSES: SpinLock<BTreeMap<PId, Arc<SpinLock<Process>>>> =
+    SpinLock::new(BTreeMap::new());
 
 pub fn alloc_pid() -> Result<PId> {
     static NEXT_PID: AtomicI32 = AtomicI32::new(2);
@@ -69,22 +69,21 @@ pub enum ProcessState {
 
 /// The process control block.
 pub struct Process {
-    pub arch: SpinLock<arch::Thread>,
+    pub arch: arch::Thread,
     pub pid: PId,
-    pub(super) state: AtomicCell<ProcessState>,
-    pub parent: Option<Weak<Process>>,
-    pub children: SpinLock<Vec<Arc<Process>>>,
+    pub state: ProcessState,
+    pub parent: Option<Weak<SpinLock<Process>>>,
+    pub children: Vec<Arc<SpinLock<Process>>>,
     pub vm: Option<Arc<SpinLock<Vm>>>,
     pub opened_files: Arc<SpinLock<OpenedFileTable>>,
     pub root_fs: Arc<SpinLock<RootFs>>,
-    pub signals: SpinLock<SignalDelivery>,
-    pub syscall_frame: AtomicCell<Option<SyscallFrame>>,
-    pub signaled_frame: AtomicCell<Option<SyscallFrame>>,
+    pub signals: SignalDelivery,
+    pub signaled_frame: Option<SyscallFrame>,
 }
 
 impl Process {
     /*
-    pub fn new_kthread(ip: VAddr) -> Result<Arc<Process>> {
+    pub fn new_kthread(ip: VAddr) -> Result<Arc<SpinLock<Process>>> {
         let stack_bottom = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
             .into_error_with_message(Errno::ENOMEM, "failed to allocate kernel stack")?;
         let sp = stack_bottom.as_vaddr().add(KERNEL_STACK_SIZE);
@@ -103,20 +102,19 @@ impl Process {
     }
     */
 
-    pub fn new_idle_thread() -> Result<Arc<Process>> {
-        Ok(Arc::new(Process {
-            arch: SpinLock::new(arch::Thread::new_idle_thread()),
-            state: AtomicCell::new(ProcessState::Runnable),
+    pub fn new_idle_thread() -> Result<Arc<SpinLock<Process>>> {
+        Ok(Arc::new(SpinLock::new(Process {
+            arch: arch::Thread::new_idle_thread(),
+            state: ProcessState::Runnable,
             parent: None,
-            children: SpinLock::new(Vec::new()),
+            children: Vec::new(),
             vm: None,
             pid: PId::new(0),
             root_fs: INITIAL_ROOT_FS.clone(),
             opened_files: Arc::new(SpinLock::new(OpenedFileTable::new())),
-            signals: SpinLock::new(SignalDelivery::new()),
-            syscall_frame: AtomicCell::new(None),
-            signaled_frame: AtomicCell::new(None),
-        }))
+            signals: SignalDelivery::new(),
+            signaled_frame: None,
+        })))
     }
 
     pub fn new_init_process(
@@ -169,54 +167,56 @@ impl Process {
             Arc::new(SpinLock::new(opened_files)),
         )?;
 
-        PROCESSES.lock().insert(process.pid, process.clone());
+        PROCESSES.lock().insert(process.lock().pid, process.clone());
         Ok(())
     }
 
-    pub fn state(&self) -> ProcessState {
-        self.state.load()
+    pub fn pid(&self) -> PId {
+        self.pid
     }
 
-    /// This function may not return if `self` is current process and it has
-    /// pending signals. **Ensure no locks are held!**
-    pub fn set_state(self: &Arc<Process>, new_state: ProcessState) {
+    pub fn state(&self) -> ProcessState {
+        self.state
+    }
+
+    pub fn set_state(&mut self, new_state: ProcessState) {
         let scheduler = SCHEDULER.lock();
-        let old_state = self.state.swap(new_state);
+        let old_state = self.state;
+        self.state = new_state;
         match new_state {
             ProcessState::Runnable => {
                 if old_state != ProcessState::Runnable {
-                    scheduler.enqueue(self.clone());
+                    scheduler.enqueue(self.pid);
                 }
             }
             ProcessState::Sleeping => {
-                scheduler.remove(self);
-                drop(scheduler);
-                self.try_delivering_signal();
+                scheduler.remove(self.pid);
             }
             ProcessState::ExitedWith(_) => {
-                scheduler.remove(self);
+                scheduler.remove(self.pid);
             }
         }
     }
 
-    pub fn resume(self: &Arc<Process>) {
-        self.set_state(ProcessState::Runnable);
+    pub fn get_opened_file_by_fd(&self, fd: Fd) -> Result<Arc<SpinLock<OpenedFile>>> {
+        Ok(self.opened_files.lock().get(fd)?.clone())
     }
 
-    pub fn exit(self: &Arc<Process>, status: c_int) -> ! {
-        if self.pid == PId::new(1) {
+    pub fn exit(mut proc: SpinLockGuard<'_, Process>, status: c_int) -> ! {
+        if proc.pid == PId::new(1) {
             panic!("init (pid=0) tried to exit")
         }
 
-        self.set_state(ProcessState::ExitedWith(status));
-        if let Some(parent) = self.parent.as_ref() {
+        proc.set_state(ProcessState::ExitedWith(status));
+        if let Some(parent) = proc.parent.as_ref() {
             if let Some(parent) = parent.upgrade() {
-                parent.signal(Signal::SIGCHLD);
+                parent.lock().signal(Signal::SIGCHLD);
             }
         }
 
-        PROCESSES.lock().remove(&self.pid);
+        PROCESSES.lock().remove(&proc.pid);
         JOIN_WAIT_QUEUE.wake_all();
+        drop(proc);
         switch();
         unreachable!();
     }
@@ -225,59 +225,47 @@ impl Process {
         self.vm.as_ref().expect("not a user process").lock()
     }
 
-    /// This function may not return if `self` is current process and it has
-    /// pending signals. **Ensure no locks are held!**
-    pub fn signal(self: &Arc<Process>, signal: Signal) {
-        self.signals.lock().signal(signal);
-        self.try_delivering_signal();
+    pub fn signal(&mut self, signal: Signal) {
+        self.signals.signal(signal);
     }
 
-    /// This function may not return if `self` is current process and it has
-    /// pending signals. **Ensure no locks are held!**
-    pub fn try_delivering_signal(self: &Arc<Process>) {
-        if self.state.load() != ProcessState::Sleeping {
-            return;
-        }
+    pub fn is_signal_pending(&self) -> bool {
+        self.signals.is_pending()
+    }
 
+    pub fn try_delivering_signal(&mut self, frame: &mut SyscallFrame) -> Result<()> {
         // TODO: sigmask
 
-        let pending_signal = { self.signals.lock().pop_pending() };
-        if let Some((signal, sigaction)) = pending_signal {
+        if let Some((signal, sigaction)) = self.signals.pop_pending() {
             match sigaction {
                 signal::SigAction::Ignore => {}
                 signal::SigAction::Handler { handler } => {
-                    if let Some(frame) = self.syscall_frame.load() {
-                        trace!("delivering {:?} to {:?}", signal, self.pid,);
-                        self.signaled_frame.store(Some(frame));
-
-                        // This function may not return if `self` is current process and it has
-                        // pending signals.
-                        setup_signal_handler_stack(
-                            &self.arch,
-                            // The vm is only None if `self` is a kernel thread. It's safe to
-                            // assume it's always Some.
-                            &self.vm.as_ref().unwrap(),
-                            &frame,
-                            signal,
-                            handler,
-                            self.pid == current_process().pid,
-                        )
-                        .unwrap();
-
-                        self.set_state(ProcessState::Runnable);
+                    trace!("delivering {:?} to {:?}", signal, self.pid,);
+                    self.signaled_frame = Some(*frame);
+                    unsafe {
+                        self.arch.setup_signal_stack(frame, signal, handler)?;
                     }
                 }
             }
         }
+
+        Ok(())
     }
 
-    pub fn restore_signaled_user_stack(&self, current_frame: &mut SyscallFrame) {
-        // TODO: Kill the process if syscall_frame is empty, i.e., the user
-        //       intentionally called sigreturn(2).
-
-        if let Some(signaled_frame) = self.signaled_frame.load() {
-            restore_signaled_stack(current_frame, &signaled_frame);
-            self.signaled_frame.store(None);
+    pub fn restore_signaled_user_stack(&mut self, current_frame: &mut SyscallFrame) {
+        if let Some(signaled_frame) = self.signaled_frame.take() {
+            self.arch
+                .setup_sigreturn_stack(current_frame, &signaled_frame);
+        } else {
+            // The user intentionally called sigreturn(2) while it is not signaled.
+            kill_current_process();
         }
+    }
+
+    pub fn execved(mut held_lock: SpinLockGuard<'_, Process>) -> ! {
+        held_lock.state = ProcessState::Sleeping;
+        drop(held_lock);
+        switch();
+        unreachable!();
     }
 }

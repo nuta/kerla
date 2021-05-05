@@ -3,15 +3,15 @@ use crate::result::*;
 use alloc::sync::Arc;
 use x86::current::segmentation::wrfsbase;
 
-use super::UserVAddr;
+use super::{SpinLock, UserVAddr};
 
 const ARCH_SET_FS: i32 = 0x1002;
 
-pub fn arch_prctl(current: &Arc<Process>, code: i32, uaddr: UserVAddr) -> Result<()> {
+pub fn arch_prctl(current: &Arc<SpinLock<Process>>, code: i32, uaddr: UserVAddr) -> Result<()> {
     match code {
         ARCH_SET_FS => {
             let value = uaddr.value() as u64;
-            current.arch.lock().fsbase = value;
+            current.lock().arch.fsbase = value;
             unsafe {
                 wrfsbase(value);
             }

@@ -12,18 +12,17 @@ use crate::{
 };
 use alloc::sync::Weak;
 use alloc::vec::Vec;
-use crossbeam::atomic::AtomicCell;
 use goblin::elf64::program_header::PT_LOAD;
 
 pub fn execve(
-    parent: Option<Weak<Process>>,
+    parent: Option<Weak<SpinLock<Process>>>,
     pid: PId,
     executable_path: Arc<PathComponent>,
     argv: &[&[u8]],
     envp: &[&[u8]],
     root_fs: Arc<SpinLock<RootFs>>,
     opened_files: Arc<SpinLock<OpenedFileTable>>,
-) -> Result<Arc<Process>> {
+) -> Result<Arc<SpinLock<Process>>> {
     do_execve(
         parent,
         pid,
@@ -38,7 +37,7 @@ pub fn execve(
 
 #[allow(clippy::too_many_arguments)]
 fn do_execve(
-    parent: Option<Weak<Process>>,
+    parent: Option<Weak<SpinLock<Process>>>,
     pid: PId,
     executable_path: Arc<PathComponent>,
     argv: &[&[u8]],
@@ -46,7 +45,7 @@ fn do_execve(
     root_fs: Arc<SpinLock<RootFs>>,
     opened_files: Arc<SpinLock<OpenedFileTable>>,
     support_shebang: bool,
-) -> Result<Arc<Process>> {
+) -> Result<Arc<SpinLock<Process>>> {
     // Read the ELF header in the executable file.
     let file_header_len = PAGE_SIZE;
     let file_header_top = USER_STACK_TOP;
@@ -183,25 +182,24 @@ fn do_execve(
 
     opened_files.lock().close_cloexec_files();
 
-    let process = Arc::new(Process {
+    let process = Arc::new(SpinLock::new(Process {
         parent: parent.clone(),
-        children: SpinLock::new(Vec::new()),
-        state: AtomicCell::new(ProcessState::Runnable),
-        arch: SpinLock::new(arch::Thread::new_user_thread(ip, user_sp, kernel_sp)),
+        children: Vec::new(),
+        state: ProcessState::Runnable,
+        arch: arch::Thread::new_user_thread(ip, user_sp, kernel_sp),
         root_fs,
         vm: Some(Arc::new(SpinLock::new(vm))),
         pid,
         opened_files,
-        signals: SpinLock::new(SignalDelivery::new()),
-        syscall_frame: AtomicCell::new(None),
-        signaled_frame: AtomicCell::new(None),
-    });
+        signals: SignalDelivery::new(),
+        signaled_frame: None,
+    }));
 
     if let Some(parent) = parent.and_then(|parent| parent.upgrade()) {
-        parent.children.lock().push(process.clone());
+        parent.lock().children.push(process.clone());
     }
 
-    PROCESSES.lock().insert(process.pid, process.clone());
-    SCHEDULER.lock().enqueue(process.clone());
+    PROCESSES.lock().insert(pid, process.clone());
+    SCHEDULER.lock().enqueue(pid);
     Ok(process)
 }

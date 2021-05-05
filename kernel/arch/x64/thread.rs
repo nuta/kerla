@@ -3,11 +3,14 @@ use super::{
     gdt::{USER_CS64, USER_DS},
     syscall::SyscallFrame,
     tss::TSS,
-    SpinLockGuard, UserVAddr, KERNEL_STACK_SIZE,
+    UserVAddr, KERNEL_STACK_SIZE,
 };
 use super::{cpu_local::cpu_local_head, gdt::USER_RPL};
-use crate::mm::page_allocator::{alloc_pages, AllocPageFlags};
 use crate::result::Result;
+use crate::{
+    mm::page_allocator::{alloc_pages, AllocPageFlags},
+    process::signal::Signal,
+};
 use x86::current::segmentation::wrfsbase;
 
 #[repr(C, packed)]
@@ -23,7 +26,6 @@ extern "C" {
     fn kthread_entry();
     fn userland_entry();
     fn forked_child_entry();
-    fn signal_handler_entry();
     fn do_switch_thread(prev_rsp: *const u64, next_rsp: *const u64);
 }
 
@@ -189,47 +191,52 @@ impl Thread {
         })
     }
 
-    pub(super) unsafe fn set_signal_entry(
-        mut this: SpinLockGuard<'_, Thread>,
-        user_rip: u64,
-        user_rsp: u64,
-        arg1: u64,
-        arg2: u64,
-        arg3: u64,
-        is_current_process: bool,
-    ) {
-        let mut tmp = [0u64; 8];
-        let mut rsp = if is_current_process {
-            tmp.as_mut_ptr().add(tmp.len())
-        } else {
-            this.rsp as *mut u64
-        };
+    pub unsafe fn setup_signal_stack(
+        &self,
+        frame: &mut SyscallFrame,
+        signal: Signal,
+        sa_handler: UserVAddr,
+    ) -> Result<()> {
+        const TRAMPOLINE: &[u8] = &[
+            0xb8, 0x0f, 0x00, 0x00, 0x00, // mov eax, 15
+            0x0f, 0x05, // syscall
+            0x90, // nop (for alignment)
+        ];
 
-        // Registers to be restored in signal_handler_entry().
-        rsp = push_stack(rsp, user_rsp); // User RSP.
-        rsp = push_stack(rsp, user_rip); // User RIP.
-        rsp = push_stack(rsp, 0x202); // User RFLAGS (interrupts enabled).
-        rsp = push_stack(rsp, arg1); // User RDI.
-        rsp = push_stack(rsp, arg2); // User RSI.
-        rsp = push_stack(rsp, arg3); // User RDX.
-
-        if is_current_process {
-            // Resume the user process directly from the signal handler.
-            drop(this);
-            asm!("mov rsp, rax; jmp direct_signal_handler_entry", in("rax") rsp);
-        } else {
-            // Registers to be restored in do_switch_thread().
-            rsp = push_stack(rsp, signal_handler_entry as *const u8 as u64); // RIP.
-            rsp = push_stack(rsp, 0); // Initial RBP.
-            rsp = push_stack(rsp, 0); // Initial RBX.
-            rsp = push_stack(rsp, 0); // Initial R12.
-            rsp = push_stack(rsp, 0); // Initial R13.
-            rsp = push_stack(rsp, 0); // Initial R14.
-            rsp = push_stack(rsp, 0); // Initial R15.
-            rsp = push_stack(rsp, 0x02); // RFLAGS (interrupts disabled).
-
-            this.rsp = rsp as u64;
+        #[must_use]
+        fn push_to_user_stack(rsp: UserVAddr, value: u64) -> Result<UserVAddr> {
+            let rsp = rsp.sub(8)?;
+            rsp.write::<u64>(&value)?;
+            Ok(rsp)
         }
+
+        // Prepare the sigreturn stack in the userspace.
+        let mut user_rsp = UserVAddr::new_nonnull(frame.rsp as usize)?;
+
+        // Avoid corrupting the red zone.
+        user_rsp = user_rsp.sub(128)?;
+
+        // Copy the trampoline code.
+        user_rsp = user_rsp.sub(TRAMPOLINE.len())?;
+        let trampoline_rip = user_rsp;
+        user_rsp.write_bytes(TRAMPOLINE)?;
+        user_rsp = push_to_user_stack(user_rsp, trampoline_rip.as_isize() as u64)?;
+
+        frame.rip = sa_handler.as_isize() as u64;
+        frame.rsp = user_rsp.as_isize() as u64;
+        frame.rdi = signal as u64; // int signal
+        frame.rsi = 0; // siginfo_t *siginfo
+        frame.rdx = 0; // void *ctx
+
+        Ok(())
+    }
+
+    pub fn setup_sigreturn_stack(
+        &self,
+        current_frame: &mut SyscallFrame,
+        signaled_frame: &SyscallFrame,
+    ) {
+        *current_frame = *signaled_frame;
     }
 }
 

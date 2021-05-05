@@ -20,7 +20,6 @@ mod page_table;
 mod pit;
 mod semihosting;
 mod serial;
-mod signal;
 mod syscall;
 mod thread;
 mod tss;
@@ -44,6 +43,5 @@ pub use page_table::{PageFaultReason, PageTable};
 #[cfg(test)]
 pub use semihosting::{semihosting_halt, ExitStatus};
 pub use serial::{print_str, printchar};
-pub use signal::{restore_signaled_stack, setup_signal_handler_stack};
 pub use syscall::SyscallFrame;
 pub use thread::{switch_thread, Thread};

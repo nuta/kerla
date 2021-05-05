@@ -10,9 +10,7 @@ impl<'a> SyscallHandler<'a> {
     pub fn sys_writev(&mut self, fd: Fd, iov_base: UserVAddr, iov_count: usize) -> Result<isize> {
         let iov_count = min(iov_count, IOV_MAX);
 
-        let current = current_process().opened_files.lock();
-        let mut file = current.get(fd)?.lock();
-
+        let opened_file = current_process().get_opened_file_by_fd(fd)?;
         let mut total_len: usize = 0;
         for i in 0..iov_count {
             // Read an entry from the userspace.
@@ -33,7 +31,9 @@ impl<'a> SyscallHandler<'a> {
                 continue;
             }
 
-            total_len += file.write(UserBuffer::from_uaddr(iov.base, iov.len))?;
+            total_len += opened_file
+                .lock()
+                .write(UserBuffer::from_uaddr(iov.base, iov.len))?;
         }
 
         // MAX_READ_WRITE_LEN limit guarantees total_len is in the range of isize.

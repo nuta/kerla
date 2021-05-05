@@ -7,9 +7,10 @@ impl<'a> SyscallHandler<'a> {
     pub fn sys_read(&mut self, fd: Fd, uaddr: UserVAddr, len: usize) -> Result<isize> {
         let len = min(len, MAX_READ_WRITE_LEN);
 
-        let current = current_process().opened_files.lock();
-        let mut open_file = current.get(fd)?.lock();
-        let read_len = open_file.read(UserBufferMut::from_uaddr(uaddr, len))?;
+        let opened_file = current_process().get_opened_file_by_fd(fd)?;
+        let read_len = opened_file
+            .lock()
+            .read(UserBufferMut::from_uaddr(uaddr, len))?;
 
         // MAX_READ_WRITE_LEN limit guarantees total_len is in the range of isize.
         Ok(read_len as isize)

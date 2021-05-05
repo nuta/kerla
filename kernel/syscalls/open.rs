@@ -34,8 +34,9 @@ impl<'a> SyscallHandler<'a> {
             }
         }
 
-        let root_fs = current_process().root_fs.lock();
-        let mut opened_files = current_process().opened_files.lock();
+        let current = current_process();
+        let root_fs = current.root_fs.lock();
+        let mut opened_files = current.opened_files.lock();
 
         let path_comp = root_fs.lookup_path_at(&*opened_files, &CwdOrFd::AtCwd, path, true)?;
         if flags.contains(OpenFlags::O_DIRECTORY) && !path_comp.inode.is_dir() {
