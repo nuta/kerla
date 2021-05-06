@@ -46,6 +46,10 @@ pub trait FileLike: Send + Sync + Downcastable {
         Err(Error::new(Errno::EBADF))
     }
 
+    fn ioctl(&self, _cmd: usize, _arg: usize) -> Result<isize> {
+        Err(Error::new(Errno::EBADF))
+    }
+
     fn read(
         &self,
         _offset: usize,

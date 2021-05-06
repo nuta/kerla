@@ -215,6 +215,10 @@ impl OpenedFile {
         self.path.inode.fsync()
     }
 
+    pub fn ioctl(&mut self, cmd: usize, arg: usize) -> Result<isize> {
+        self.as_file()?.ioctl(cmd, arg)
+    }
+
     pub fn listen(&mut self, backlog: i32) -> Result<()> {
         self.as_file()?.listen(backlog)
     }
