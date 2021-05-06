@@ -39,6 +39,7 @@ pub(self) mod getpgid;
 pub(self) mod getpid;
 pub(self) mod getrandom;
 pub(self) mod getsockname;
+pub(self) mod getsockopt;
 pub(self) mod ioctl;
 pub(self) mod link;
 pub(self) mod linkat;
@@ -123,6 +124,7 @@ const SYS_BIND: usize = 49;
 const SYS_LISTEN: usize = 50;
 const SYS_GETSOCKNAME: usize = 51;
 const SYS_GETPEERNAME: usize = 52;
+const SYS_GETSOCKOPT: usize = 55;
 const SYS_FORK: usize = 57;
 const SYS_EXECVE: usize = 59;
 const SYS_EXIT: usize = 60;
@@ -314,6 +316,13 @@ impl<'a> SyscallHandler<'a> {
                 Fd::new(a1 as i32),
                 UserVAddr::new_nonnull(a2)?,
                 UserVAddr::new_nonnull(a3)?,
+            ),
+            SYS_GETSOCKOPT => self.sys_getsockopt(
+                Fd::new(a1 as i32),
+                a2 as c_int,
+                a3 as c_int,
+                UserVAddr::new(a4)?,
+                UserVAddr::new(a5)?,
             ),
             SYS_ACCEPT => {
                 self.sys_accept(Fd::new(a1 as i32), UserVAddr::new(a2)?, UserVAddr::new(a3)?)
