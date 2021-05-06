@@ -104,6 +104,11 @@ impl FileLike for PtyMaster {
         Ok(written_len)
     }
 
+    fn ioctl(&self, cmd: usize, _arg: usize) -> Result<isize> {
+        debug_warn!("pty_master: unknown cmd={:x}", cmd);
+        Ok(0)
+    }
+
     fn stat(&self) -> Result<Stat> {
         Ok(Stat {
             inode_no: INodeNo::new(5), // FIXME:
@@ -192,6 +197,17 @@ impl FileLike for PtySlave {
             mode: FileMode::new(S_IFCHR | 0o666),
             ..Stat::zeroed()
         })
+    }
+
+    fn ioctl(&self, cmd: usize, _arg: usize) -> Result<isize> {
+        const TIOCSPTLCK: usize = 0x40045431;
+        match cmd {
+            TIOCSPTLCK => Ok(0),
+            _ => {
+                debug_warn!("pty_slave: unknown cmd={:x}", cmd);
+                Ok(0)
+            }
+        }
     }
 
     fn poll(&self) -> Result<PollStatus> {
