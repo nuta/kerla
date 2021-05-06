@@ -47,6 +47,7 @@ class Busybox(Package):
         self.set_kconfig("UNAME", True)
         self.set_kconfig("ASH", True)
         self.set_kconfig("ASH_OPTIMIZE_FOR_SIZE", True)
+        self.set_kconfig("ASH_JOB_CONTROL", True)
         self.set_kconfig("NSLOOKUP", True)
         self.set_kconfig("VERBOSE_RESOLUTION_ERRORS", True)
         self.set_kconfig("WGET", True)
