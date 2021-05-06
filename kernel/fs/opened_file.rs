@@ -243,7 +243,7 @@ impl OpenedFile {
         self.as_file()?.connect(sockaddr, &self.options)
     }
 
-    pub fn sendto(&mut self, buf: UserBuffer<'_>, sockaddr: SockAddr) -> Result<()> {
+    pub fn sendto(&mut self, buf: UserBuffer<'_>, sockaddr: Option<SockAddr>) -> Result<usize> {
         self.as_file()?.sendto(buf, sockaddr, &self.options)
     }
 

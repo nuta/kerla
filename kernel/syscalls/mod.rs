@@ -323,7 +323,7 @@ impl<'a> SyscallHandler<'a> {
                 UserVAddr::new_nonnull(a2)?,
                 a3 as usize,
                 bitflags_from_user!(SendToFlags, a4 as i32)?,
-                UserVAddr::new_nonnull(a5)?,
+                UserVAddr::new(a5)?,
                 a6,
             ),
             SYS_RECVFROM => self.sys_recvfrom(

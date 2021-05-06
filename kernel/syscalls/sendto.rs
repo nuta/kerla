@@ -14,18 +14,21 @@ impl<'a> SyscallHandler<'a> {
         uaddr: UserVAddr,
         len: usize,
         _flags: SendToFlags,
-        dst_addr: UserVAddr,
+        dst_addr: Option<UserVAddr>,
         addr_len: usize,
     ) -> Result<isize> {
         let len = min(len, MAX_READ_WRITE_LEN);
-        let sockaddr = read_sockaddr(dst_addr, addr_len)?;
+        let sockaddr = match dst_addr {
+            Some(dst_addr) => Some(read_sockaddr(dst_addr, addr_len)?),
+            None => None,
+        };
 
         let opened_file = current_process().get_opened_file_by_fd(fd)?;
-        opened_file
+        let sent_len = opened_file
             .lock()
             .sendto(UserBuffer::from_uaddr(uaddr, len), sockaddr)?;
 
         // MAX_READ_WRITE_LEN limit guarantees total_len is in the range of isize.
-        Ok(len as isize)
+        Ok(sent_len as isize)
     }
 }

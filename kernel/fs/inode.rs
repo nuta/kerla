@@ -96,9 +96,9 @@ pub trait FileLike: Send + Sync + Downcastable {
     fn sendto(
         &self,
         _buf: UserBuffer<'_>,
-        _sockaddr: SockAddr,
+        _sockaddr: Option<SockAddr>,
         _options: &OpenOptions,
-    ) -> Result<()> {
+    ) -> Result<usize> {
         Err(Error::new(Errno::EBADF))
     }
 

@@ -4,7 +4,7 @@ use crate::{
         inode::{FileLike, PollStatus},
         opened_file::OpenOptions,
     },
-    result::{Errno, Result},
+    result::{Errno, Error, Result},
     user_buffer::UserBuffer,
     user_buffer::UserBufferMut,
 };
@@ -64,19 +64,21 @@ impl FileLike for UdpSocket {
     fn sendto(
         &self,
         mut buf: UserBuffer<'_>,
-        sockaddr: SockAddr,
+        sockaddr: Option<SockAddr>,
         _options: &OpenOptions,
-    ) -> Result<()> {
-        let endpoint: IpEndpoint = sockaddr.try_into()?;
+    ) -> Result<usize> {
+        let endpoint: IpEndpoint = sockaddr
+            .ok_or_else(|| Error::new(Errno::EINVAL))?
+            .try_into()?;
         let mut sockets = SOCKETS.lock();
         let mut socket = sockets.get::<smoltcp::socket::UdpSocket>(self.handle);
         let dst = socket.send(buf.remaining_len(), endpoint)?;
-        buf.read_bytes(dst)?;
+        let copied_len = buf.read_bytes(dst)?;
 
         drop(socket);
         drop(sockets);
         process_packets();
-        Ok(())
+        Ok(copied_len)
     }
 
     fn recvfrom(

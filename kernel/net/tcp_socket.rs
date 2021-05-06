@@ -4,7 +4,7 @@ use crate::{
         inode::{FileLike, PollStatus},
         opened_file::OpenOptions,
     },
-    net::socket::SockAddr,
+    net::{socket::SockAddr, RecvFromFlags},
     user_buffer::UserBuffer,
     user_buffer::UserBufferMut,
 };
@@ -260,6 +260,28 @@ impl FileLike for TcpSocket {
                 Err(err) => Err(err.into()),
             }
         })
+    }
+
+    fn sendto(
+        &self,
+        buf: UserBuffer<'_>,
+        sockaddr: Option<SockAddr>,
+        options: &OpenOptions,
+    ) -> Result<usize> {
+        if sockaddr.is_some() {
+            return Err(Errno::EINVAL.into());
+        }
+
+        self.write(0, buf, options)
+    }
+
+    fn recvfrom(
+        &self,
+        buf: UserBufferMut<'_>,
+        _flags: RecvFromFlags,
+        options: &OpenOptions,
+    ) -> Result<(usize, SockAddr)> {
+        Ok((self.read(0, buf, options)?, self.getpeername()?))
     }
 
     fn poll(&self) -> Result<PollStatus> {
