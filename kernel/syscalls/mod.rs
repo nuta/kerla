@@ -57,6 +57,7 @@ pub(self) mod rt_sigreturn;
 pub(self) mod select;
 pub(self) mod sendto;
 pub(self) mod set_tid_address;
+pub(self) mod setpgid;
 pub(self) mod socket;
 pub(self) mod stat;
 pub(self) mod uname;
@@ -140,6 +141,7 @@ const SYS_GETUID: usize = 102;
 const SYS_SETUID: usize = 105;
 const SYS_SETGID: usize = 106;
 const SYS_GETEUID: usize = 107;
+const SYS_SETPGID: usize = 109;
 const SYS_GETPGID: usize = 121;
 const SYS_SETGROUPS: usize = 116;
 const SYS_ARCH_PRCTL: usize = 158;
@@ -279,6 +281,7 @@ impl<'a> SyscallHandler<'a> {
             SYS_SETUID => Ok(0),    // TODO:
             SYS_SETGID => Ok(0),    // TODO:
             SYS_SETGROUPS => Ok(0), // TODO:
+            SYS_SETPGID => self.sys_setpgid(PId::new(a1 as i32), PgId::new(a2 as i32)),
             SYS_SET_TID_ADDRESS => self.sys_set_tid_address(UserVAddr::new_nonnull(a1)?),
             SYS_PIPE => self.sys_pipe(UserVAddr::new_nonnull(a1)?),
             SYS_RT_SIGACTION => self.sys_rt_sigaction(a1 as c_int, a2, UserVAddr::new(a3)?),

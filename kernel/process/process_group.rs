@@ -53,6 +53,14 @@ impl ProcessGroup {
         self.processes.push(proc);
     }
 
+    pub fn remove(&mut self, proc: &Weak<SpinLock<Process>>) {
+        self.processes.retain(|p| !Weak::ptr_eq(p, proc));
+        if self.processes.is_empty() {
+            info!("REMOVE: {:?}", self.pgid);
+            PROCESS_GROUPS.lock().remove(&self.pgid);
+        }
+    }
+
     pub fn remove_dropped_processes(&mut self) {
         self.processes.retain(|proc| proc.upgrade().is_some());
         if self.processes.is_empty() {
