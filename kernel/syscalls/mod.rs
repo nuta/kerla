@@ -35,6 +35,7 @@ pub(self) mod fsync;
 pub(self) mod getcwd;
 pub(self) mod getdents64;
 pub(self) mod getpeername;
+pub(self) mod getpgid;
 pub(self) mod getpid;
 pub(self) mod getrandom;
 pub(self) mod getsockname;
@@ -139,6 +140,7 @@ const SYS_GETUID: usize = 102;
 const SYS_SETUID: usize = 105;
 const SYS_SETGID: usize = 106;
 const SYS_GETEUID: usize = 107;
+const SYS_GETPGID: usize = 121;
 const SYS_SETGROUPS: usize = 116;
 const SYS_ARCH_PRCTL: usize = 158;
 const SYS_GETDENTS64: usize = 217;
@@ -271,6 +273,7 @@ impl<'a> SyscallHandler<'a> {
             SYS_BRK => self.sys_brk(UserVAddr::new(a1)?),
             SYS_IOCTL => self.sys_ioctl(Fd::new(a1 as i32), a2, a3),
             SYS_GETPID => self.sys_getpid(),
+            SYS_GETPGID => self.sys_getpgid(PId::new(a1 as i32)),
             SYS_GETUID => Ok(0),    // TODO:
             SYS_GETEUID => Ok(0),   // TODO:
             SYS_SETUID => Ok(0),    // TODO:
