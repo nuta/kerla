@@ -49,12 +49,13 @@ impl<'a> SyscallHandler<'a> {
             Ok(None)
         })?;
 
-        // Evict joined or unused processs objects.
+        // Evict the joined processs object.
         current_process()
             .children
             .retain(|p| p.lock().pid != got_pid);
 
         if let Some(status) = status {
+            // FIXME: This is NOT the correct format of `status`.
             status.write::<c_int>(&status_value)?;
         }
         Ok(got_pid.as_i32() as isize)
