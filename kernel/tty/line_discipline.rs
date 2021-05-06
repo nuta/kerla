@@ -160,12 +160,14 @@ impl LineDiscipline {
                             callback(LineControl::Echo(b'\n'));
                         }
                     }
-                    _ if termios.is_cooked_mode() => {
+                    ch if termios.is_cooked_mode() => {
+                        if 0x20 <= *ch && *ch < 0x7f {
                         // XXX: Should we sleep if the buffer is full?
                         current_line.insert(*ch);
                         if termios.lflag.contains(LFlag::ECHO) {
                             callback(LineControl::Echo(*ch));
                         }
+                    }
                     }
                     _ => {
                         // In the raw mode.
