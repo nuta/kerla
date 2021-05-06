@@ -49,11 +49,15 @@ class Package:
         self.run(["sh", "-c", f"patch --ignore-whitespace -p1 < {patch_file}"])
         self.patch_id += 1
 
-    def make(self, cmd=None):
-        if cmd:
-            self.run(["make", f"-j{num_cpus()}", cmd])
+    def make(self, cmd_or_args=None):
+        if type(cmd_or_args) is str:
+            args = [cmd_or_args]
+        elif type(cmd_or_args) is list:
+            args = cmd_or_args
         else:
-            self.run(["make", f"-j{num_cpus()}"])
+            args = []
+
+        self.run(["make", f"-j{num_cpus()}"] + args)
 
     def add_file(self, path, content):
         self.added_files[path] = content
