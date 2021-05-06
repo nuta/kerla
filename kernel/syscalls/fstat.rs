@@ -4,14 +4,8 @@ use crate::{process::current_process, syscalls::SyscallHandler};
 
 impl<'a> SyscallHandler<'a> {
     pub fn sys_fstat(&mut self, fd: Fd, buf: UserVAddr) -> Result<isize> {
-        let stat = current_process()
-            .opened_files
-            .lock()
-            .get(fd)?
-            .lock()
-            .path()
-            .inode
-            .stat()?;
+        let opened_file = current_process().get_opened_file_by_fd(fd)?;
+        let stat = opened_file.lock().path().inode.stat()?;
         buf.write(&stat)?;
         Ok(0)
     }
