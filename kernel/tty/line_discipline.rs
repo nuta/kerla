@@ -137,6 +137,11 @@ impl LineDiscipline {
             let copied_len = buf.read_bytes(&mut tmp)?;
             for ch in &tmp.as_slice()[..copied_len] {
                 match ch {
+                    0x03 /* ETX: End of Text (^C) */  if termios.is_cooked_mode() => {
+                        if let Some(pg) = self.foreground_process_group() {
+                            pg.lock().signal(SIGINT);
+                        }
+                    }
                     0x7f /* backspace */ if termios.is_cooked_mode() => {
                         if !current_line.is_empty() {
                             current_line.backspace();
