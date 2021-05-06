@@ -8,7 +8,7 @@ use crate::{
         stat::FileMode,
     },
     net::{RecvFromFlags, SendToFlags},
-    process::{current_process, PId},
+    process::{current_process, process_group::PgId, PId, Process},
     result::{Errno, Error, Result},
     syscalls::{getrandom::GetRandomFlags, wait4::WaitOptions},
     timer::Timeval,
@@ -195,7 +195,7 @@ impl<'a> SyscallHandler<'a> {
             err
         });
 
-        if let Err(err) = current_process().try_delivering_signal(self.frame) {
+        if let Err(err) = Process::try_delivering_signal(current_process(), self.frame) {
             debug_warn!("failed to setup the signal stack: {:?}", err);
         }
 

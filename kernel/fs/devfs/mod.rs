@@ -34,7 +34,7 @@ impl DevFs {
         PTMX.init(|| Arc::new(Ptmx::new(pts_dir)));
 
         root_dir.add_file("null", NULL_FILE.clone());
-        root_dir.add_file("tty", NULL_FILE.clone()); // FIXME:
+        root_dir.add_file("tty", SERIAL_TTY.clone() as Arc<dyn FileLike>);
         root_dir.add_file("console", SERIAL_TTY.clone() as Arc<dyn FileLike>);
         root_dir.add_file("ptmx", PTMX.clone() as Arc<dyn FileLike>);
 

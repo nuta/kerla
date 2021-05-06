@@ -1,10 +1,13 @@
 use crate::{
-    arch::print_str,
+    arch::{print_str, SpinLock, UserVAddr},
+    ctypes::*,
     fs::{
         inode::{FileLike, INodeNo},
         opened_file::OpenOptions,
         stat::{FileMode, Stat, S_IFCHR},
     },
+    prelude::*,
+    process::process_group::{PgId, ProcessGroup},
     result::Result,
     tty::line_discipline::*,
     user_buffer::UserBuffer,
@@ -38,9 +41,47 @@ impl Tty {
             })
             .ok();
     }
+
+    pub fn set_foreground_process_group(&self, pg: Weak<SpinLock<ProcessGroup>>) {
+        self.discipline.set_foreground_process_group(pg);
+    }
 }
 
+const TIOCGPGRP: usize = 0x540f;
+const TIOCSPGRP: usize = 0x5410;
+const TIOCGWINSZ: usize = 0x5413;
+
 impl FileLike for Tty {
+    fn ioctl(&self, cmd: usize, arg: usize) -> Result<isize> {
+        match cmd {
+            TIOCGPGRP => {
+                let process_group = self
+                    .discipline
+                    .foreground_process_group()
+                    .ok_or_else(|| Error::new(Errno::ENOENT))?;
+
+                let pgid = process_group.lock().pgid().as_i32();
+                let arg = UserVAddr::new_nonnull(arg)?;
+                arg.write::<c_int>(&pgid)?;
+            }
+            TIOCSPGRP => {
+                let arg = UserVAddr::new_nonnull(arg)?;
+                let pgid = arg.read::<c_int>()?;
+                let pg = ProcessGroup::find_by_pgid(PgId::new(pgid))
+                    .ok_or_else(|| Error::new(Errno::ESRCH))?;
+                self.discipline
+                    .set_foreground_process_group(Arc::downgrade(&pg));
+            }
+            TIOCGWINSZ => {
+                // TODO: It's not yet implemented but should return a successful
+                //       value since it is used in musl's isatty(3).
+            }
+            _ => return Err(Errno::ENOSYS.into()),
+        }
+
+        Ok(0)
+    }
+
     fn stat(&self) -> Result<Stat> {
         Ok(Stat {
             inode_no: INodeNo::new(3),

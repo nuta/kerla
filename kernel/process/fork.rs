@@ -17,8 +17,10 @@ pub fn fork(
     let arch = parent.arch.fork(parent_frame)?;
     let vm = parent.vm.as_ref().unwrap().lock().fork()?;
     let opened_files = parent.opened_files.lock().fork();
+    let process_group = parent.process_group.clone();
 
     let child = Arc::new(SpinLock::new(Process {
+        process_group: process_group.clone(),
         pid,
         state: ProcessState::Runnable,
         parent: Some(parent_weak),
@@ -31,8 +33,13 @@ pub fn fork(
         signaled_frame: None,
     }));
 
+    process_group
+        .upgrade()
+        .unwrap()
+        .lock()
+        .add(Arc::downgrade(&child));
     parent.children.push(child.clone());
-    PROCESSES.lock().insert(pid, child.clone());
+    PROCESSES.lock().insert(pid.into(), child.clone());
     SCHEDULER.lock().enqueue(pid);
     Ok(child)
 }

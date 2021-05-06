@@ -1,7 +1,7 @@
 use crate::{
     arch::SpinLock,
     prelude::*,
-    process::WaitQueue,
+    process::{current_process, process_group::ProcessGroup, signal::SIGINT, WaitQueue},
     user_buffer::{UserBuffer, UserBufferMut},
 };
 use bitflags::bitflags;
@@ -83,6 +83,7 @@ pub struct LineDiscipline {
     current_line: SpinLock<LineEdit>,
     buf: SpinLock<RingBuffer<u8, 4096>>,
     termios: SpinLock<Termios>,
+    foreground_process_group: SpinLock<Weak<SpinLock<ProcessGroup>>>,
 }
 
 impl LineDiscipline {
@@ -92,6 +93,7 @@ impl LineDiscipline {
             current_line: SpinLock::new(LineEdit::new()),
             buf: SpinLock::new(RingBuffer::new()),
             termios: SpinLock::new(Default::default()),
+            foreground_process_group: SpinLock::new(Weak::new()),
         }
     }
 
@@ -101,6 +103,25 @@ impl LineDiscipline {
 
     pub fn is_writable(&self) -> bool {
         self.buf.lock().is_writable()
+    }
+
+    pub fn foreground_process_group(&self) -> Option<Arc<SpinLock<ProcessGroup>>> {
+        self.foreground_process_group.lock().upgrade()
+    }
+
+    pub fn set_foreground_process_group(&self, pg: Weak<SpinLock<ProcessGroup>>) {
+        *self.foreground_process_group.lock() = pg;
+    }
+
+    fn is_current_foreground(&self) -> bool {
+        let foreground_pg = &*self.foreground_process_group.lock();
+        Weak::ptr_eq(
+            current_process().process_group_weak(),
+            foreground_pg,
+        )
+        // If the foreground process is not yet set, allow any processes to read
+        // from the tty. I'm not sure whether it is a correct behaviour.
+        || !foreground_pg.upgrade().is_some()
     }
 
     pub fn write<F>(&self, mut buf: UserBuffer<'_>, callback: F) -> Result<usize>
@@ -162,6 +183,10 @@ impl LineDiscipline {
 
     pub fn read(&self, mut dst: UserBufferMut<'_>) -> Result<usize> {
         self.wait_queue.sleep_until(|| {
+            if !self.is_current_foreground() {
+                return Ok(None);
+            }
+
             let mut buf_lock = self.buf.lock();
             while dst.remaining_len() > 0 {
                 // TODO: Until newline.

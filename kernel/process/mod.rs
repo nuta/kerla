@@ -18,6 +18,7 @@ mod fork;
 mod init_stack;
 #[allow(clippy::module_inception)]
 mod process;
+pub mod process_group;
 mod scheduler;
 pub mod signal;
 mod switch;

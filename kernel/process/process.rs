@@ -1,10 +1,9 @@
 use super::{
     elf::{Elf, ProgramHeader},
+    process_group::{PgId, ProcessGroup},
     signal::{Signal, SignalDelivery},
     *,
 };
-use crate::mm::page_allocator::{alloc_pages, AllocPageFlags};
-use crate::prelude::*;
 use crate::{
     arch::{self, SpinLock, SyscallFrame},
     boot::INITIAL_ROOT_FS,
@@ -17,6 +16,11 @@ use crate::{
     mm::vm::{Vm, VmAreaType},
     random::read_secure_random,
 };
+use crate::{
+    fs::devfs::SERIAL_TTY,
+    mm::page_allocator::{alloc_pages, AllocPageFlags},
+};
+use crate::{prelude::*, process::signal::SIGCHLD};
 use alloc::collections::BTreeMap;
 use alloc::sync::{Arc, Weak};
 use alloc::vec::Vec;
@@ -72,6 +76,7 @@ pub enum ProcessState {
 /// The process control block.
 pub struct Process {
     pub arch: arch::Thread,
+    pub(super) process_group: Weak<SpinLock<ProcessGroup>>,
     pub pid: PId,
     pub state: ProcessState,
     pub parent: Option<Weak<SpinLock<Process>>>,
@@ -105,7 +110,9 @@ impl Process {
     */
 
     pub fn new_idle_thread() -> Result<Arc<SpinLock<Process>>> {
-        Ok(Arc::new(SpinLock::new(Process {
+        let process_group = ProcessGroup::new(PgId::new(0));
+        let proc = Arc::new(SpinLock::new(Process {
+            process_group: Arc::downgrade(&process_group),
             arch: arch::Thread::new_idle_thread(),
             state: ProcessState::Runnable,
             parent: None,
@@ -116,7 +123,10 @@ impl Process {
             opened_files: Arc::new(SpinLock::new(OpenedFileTable::new())),
             signals: SignalDelivery::new(),
             signaled_frame: None,
-        })))
+        }));
+
+        process_group.lock().add(Arc::downgrade(&proc));
+        Ok(proc)
     }
 
     pub fn new_init_process(
@@ -163,7 +173,9 @@ impl Process {
         let pid = PId::new(1);
         let stack_bottom = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)?;
         let kernel_sp = stack_bottom.as_vaddr().add(KERNEL_STACK_SIZE);
+        let process_group = ProcessGroup::new(PgId::new(1));
         let process = Arc::new(SpinLock::new(Process {
+            process_group: Arc::downgrade(&process_group),
             pid,
             parent: None,
             children: Vec::new(),
@@ -176,13 +188,32 @@ impl Process {
             signaled_frame: None,
         }));
 
+        process_group.lock().add(Arc::downgrade(&process));
         PROCESSES.lock().insert(pid, process.clone());
         SCHEDULER.lock().enqueue(pid);
+
+        SERIAL_TTY.set_foreground_process_group(Arc::downgrade(&process_group));
         Ok(())
+    }
+
+    pub fn find_by_pid(pid: PId) -> Option<Arc<SpinLock<Process>>> {
+        PROCESSES.lock().get(&pid).cloned()
     }
 
     pub fn pid(&self) -> PId {
         self.pid
+    }
+
+    pub fn set_process_group(&mut self, pg: Weak<SpinLock<ProcessGroup>>) {
+        self.process_group = pg;
+    }
+
+    pub fn process_group(&self) -> Arc<SpinLock<ProcessGroup>> {
+        self.process_group.upgrade().unwrap()
+    }
+
+    pub fn process_group_weak(&self) -> &Weak<SpinLock<ProcessGroup>> {
+        &self.process_group
     }
 
     pub fn state(&self) -> ProcessState {
@@ -220,7 +251,7 @@ impl Process {
         proc.set_state(ProcessState::ExitedWith(status));
         if let Some(parent) = proc.parent.as_ref() {
             if let Some(parent) = parent.upgrade() {
-                parent.lock().signal(Signal::SIGCHLD);
+                parent.lock().signal(SIGCHLD);
             }
         }
 
@@ -243,17 +274,24 @@ impl Process {
         self.signals.is_pending()
     }
 
-    pub fn try_delivering_signal(&mut self, frame: &mut SyscallFrame) -> Result<()> {
+    pub fn try_delivering_signal(
+        mut current: SpinLockGuard<'_, Process>,
+        frame: &mut SyscallFrame,
+    ) -> Result<()> {
         // TODO: sigmask
 
-        if let Some((signal, sigaction)) = self.signals.pop_pending() {
+        if let Some((signal, sigaction)) = current.signals.pop_pending() {
             match sigaction {
                 signal::SigAction::Ignore => {}
+                signal::SigAction::Terminate => {
+                    trace!("terminating {:?} by {:?}", current.pid, signal,);
+                    Process::exit(current, 1 /* FIXME: */);
+                }
                 signal::SigAction::Handler { handler } => {
-                    trace!("delivering {:?} to {:?}", signal, self.pid,);
-                    self.signaled_frame = Some(*frame);
+                    trace!("delivering {:?} to {:?}", signal, current.pid,);
+                    current.signaled_frame = Some(*frame);
                     unsafe {
-                        self.arch.setup_signal_stack(frame, signal, handler)?;
+                        current.arch.setup_signal_stack(frame, signal, handler)?;
                     }
                 }
             }
@@ -291,6 +329,16 @@ impl Process {
         self.arch
             .setup_execve_stack(frame, entry.ip, entry.user_sp)?;
         Ok(())
+    }
+}
+
+impl Drop for Process {
+    fn drop(&mut self) {
+        self.process_group
+            .upgrade()
+            .unwrap()
+            .lock()
+            .remove_dropped_processes();
     }
 }
 
