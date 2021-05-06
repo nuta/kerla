@@ -170,12 +170,12 @@ def camelcase(s):
 def get_packages():
     packages = {}
     sys.path.insert(0, os.getcwd())
-    for path in glob("packages/*.py"):
+    for path in glob("initramfs/*.py"):
         name = Path(path).stem
         if name in ["__init__", "__pycache__"]:
             continue
 
-        mod = __import__(f"packages.{name}")
+        mod = __import__(f"initramfs.{name}")
         klass = getattr(getattr(mod, name), camelcase(name))
         packages[name] = klass()
     return packages

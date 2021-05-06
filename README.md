@@ -4,7 +4,7 @@ Penguin Kernel
 Rwrite Linux Kenrel in Rust *just for fun*!
 
 ## Running a Docker Image (experimental)
-You can run a Docker image as a root file system (not as a container!) on Penguin Kenrel instead of our initramfs built from `packages` directory.
+You can run a Docker image as a root file system (not as a container!) on Penguin Kenrel instead of our initramfs built from `initramfs` directory.
 
 For example, to run [nuta/helloworld](https://hub.docker.com/r/nuta/helloworld) image ([Dockerfile](https://gist.github.com/nuta/4c9ecd0d1a401dc5be88095bea5a991a)), try the following command:
 

@@ -141,9 +141,9 @@ clean:
 #
 #  Build Rules
 #
-build/penguin.initramfs: $(wildcard packages/*.py) Makefile
+build/penguin.initramfs: $(wildcard initramfs/*.py) Makefile
 	mkdir -p build
-	$(PYTHON3) packages/__init__.py                       \
+	$(PYTHON3) initramfs/__init__.py                       \
 		--build-dir build/initramfs                   \
 		-o $@
 
