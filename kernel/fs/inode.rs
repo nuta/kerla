@@ -30,6 +30,8 @@ bitflags! {
         const POLLNVAL   = 0x020;
         const POLLRDNORM = 0x040;
         const POLLRDBAND = 0x080;
+        const POLLWRNORM = 0x100;
+        const POLLWRBAND = 0x200;
     }
 }
 
