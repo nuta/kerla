@@ -1,9 +1,34 @@
-Penguin Kernel
-==============
+# Penguin Kernel
 
-Rwrite Linux Kenrel in Rust *just for fun*!
+Penguin is a monolithic operating system kernel from scratch in Rust which aims to be
+compatible with the Linux ABI, that is, runs Linux binaries without any modifications.
+
+- Implements *NIX process concepts: context switching, signals, `fork(2)`, `execve(2)`, `wait4(2)`, etc.
+- Supports commonly used system calls like `write(2)`, `stat(2)`, `mmap(2)`, `pipe(2)`, `poll(2)`, ...
+- No disk support for now: initramfs is mounted as the root file system.
+- Pseudo file systems: tmpfs and devfs.
+- [smoltcp](https://github.com/smoltcp-rs/smoltcp)-based TCP/IP support.
+- Implements tty and pseudo terminal (pty).
+- Supports QEMU and Firecracker (with virtio-net device driver).
+- Supports x86_64.
+- Docker-based initramfs build system.
+
+Read [HACKING.md](https://github.com/nuta/penguin-kernel/blob/main/HACKING.md) for instructions on building from source, running on emulators, etc.
+
+## Demo: SSH into Penguin!
+
+You can play with Penguin over ssh. Your login is not visible from others (except
+me): we automatically launch a dedicated microVM on Firecracker for each TCP
+connection.
+
+```
+$ ssh penguin.seiya.me TODO:
+```
+
+If you found bugs or missing features, let me know on GitHub issues :)
 
 ## Running a Docker Image (experimental)
+
 You can run a Docker image as a root file system (not as a container!) on Penguin Kenrel instead of our initramfs built from `initramfs` directory.
 
 For example, to run [nuta/helloworld](https://hub.docker.com/r/nuta/helloworld) image ([Dockerfile](https://gist.github.com/nuta/4c9ecd0d1a401dc5be88095bea5a991a)), try the following command:
@@ -28,41 +53,73 @@ This feature is in the very early stage and I guess **almost all images out ther
 - They tend to be too large to be embedded into the kernel image.
 - They might use unimplemented features (e.g. position-independent executables used in Alpine Linux).
 
-## Road Map
+## Building and Running the OS
 
-- [ ] Page allocator
-- [ ] Initramfs
-- [ ] Context switching
-- [ ] System calls
-- [ ] tty
-- [ ] exec, fork, wait, exit
-- [ ] open, read, write, close
-- [ ] signal
-- [ ] cgroups
-- [ ] TCP/IP protocol stack ([smoltcp](https://github.com/smoltcp-rs/smoltcp) or [Fuchsia's Netstack3](https://fuchsia.dev/fuchsia-src/contribute/contributing_to_netstack3))
-- [ ] File system (ext4?)
+See [HACKING.md](https://github.com/nuta/penguin-kernel/blob/main/HACKING.md) for instructions on building from source, running on emulators, etc.
 
-## Prerequisites
-- Docker Engine
+## Compatibility
 
-```
-$ brew install qemu gdb python3
-```
+See [COMPATIBILITY.md](COMPATIBILITY.md) for the current status.
 
-```
-$ rustup override set nightly
-$ rustup component add llvm-tools-preview
-$ cargo install cargo-binutils cargo-watch rustfilt
-```
+## Community
 
-## Building
-```
-$ make                # Build the kernel (debug build)
-$ make RELEASE=1      # Build the kernel (release build)
-$ make run            # Run on QEMU
-$ make run GUI=1      # Run on QEMU with GUI enabled
-$ make run GDB=1      # Run on QEMU with GDB connection enabled
-```
+- [Gitter](https://gitter.im/penguin/community) - Where you can ask any questions or help.
+
+## Contributing
+
+Send me bug reports, feature requests, and patches on [GitHub](https://github.com/nuta/penguin-kernel) for example:
+
+- **Implementing missing features:** majority of existing Linux applications won't work due to the lack of features.
+- **Writing documentation:** I think Penguin could be good material to learn how operating system kernel works.
+- **Trying experimenting with Rust-y ideas:** for example currently I'm interested in [GhostCell](http://plv.mpi-sws.org/rustbelt/ghostcell/).
 
 ## License
+
 CC0 or MIT. Choose whichever you prefer.
+
+----
+**TL;DR:** I'm writing a Linux clone in Rust just for fun :D
+
+## Will this project replace the existing Linux kernel?
+
+Absolutely no.
+
+## Why rewrite a Linux (compatible) kernel in Rust?
+
+Rust, the [most beloved](https://insights.stackoverflow.com/survey/2020#technology-most-loved-dreaded-and-wanted-languages) programming language, allows writing robust user-space programs in an expressive way.
+
+However, the kernel-space is a little bit eccentric: `panic!` will lead to a system crash, memory allocation failures should be handled without panicking, hidden control flows and hidden allocations are generally disliked.
+
+I started this project just for jun to explore the pros and cons of writing the general-purpose operating system kernel in pure Rust (with a little assembly).
+
+TODO: write about "allocation failrues are fine: we don't use intrusive list"
+
+## Is Rust good for writing a system software?
+
+In my opinion, yes unless the target environment is not too resource-constrained.
+
+Rust's ownership concept and the type system let you focus on fixing logic errors,
+not painful memory bugs and races.  `enum` forces you to handle all possible input /
+ouput patterns: if a pointer is nullable (i.e. `Option<NonNull<T>>`), you can't
+dereference it until you explicitly handle the null (`None`) case!
+Lastly, its build system (`cargo`) and IDE support ([`rust-analyzer`](https://rust-analyzer.github.io/)) are just awesome.
+
+However, in constrained devices ([class 1 devices](https://tools.ietf.org/html/rfc7228) or below), you'll face some problems:
+
+- Allocations failures are handled by `panic!`.
+- Hidden allocations: they're even not documented.
+- Too much stack consumption.
+
+I'd stress that these problems come from the implementation of the standard
+library, not the language design itself! Rust is getting improved continuously
+and regarding the allocation failures, people have already started working on it
+(see [the tracking issue](https://github.com/rust-lang/rust/issues/32838)).
+Moreover, you don't have to use `liballoc`. [`healpess` crate](https://docs.rs/heapless/) will be a good alternative.
+
+If Rust doesn't work for you, I recommend to try [Zig programming language](https://ziglang.org/). You'll be impressed especially if you're a C programmer.
+
+## Related Work
+
+Emulating Linux ABI is not a novel work. Some UNIX-like kernels like [FreeBSD](https://docs.freebsd.org/en_US.ISO8859-1/articles/linux-emulation/article.html) and [NetBSD](https://www.netbsd.org/docs/guide/en/chap-linux.html) already have their own Linux emulation layers. Windows has a well-known feature called [Windows Subsystem for Linux (WSL)](https://github.com/microsoft/WSL) which enables running Linux binaries seamlessly. WSL 1 implements the feature by the ABI emulation. WSL 2 runs the real Linux kernel using the hardware-accelerated virtualization (Hyper-V) by the way.
+
+Aside from general-purpose operating systems, there're some attractive projects related to the Linux ABI emualtion. [OSv](https://github.com/cloudius-systems/osv/wiki/OSv-Linux-ABI-Compatibility) is a unikernel which runs unmodified Linux binaries. [rCore](https://github.com/rcore-os/rCore) is a teaching operating system which implements the Linux ABI in Rust. [Noah](https://dl.acm.org/doi/10.1145/3381052.3381327) suggests an intriguing approach to run unmodified Linux binaries on macOS.
