@@ -13,7 +13,8 @@ pub fn fork(
 ) -> Result<Arc<SpinLock<Process>>> {
     let parent_weak = Arc::downgrade(parent);
     let mut parent = parent.lock();
-    let pid = alloc_pid()?;
+    let mut process_table = PROCESSES.lock();
+    let pid = alloc_pid(&mut process_table)?;
     let arch = parent.arch.fork(parent_frame)?;
     let vm = parent.vm.as_ref().unwrap().lock().fork()?;
     let opened_files = parent.opened_files.lock().fork();
@@ -39,7 +40,7 @@ pub fn fork(
         .lock()
         .add(Arc::downgrade(&child));
     parent.children.push(child.clone());
-    PROCESSES.lock().insert(pid.into(), child.clone());
+    process_table.insert(pid.into(), child.clone());
     SCHEDULER.lock().enqueue(pid);
     Ok(child)
 }

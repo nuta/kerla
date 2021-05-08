@@ -28,14 +28,15 @@ use arch::SpinLockGuard;
 use core::sync::atomic::{AtomicI32, Ordering};
 use goblin::elf64::program_header::PT_LOAD;
 
-pub static PROCESSES: SpinLock<BTreeMap<PId, Arc<SpinLock<Process>>>> =
-    SpinLock::new(BTreeMap::new());
+type ProcessTable = BTreeMap<PId, Arc<SpinLock<Process>>>;
+pub static PROCESSES: SpinLock<ProcessTable> = SpinLock::new(BTreeMap::new());
 
-pub fn alloc_pid() -> Result<PId> {
+/// Returns an unused PID. Note that this function does not reserve the PID:
+/// keep the process table locked until you insert the process into the table!
+pub fn alloc_pid(table: &mut ProcessTable) -> Result<PId> {
     static NEXT_PID: AtomicI32 = AtomicI32::new(2);
 
     let last_pid = NEXT_PID.load(Ordering::SeqCst);
-    let processes = PROCESSES.lock();
     loop {
         // Note: `fetch_add` may wrap around.
         let pid = NEXT_PID.fetch_add(1, Ordering::SeqCst);
@@ -43,7 +44,7 @@ pub fn alloc_pid() -> Result<PId> {
             continue;
         }
 
-        if !processes.contains_key(&PId::new(pid)) {
+        if !table.contains_key(&PId::new(pid)) {
             return Ok(PId::new(pid));
         }
 
