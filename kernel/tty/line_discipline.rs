@@ -123,7 +123,7 @@ impl LineDiscipline {
         )
         // If the foreground process is not yet set, allow any processes to read
         // from the tty. I'm not sure whether it is a correct behaviour.
-        || !foreground_pg.upgrade().is_some()
+        || foreground_pg.upgrade().is_none()
     }
 
     pub fn write<F>(&self, buf: UserBuffer<'_>, callback: F) -> Result<usize>

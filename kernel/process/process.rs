@@ -206,7 +206,7 @@ impl Process {
         }));
 
         process_group.lock().add(Arc::downgrade(&process));
-        PROCESSES.lock().insert(pid, process.clone());
+        PROCESSES.lock().insert(pid, process);
         SCHEDULER.lock().enqueue(pid);
 
         SERIAL_TTY.set_foreground_process_group(Arc::downgrade(&process_group));

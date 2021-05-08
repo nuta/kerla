@@ -44,7 +44,7 @@ pub fn fork(
         .lock()
         .add(Arc::downgrade(&child));
     parent.children.push(child.clone());
-    process_table.insert(pid.into(), child.clone());
+    process_table.insert(pid, child.clone());
     SCHEDULER.lock().enqueue(pid);
     Ok(child)
 }
