@@ -68,14 +68,14 @@ impl WaitQueue {
     pub fn _wake_one(&self) {
         let mut queue = self.queue.lock();
         if let Some(process) = queue.pop_front() {
-            process.lock().set_state(ProcessState::Runnable);
+            process.lock().resume();
         }
     }
 
     pub fn wake_all(&self) {
         let mut queue = self.queue.lock();
         while let Some(process) = queue.pop_front() {
-            process.lock().set_state(ProcessState::Runnable);
+            process.lock().resume();
         }
     }
 }

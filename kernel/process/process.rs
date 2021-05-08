@@ -244,21 +244,19 @@ impl Process {
     /// Updates the process state.
     pub fn set_state(&mut self, new_state: ProcessState) {
         let scheduler = SCHEDULER.lock();
-        let old_state = self.state;
         self.state = new_state;
         match new_state {
-            ProcessState::Runnable => {
-                if old_state != ProcessState::Runnable {
-                    scheduler.enqueue(self.pid);
-                }
-            }
-            ProcessState::Sleeping => {
-                scheduler.remove(self.pid);
-            }
-            ProcessState::ExitedWith(_) => {
+            ProcessState::Runnable => {}
+            ProcessState::Sleeping | ProcessState::ExitedWith(_) => {
                 scheduler.remove(self.pid);
             }
         }
+    }
+
+    /// Resumes a process.
+    pub fn resume(&mut self) {
+        self.set_state(ProcessState::Runnable);
+        SCHEDULER.lock().enqueue(self.pid);
     }
 
     /// Searches the opned file table by the file descriptor.
