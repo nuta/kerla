@@ -255,7 +255,7 @@ impl<'a> SyscallHandler<'a> {
             SYS_CHMOD => self.sys_chmod(&resolve_path(a1)?, FileMode::new(a2 as u32)),
             SYS_CHOWN => Ok(0), // TODO:
             SYS_FSYNC => self.sys_fsync(Fd::new(a1 as i32)),
-            SYS_UTIMES => self.sys_utimes(&resolve_path(a1)?, UserVAddr::new_nonnull(a2)?),
+            SYS_UTIMES => self.sys_utimes(&resolve_path(a1)?, UserVAddr::new(a2)?),
             SYS_GETDENTS64 => {
                 self.sys_getdents64(Fd::new(a1 as i32), UserVAddr::new_nonnull(a2)?, a3)
             }
