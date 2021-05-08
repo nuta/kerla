@@ -226,7 +226,9 @@ impl UserVAddr {
     }
 
     /// Reads a string from the userspace and returns number of copied characters
-    /// excluding the NUL character. Note that `buf` is **NOT** NUL-terminated.
+    /// excluding the NUL character.
+    ///
+    /// Unlike strcnpy, **`dst` is NOT terminated by NULL**.
     pub fn read_cstr(self, buf: &mut [u8]) -> Result<usize> {
         self.access_ok(buf.len())?;
         let read_len =

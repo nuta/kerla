@@ -156,7 +156,7 @@ const SYS_GETRANDOM: usize = 318;
 
 fn resolve_path(uaddr: usize) -> Result<PathBuf> {
     const PATH_MAX: usize = 512;
-    Ok(Path::new(UserCStr::new(UserVAddr::new_nonnull(uaddr)?, PATH_MAX)?.as_str()?).to_path_buf())
+    Ok(Path::new(UserCStr::new(UserVAddr::new_nonnull(uaddr)?, PATH_MAX)?.as_str()).to_path_buf())
 }
 
 pub struct SyscallHandler<'a> {

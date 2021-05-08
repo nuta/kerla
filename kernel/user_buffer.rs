@@ -299,23 +299,29 @@ impl<'a> From<UserBufferMut<'a>> for UserBufWriter<'a> {
     }
 }
 
+/// A user-provided NULL-terminated string.
+///
+/// It's a copy of the string (not a reference) since the user can modify the
+/// buffer anytime to cause bad things in the kernel.
 pub(super) struct UserCStr {
-    buf: Vec<u8>,
+    string: String,
 }
 
 impl UserCStr {
     pub fn new(uaddr: UserVAddr, max_len: usize) -> Result<UserCStr> {
-        let mut buf = vec![0; max_len];
-        let copied_len = uaddr.read_cstr(buf.as_mut_slice())?;
-        buf.resize(copied_len, 0);
-        Ok(UserCStr { buf })
+        let mut tmp = vec![0; max_len];
+        let copied_len = uaddr.read_cstr(tmp.as_mut_slice())?;
+        let string = core::str::from_utf8(&tmp[..copied_len])
+            .map_err(|_| Error::new(Errno::EINVAL))?
+            .to_owned();
+        Ok(UserCStr { string })
     }
 
     pub fn as_bytes(&self) -> &[u8] {
-        &self.buf
+        &self.string.as_bytes()
     }
 
-    pub fn as_str(&self) -> Result<&str> {
-        core::str::from_utf8(&self.buf).map_err(|_| Error::new(Errno::EINVAL))
+    pub fn as_str(&self) -> &str {
+        &self.string
     }
 }
