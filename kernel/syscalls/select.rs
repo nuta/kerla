@@ -29,7 +29,7 @@ where
             let fd = Fd::new((byte_i * 8 + bit_i) as c_int);
             if *byte & (1 << bit_i) != 0 && fd.as_int() <= max_fd {
                 let status = current_process()
-                    .opened_files
+                    .opened_files()
                     .lock()
                     .get(fd)?
                     .lock()

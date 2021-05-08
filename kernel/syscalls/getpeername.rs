@@ -9,7 +9,7 @@ impl<'a> SyscallHandler<'a> {
         socklen: UserVAddr,
     ) -> Result<isize> {
         let endpoint = current_process()
-            .opened_files
+            .opened_files()
             .lock()
             .get(fd)?
             .lock()

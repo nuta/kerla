@@ -9,7 +9,7 @@ use crate::user_buffer::UserBufWriter;
 impl<'a> SyscallHandler<'a> {
     pub fn sys_getdents64(&mut self, fd: Fd, dirp: UserVAddr, len: usize) -> Result<isize> {
         let current = current_process();
-        let opened_files = current.opened_files.lock();
+        let opened_files = current.opened_files().lock();
         let mut dir = opened_files.get(fd)?.lock();
         let mut writer = UserBufWriter::new(dirp);
         while let Some(entry) = dir.readdir()? {

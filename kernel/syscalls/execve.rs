@@ -18,7 +18,7 @@ impl<'a> SyscallHandler<'a> {
         envp_uaddr: UserVAddr,
     ) -> Result<isize> {
         let mut current = current_process();
-        let executable = current.root_fs.lock().lookup_path(path, true)?;
+        let executable = current.root_fs().lock().lookup_path(path, true)?;
 
         let mut argv = Vec::new();
         for i in 0..ARG_MAX {

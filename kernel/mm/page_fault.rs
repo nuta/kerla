@@ -26,7 +26,7 @@ pub fn handle_page_fault(unaligned_vaddr: UserVAddr, ip: usize, _reason: PageFau
         }
     };
     let current = current_process();
-    let mut vm = current.vm.as_ref().unwrap().lock();
+    let mut vm = current.vm().unwrap().lock();
 
     // Look for the associated vma area.
     let vma = match vm

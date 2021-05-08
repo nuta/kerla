@@ -85,15 +85,15 @@ pub enum ProcessState {
 pub struct Process {
     pub arch: arch::Thread,
     pub(super) process_group: Weak<SpinLock<ProcessGroup>>,
-    pub pid: PId,
-    pub state: ProcessState,
-    pub parent: Option<Weak<SpinLock<Process>>>,
-    pub children: Vec<Arc<SpinLock<Process>>>,
-    pub vm: Option<Arc<SpinLock<Vm>>>,
-    pub opened_files: Arc<SpinLock<OpenedFileTable>>,
-    pub root_fs: Arc<SpinLock<RootFs>>,
-    pub signals: SignalDelivery,
-    pub signaled_frame: Option<SyscallFrame>,
+    pub(super) pid: PId,
+    pub(super) state: ProcessState,
+    pub(super) parent: Option<Weak<SpinLock<Process>>>,
+    pub(super) children: Vec<Arc<SpinLock<Process>>>,
+    pub(super) vm: Option<Arc<SpinLock<Vm>>>,
+    pub(super) opened_files: Arc<SpinLock<OpenedFileTable>>,
+    pub(super) root_fs: Arc<SpinLock<RootFs>>,
+    pub(super) signals: SignalDelivery,
+    pub(super) signaled_frame: Option<SyscallFrame>,
 }
 
 impl Process {
@@ -220,9 +220,34 @@ impl Process {
         self.pid
     }
 
-    /// The virtual memory space.
-    pub fn vm(&self) -> SpinLockGuard<'_, Vm> {
-        self.vm.as_ref().expect("not a user process").lock()
+    /// Its child processes.
+    pub fn children(&self) -> &[Arc<SpinLock<Process>>] {
+        &self.children
+    }
+
+    /// Its child processes.
+    pub fn children_mut(&mut self) -> &mut Vec<Arc<SpinLock<Process>>> {
+        &mut self.children
+    }
+
+    /// The process's path resolution info.
+    pub fn root_fs(&self) -> &Arc<SpinLock<RootFs>> {
+        &self.root_fs
+    }
+
+    /// The ppened files table.
+    pub fn opened_files(&self) -> &Arc<SpinLock<OpenedFileTable>> {
+        &self.opened_files
+    }
+
+    /// The virtual memory space. It's `None` if the process is a kernel thread.
+    pub fn vm(&self) -> Option<&Arc<SpinLock<Vm>>> {
+        self.vm.as_ref()
+    }
+
+    /// Signals.
+    pub fn signals_mut(&mut self) -> &mut SignalDelivery {
+        &mut self.signals
     }
 
     /// Changes the process group.
@@ -278,7 +303,7 @@ impl Process {
         proc.set_state(ProcessState::ExitedWith(status));
         if let Some(parent) = proc.parent.as_ref() {
             if let Some(parent) = parent.upgrade() {
-                parent.lock().signal(SIGCHLD);
+                parent.lock().send_signal(SIGCHLD);
             }
         }
 
@@ -290,7 +315,7 @@ impl Process {
     }
 
     /// Sends a signal.
-    pub fn signal(&mut self, signal: Signal) {
+    pub fn send_signal(&mut self, signal: Signal) {
         // TODO: Wake the process up if it's sleeping.
         self.signals.signal(signal);
     }

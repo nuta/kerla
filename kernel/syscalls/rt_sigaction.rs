@@ -25,7 +25,9 @@ impl<'a> SyscallHandler<'a> {
                 },
             };
 
-            current_process().signals.set_action(signum, new_action)?;
+            current_process()
+                .signals_mut()
+                .set_action(signum, new_action)?;
         }
 
         // TODO: Support oldact

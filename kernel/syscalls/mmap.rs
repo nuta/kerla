@@ -29,7 +29,7 @@ impl<'a> SyscallHandler<'a> {
             VmAreaType::Anonymous
         } else {
             let file = current_process()
-                .opened_files
+                .opened_files()
                 .lock()
                 .get(fd)?
                 .lock()
@@ -45,7 +45,7 @@ impl<'a> SyscallHandler<'a> {
 
         // Determine the virtual address space to map.
         let current = current_process();
-        let mut vm = current.vm();
+        let mut vm = current.vm().unwrap().lock();
         let mapped_uaddr = match addr_hint {
             Some(addr_hint) if vm.is_free_vaddr_range(addr_hint, len as usize) => addr_hint,
             Some(_) => {

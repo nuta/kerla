@@ -51,7 +51,7 @@ impl<'a> SyscallHandler<'a> {
             }
         };
 
-        let fd = current_process().opened_files.lock().open(
+        let fd = current_process().opened_files().lock().open(
             PathComponent::new_anonymous(INode::FileLike(socket)),
             flags.into(),
         )?;

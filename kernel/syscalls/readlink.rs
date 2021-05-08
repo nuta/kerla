@@ -15,7 +15,7 @@ impl<'a> SyscallHandler<'a> {
             // TODO: Implement procfs
             let fd = path.as_str()["/proc/self/fd/".len()..].parse().unwrap();
             current_process()
-                .opened_files
+                .opened_files()
                 .lock()
                 .get(Fd::new(fd))?
                 .lock()

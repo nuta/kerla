@@ -5,7 +5,7 @@ use crate::{process::current_process, syscalls::SyscallHandler};
 impl<'a> SyscallHandler<'a> {
     pub fn sys_lstat(&mut self, path: &Path, buf: UserVAddr) -> Result<isize> {
         let stat = current_process()
-            .root_fs
+            .root_fs()
             .lock()
             .lookup_no_symlink_follow(path)?
             .stat()?;

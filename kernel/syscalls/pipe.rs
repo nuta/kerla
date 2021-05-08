@@ -19,12 +19,12 @@ impl<'a> SyscallHandler<'a> {
         let options = OpenOptions::empty();
 
         let pipe = Pipe::new();
-        let read_fd = current_process().opened_files.lock().open(
+        let read_fd = current_process().opened_files().lock().open(
             PathComponent::new_anonymous(INode::FileLike(pipe.read_end() as Arc<dyn FileLike>)),
             options,
         )?;
 
-        let write_fd = current_process().opened_files.lock().open(
+        let write_fd = current_process().opened_files().lock().open(
             PathComponent::new_anonymous(INode::FileLike(pipe.write_end() as Arc<dyn FileLike>)),
             options,
         )?;

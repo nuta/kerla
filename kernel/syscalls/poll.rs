@@ -32,7 +32,7 @@ impl<'a> SyscallHandler<'a> {
                     0
                 } else {
                     let status = current_process()
-                        .opened_files
+                        .opened_files()
                         .lock()
                         .get(fd)?
                         .lock()

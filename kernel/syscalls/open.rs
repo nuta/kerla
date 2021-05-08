@@ -15,7 +15,7 @@ fn create_file(path: &Path, flags: OpenFlags, mode: FileMode) -> Result<INode> {
         .ok_or_else::<Error, _>(|| Errno::EEXIST.into())?;
 
     current_process()
-        .root_fs
+        .root_fs()
         .lock()
         .lookup_dir(parent_dir)?
         .create_file(name, mode)
@@ -35,8 +35,8 @@ impl<'a> SyscallHandler<'a> {
         }
 
         let current = current_process();
-        let root_fs = current.root_fs.lock();
-        let mut opened_files = current.opened_files.lock();
+        let root_fs = current.root_fs().lock();
+        let mut opened_files = current.opened_files().lock();
 
         let path_comp = root_fs.lookup_path_at(&*opened_files, &CwdOrFd::AtCwd, path, true)?;
         if flags.contains(OpenFlags::O_DIRECTORY) && !path_comp.inode.is_dir() {

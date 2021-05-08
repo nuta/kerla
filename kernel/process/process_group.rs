@@ -81,7 +81,7 @@ impl ProcessGroup {
     /// Sends a signal to all processes in the proces group.
     pub fn signal(&mut self, signal: Signal) {
         for proc in &self.processes {
-            proc.upgrade().unwrap().lock().signal(signal);
+            proc.upgrade().unwrap().lock().send_signal(signal);
         }
     }
 }

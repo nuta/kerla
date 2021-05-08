@@ -22,7 +22,7 @@ impl<'a> SyscallHandler<'a> {
             close_on_exec: false,
         };
         let fd = current_process()
-            .opened_files
+            .opened_files()
             .lock()
             .open(PathComponent::new_anonymous(sock.into()), options)?;
         write_sockaddr(&accepted_sockaddr, sockaddr, socklen)?;
