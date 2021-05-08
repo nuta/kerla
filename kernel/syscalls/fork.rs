@@ -1,5 +1,5 @@
 use crate::{process::current_process_arc, result::Result};
-use crate::{process::fork, syscalls::SyscallHandler};
+use crate::{process::fork::fork, syscalls::SyscallHandler};
 
 impl<'a> SyscallHandler<'a> {
     pub fn sys_fork(&mut self) -> Result<isize> {

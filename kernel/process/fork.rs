@@ -3,7 +3,11 @@ use crate::{arch::SyscallFrame, result::Result};
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 
-use super::{alloc_pid, signal::SignalDelivery, ProcessState, PROCESSES, SCHEDULER};
+use super::{
+    process::{alloc_pid, PROCESSES},
+    signal::SignalDelivery,
+    ProcessState, SCHEDULER,
+};
 
 /// Creates a new process. The calling process (`self`) will be the parent
 /// process of the created process. Returns the created child process.

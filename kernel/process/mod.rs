@@ -14,7 +14,7 @@ use penguin_utils::once::Once;
 use penguin_utils::{alignment::align_up, lazy::Lazy};
 
 mod elf;
-mod fork;
+pub mod fork;
 mod init_stack;
 #[allow(clippy::module_inception)]
 mod process;
@@ -24,12 +24,11 @@ pub mod signal;
 mod switch;
 mod wait_queue;
 
-pub use fork::*;
-pub use init_stack::*;
-pub use process::*;
-pub use scheduler::*;
-pub use switch::*;
-pub use wait_queue::*;
+pub use process::{PId, Process, ProcessState};
+pub use switch::switch;
+pub use wait_queue::WaitQueue;
+
+use self::scheduler::Scheduler;
 
 cpu_local! {
     static ref CURRENT: Lazy<Arc<SpinLock<Process>>> = Lazy::new();

@@ -18,7 +18,10 @@ use crate::{
     mm::page_allocator::{alloc_pages, AllocPageFlags},
     mm::vm::{Vm, VmAreaType},
     prelude::*,
-    process::signal::SIGCHLD,
+    process::{
+        init_stack::{estimate_user_init_stack_size, init_user_stack, Auxv},
+        signal::SIGCHLD,
+    },
     random::read_secure_random,
 };
 
@@ -32,11 +35,11 @@ use goblin::elf64::program_header::PT_LOAD;
 type ProcessTable = BTreeMap<PId, Arc<SpinLock<Process>>>;
 
 /// The process table. All processes are registered in with its process Id.
-pub static PROCESSES: SpinLock<ProcessTable> = SpinLock::new(BTreeMap::new());
+pub(super) static PROCESSES: SpinLock<ProcessTable> = SpinLock::new(BTreeMap::new());
 
 /// Returns an unused PID. Note that this function does not reserve the PID:
 /// keep the process table locked until you insert the process into the table!
-pub fn alloc_pid(table: &mut ProcessTable) -> Result<PId> {
+pub(super) fn alloc_pid(table: &mut ProcessTable) -> Result<PId> {
     static NEXT_PID: AtomicI32 = AtomicI32::new(2);
 
     let last_pid = NEXT_PID.load(Ordering::SeqCst);

@@ -1,6 +1,9 @@
 use super::*;
-use crate::arch::{self, enable_interrupt, is_interrupt_enabled};
 use crate::process::PId;
+use crate::{
+    arch::{self, enable_interrupt, is_interrupt_enabled},
+    process::process::PROCESSES,
+};
 
 use alloc::sync::Arc;
 
