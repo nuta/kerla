@@ -56,7 +56,6 @@ impl ProcessGroup {
     pub fn remove(&mut self, proc: &Weak<SpinLock<Process>>) {
         self.processes.retain(|p| !Weak::ptr_eq(p, proc));
         if self.processes.is_empty() {
-            info!("REMOVE: {:?}", self.pgid);
             PROCESS_GROUPS.lock().remove(&self.pgid);
         }
     }
