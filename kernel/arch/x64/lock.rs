@@ -19,6 +19,10 @@ impl<T> SpinLock<T> {
 impl<T: ?Sized> SpinLock<T> {
     pub fn lock(&self) -> SpinLockGuard<'_, T> {
         if self.inner.is_locked() {
+            // Since we don't yet support multiprocessors and interrupts are
+            // disabled until all locks are released, `lock()` will never fail
+            // unless a dead lock has occurred.
+            //
             // TODO: Remove when we got SMP support.
             debug_warn!("already locked");
             backtrace();
