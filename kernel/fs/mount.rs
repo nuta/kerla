@@ -1,8 +1,8 @@
 use super::{
     file_system::FileSystem,
     inode::{Directory, FileLike, INode, INodeNo},
+    opened_file::OpenedFileTable,
     opened_file::PathComponent,
-    opened_file::{resolve_path_component, OpenedFileTable},
     path::Path,
 };
 use crate::prelude::*;
@@ -192,17 +192,23 @@ impl RootFs {
                     .unwrap_or(&self.root_path)
                     .clone(),
                 // Look for the entry with the name in the directory.
-                _ => resolve_path_component(&parent_dir, name, |parent_dir, name| {
-                    match parent_dir.inode.as_dir()?.lookup(name)? {
+                _ => {
+                    let inode = match parent_dir.inode.as_dir()?.lookup(name)? {
                         // If it is a directory and it's a mount point, go
                         // into the mounted file system's root.
                         INode::Directory(dir) => match self.lookup_mount_point(&dir)? {
-                            Some(mount_point) => Ok(mount_point.fs.root_dir()?.into()),
-                            None => Ok(dir.into()),
+                            Some(mount_point) => mount_point.fs.root_dir()?.into(),
+                            None => dir.into(),
                         },
-                        inode => Ok(inode),
-                    }
-                })?,
+                        inode => inode,
+                    };
+
+                    Arc::new(PathComponent {
+                        parent_dir: Some(parent_dir.clone()),
+                        name: name.to_owned(),
+                        inode,
+                    })
+                }
             };
 
             if components.peek().is_some() {

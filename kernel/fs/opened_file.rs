@@ -7,7 +7,6 @@ use crate::fs::inode::PollStatus;
 use crate::prelude::*;
 use crate::{arch::SpinLock, user_buffer::UserBufferMut};
 use crate::{net::*, user_buffer::UserBuffer};
-use alloc::collections::BTreeMap;
 use bitflags::bitflags;
 
 const FD_MAX: c_int = 1024;
@@ -126,37 +125,6 @@ impl PathComponent {
         };
 
         PathBuf::from(path)
-    }
-}
-
-pub static PATH_COMPONENT_TABLE: SpinLock<BTreeMap<(usize, String), Weak<PathComponent>>> =
-    SpinLock::new(BTreeMap::new());
-
-pub fn resolve_path_component<F>(
-    parent_dir: &Arc<PathComponent>,
-    name: &str,
-    inode_resolver: F,
-) -> Result<Arc<PathComponent>>
-where
-    F: FnOnce(&Arc<PathComponent>, &str) -> Result<INode>,
-{
-    let parent_ptr = Arc::as_ptr(parent_dir) as usize;
-
-    // FIXME: Don't copy `name` into a String until we actually need it.
-    let key = (parent_ptr, name.to_owned());
-
-    let mut table = PATH_COMPONENT_TABLE.lock();
-    if let Some(existing) = table.get(&key).and_then(|weak| weak.upgrade()) {
-        Ok(existing)
-    } else {
-        let inode = inode_resolver(parent_dir, name)?;
-        let new_path_comp = Arc::new(PathComponent {
-            name: name.to_owned(),
-            inode,
-            parent_dir: Some(parent_dir.clone()),
-        });
-        table.insert(key, Arc::downgrade(&new_path_comp));
-        Ok(new_path_comp)
     }
 }
 
