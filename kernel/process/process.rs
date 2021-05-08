@@ -296,7 +296,7 @@ impl Process {
     }
 
     /// Returns `true` if there's a pending signal.
-    pub fn is_signal_pending(&self) -> bool {
+    pub fn has_pending_signals(&self) -> bool {
         self.signals.is_pending()
     }
 

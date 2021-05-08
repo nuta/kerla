@@ -40,7 +40,7 @@ impl WaitQueue {
             current_process().set_state(ProcessState::BlockedSignalable);
             self.queue.lock().push_back(current_process_arc().clone());
 
-            if current_process().is_signal_pending() {
+            if current_process().has_pending_signals() {
                 self.queue
                     .lock()
                     .retain(|proc| !Arc::ptr_eq(&proc, current_process_arc()));
