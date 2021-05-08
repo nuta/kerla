@@ -37,6 +37,6 @@ impl FileLike for NullFile {
     }
 
     fn write(&self, _offset: usize, buf: UserBuffer<'_>, _options: &OpenOptions) -> Result<usize> {
-        Ok(buf.remaining_len())
+        Ok(buf.len())
     }
 }

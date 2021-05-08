@@ -4,7 +4,7 @@ use crate::{
     arch::SpinLock,
     prelude::*,
     process::{current_process, process_group::ProcessGroup, signal::SIGINT, WaitQueue},
-    user_buffer::{UserBuffer, UserBufferMut},
+    user_buffer::{UserBufReader, UserBufWriter, UserBuffer, UserBufferMut},
 };
 use bitflags::bitflags;
 use penguin_utils::ring_buffer::RingBuffer;
@@ -126,7 +126,7 @@ impl LineDiscipline {
         || !foreground_pg.upgrade().is_some()
     }
 
-    pub fn write<F>(&self, mut buf: UserBuffer<'_>, callback: F) -> Result<usize>
+    pub fn write<F>(&self, buf: UserBuffer<'_>, callback: F) -> Result<usize>
     where
         F: Fn(LineControl),
     {
@@ -134,9 +134,10 @@ impl LineDiscipline {
         let mut current_line = self.current_line.lock();
         let mut ringbuf = self.buf.lock();
         let mut written_len = 0;
-        while buf.remaining_len() > 0 {
+        let mut reader = UserBufReader::from(buf);
+        while reader.remaining_len() > 0 {
             let mut tmp = [0; 128];
-            let copied_len = buf.read_bytes(&mut tmp)?;
+            let copied_len = reader.read_bytes(&mut tmp)?;
             for ch in &tmp.as_slice()[..copied_len] {
                 match ch {
                     0x03 /* ETX: End of Text (^C) */  if termios.is_cooked_mode() => {
@@ -190,24 +191,25 @@ impl LineDiscipline {
         Ok(written_len)
     }
 
-    pub fn read(&self, mut dst: UserBufferMut<'_>) -> Result<usize> {
+    pub fn read(&self, dst: UserBufferMut<'_>) -> Result<usize> {
+        let mut writer = UserBufWriter::from(dst);
         self.wait_queue.sleep_signalable_until(|| {
             if !self.is_current_foreground() {
                 return Ok(None);
             }
 
             let mut buf_lock = self.buf.lock();
-            while dst.remaining_len() > 0 {
+            while writer.remaining_len() > 0 {
                 // TODO: Until newline.
-                if let Some(slice) = buf_lock.pop_slice(dst.remaining_len()) {
-                    dst.write_bytes(slice)?;
+                if let Some(slice) = buf_lock.pop_slice(writer.remaining_len()) {
+                    writer.write_bytes(slice)?;
                 } else {
                     break;
                 }
             }
 
-            if dst.pos() > 0 {
-                Ok(Some(dst.pos()))
+            if writer.written_len() > 0 {
+                Ok(Some(writer.written_len()))
             } else {
                 Ok(None)
             }

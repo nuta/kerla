@@ -6,7 +6,7 @@ use crate::{
     },
     result::{Errno, Error, Result},
     user_buffer::UserBuffer,
-    user_buffer::UserBufferMut,
+    user_buffer::{UserBufReader, UserBufWriter, UserBufferMut},
 };
 use alloc::{collections::BTreeSet, sync::Arc};
 use core::convert::TryInto;
@@ -63,7 +63,7 @@ impl FileLike for UdpSocket {
 
     fn sendto(
         &self,
-        mut buf: UserBuffer<'_>,
+        buf: UserBuffer<'_>,
         sockaddr: Option<SockAddr>,
         _options: &OpenOptions,
     ) -> Result<usize> {
@@ -72,8 +72,9 @@ impl FileLike for UdpSocket {
             .try_into()?;
         let mut sockets = SOCKETS.lock();
         let mut socket = sockets.get::<smoltcp::socket::UdpSocket>(self.handle);
-        let dst = socket.send(buf.remaining_len(), endpoint)?;
-        let copied_len = buf.read_bytes(dst)?;
+        let mut reader = UserBufReader::from(buf);
+        let dst = socket.send(reader.remaining_len(), endpoint)?;
+        let copied_len = reader.read_bytes(dst)?;
 
         drop(socket);
         drop(sockets);
@@ -83,17 +84,18 @@ impl FileLike for UdpSocket {
 
     fn recvfrom(
         &self,
-        mut buf: UserBufferMut<'_>,
+        buf: UserBufferMut<'_>,
         _flags: RecvFromFlags,
         options: &OpenOptions,
     ) -> Result<(usize, SockAddr)> {
+        let mut writer = UserBufWriter::from(buf);
         SOCKET_WAIT_QUEUE.sleep_signalable_until(|| {
             let mut sockets = SOCKETS.lock();
             let mut socket = sockets.get::<smoltcp::socket::UdpSocket>(self.handle);
             match socket.recv() {
                 Ok((payload, endpoint)) => {
-                    let written_len = buf.write_bytes(payload)?;
-                    Ok(Some((written_len, endpoint.into())))
+                    writer.write_bytes(payload)?;
+                    Ok(Some((writer.written_len(), endpoint.into())))
                 }
                 Err(smoltcp::Error::Exhausted) if options.nonblock => Err(Errno::EAGAIN.into()),
                 Err(smoltcp::Error::Exhausted) => {

@@ -9,7 +9,7 @@ const UTS_FIELD_LEN: usize = 65;
 
 impl<'a> SyscallHandler<'a> {
     pub fn sys_uname(&mut self, buf: UserVAddr) -> Result<isize> {
-        let mut writer = UserBufWriter::new(buf);
+        let mut writer = UserBufWriter::from_uaddr(buf, 6 * UTS_FIELD_LEN);
         // sysname
         writer.write_bytes_or_zeroes(b"Linux", UTS_FIELD_LEN)?;
         // nodename

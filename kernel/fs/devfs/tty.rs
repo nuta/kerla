@@ -11,7 +11,7 @@ use crate::{
     result::Result,
     tty::line_discipline::*,
     user_buffer::UserBuffer,
-    user_buffer::UserBufferMut,
+    user_buffer::{UserBufReader, UserBufferMut},
 };
 
 pub struct Tty {
@@ -99,17 +99,13 @@ impl FileLike for Tty {
         self.discipline.read(dst)
     }
 
-    fn write(
-        &self,
-        _offset: usize,
-        mut buf: UserBuffer<'_>,
-        _options: &OpenOptions,
-    ) -> Result<usize> {
+    fn write(&self, _offset: usize, buf: UserBuffer<'_>, _options: &OpenOptions) -> Result<usize> {
         print_str(b"\x1b[1m");
         let mut tmp = [0; 32];
         let mut total_len = 0;
-        while buf.remaining_len() > 0 {
-            let copied_len = buf.read_bytes(&mut tmp)?;
+        let mut reader = UserBufReader::from(buf);
+        while reader.remaining_len() > 0 {
+            let copied_len = reader.read_bytes(&mut tmp)?;
             print_str(&tmp.as_slice()[..copied_len]);
             total_len += copied_len;
         }

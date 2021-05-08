@@ -17,7 +17,7 @@ use crate::{
     poll::POLL_WAIT_QUEUE,
     process::WaitQueue,
     result::{Errno, Error, Result},
-    user_buffer::{UserBuffer, UserBufferMut},
+    user_buffer::{UserBufReader, UserBufWriter, UserBuffer, UserBufferMut},
 };
 
 use super::line_discipline::{LineControl, LineDiscipline};
@@ -62,9 +62,10 @@ impl FileLike for PtyMaster {
     fn read(
         &self,
         _offset: usize,
-        mut buf: UserBufferMut<'_>,
+        buf: UserBufferMut<'_>,
         _options: &OpenOptions,
     ) -> Result<usize> {
+        let mut writer = UserBufWriter::from(buf);
         let read_len = self.wait_queue.sleep_signalable_until(|| {
             let mut buf_lock = self.buf.lock();
             if buf_lock.is_empty() {
@@ -72,8 +73,8 @@ impl FileLike for PtyMaster {
                 return Ok(None);
             }
 
-            let copy_len = min(buf_lock.len(), buf.remaining_len());
-            buf.write_bytes(&buf_lock[..copy_len])?;
+            let copy_len = min(buf_lock.len(), writer.remaining_len());
+            writer.write_bytes(&buf_lock[..copy_len])?;
             buf_lock.drain(..copy_len);
             Ok(Some(copy_len))
         })?;
@@ -158,17 +159,13 @@ impl FileLike for PtySlave {
         Ok(read_len)
     }
 
-    fn write(
-        &self,
-        _offset: usize,
-        mut buf: UserBuffer<'_>,
-        _options: &OpenOptions,
-    ) -> Result<usize> {
+    fn write(&self, _offset: usize, buf: UserBuffer<'_>, _options: &OpenOptions) -> Result<usize> {
         let mut written_len = 0;
         let mut master_buf = self.master.buf.lock();
-        while buf.remaining_len() > 0 {
+        let mut reader = UserBufReader::from(buf);
+        while reader.remaining_len() > 0 {
             let mut tmp = [0; 128];
-            let copied_len = buf.read_bytes(&mut tmp)?;
+            let copied_len = reader.read_bytes(&mut tmp)?;
             for ch in &tmp[..copied_len] {
                 // FIXME: Block if the buffer become too large.
                 // TODO: check termios

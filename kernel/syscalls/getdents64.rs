@@ -11,7 +11,7 @@ impl<'a> SyscallHandler<'a> {
         let current = current_process();
         let opened_files = current.opened_files().lock();
         let mut dir = opened_files.get(fd)?.lock();
-        let mut writer = UserBufWriter::new(dirp);
+        let mut writer = UserBufWriter::from_uaddr(dirp, len);
         while let Some(entry) = dir.readdir()? {
             let alignment = size_of::<u64>();
             let reclen = align_up(
@@ -37,7 +37,7 @@ impl<'a> SyscallHandler<'a> {
             // d_name (null character)
             writer.write::<u8>(0)?;
 
-            writer.skip_until_alignment(alignment);
+            writer.skip_until_alignment(alignment)?;
         }
 
         Ok(writer.pos() as isize)

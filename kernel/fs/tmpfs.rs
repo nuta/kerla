@@ -1,4 +1,7 @@
-use crate::prelude::*;
+use crate::{
+    prelude::*,
+    user_buffer::{UserBufReader, UserBufWriter},
+};
 use core::sync::atomic::{AtomicUsize, Ordering};
 
 use super::{
@@ -192,29 +195,21 @@ impl FileLike for File {
         Ok(self.stat)
     }
 
-    fn read(
-        &self,
-        offset: usize,
-        mut buf: UserBufferMut<'_>,
-        _options: &OpenOptions,
-    ) -> Result<usize> {
+    fn read(&self, offset: usize, buf: UserBufferMut<'_>, _options: &OpenOptions) -> Result<usize> {
         let data = self.data.lock();
         if offset > data.len() {
             return Ok(0);
         }
 
-        buf.write_bytes(&data[offset..])
+        let mut writer = UserBufWriter::from(buf);
+        writer.write_bytes(&data[offset..])
     }
 
-    fn write(
-        &self,
-        offset: usize,
-        mut buf: UserBuffer<'_>,
-        _options: &OpenOptions,
-    ) -> Result<usize> {
+    fn write(&self, offset: usize, buf: UserBuffer<'_>, _options: &OpenOptions) -> Result<usize> {
         let mut data = self.data.lock();
-        data.resize(offset + buf.remaining_len(), 0);
-        buf.read_bytes(&mut data[offset..])
+        let mut reader = UserBufReader::from(buf);
+        data.resize(offset + reader.remaining_len(), 0);
+        reader.read_bytes(&mut data[offset..])
     }
 }
 

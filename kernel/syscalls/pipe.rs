@@ -1,3 +1,5 @@
+use core::mem::size_of;
+
 use alloc::sync::Arc;
 
 use crate::{
@@ -29,7 +31,7 @@ impl<'a> SyscallHandler<'a> {
             options,
         )?;
 
-        let mut fds_writer = UserBufWriter::new(fds);
+        let mut fds_writer = UserBufWriter::from_uaddr(fds, 2 * size_of::<c_int>());
         fds_writer.write::<c_int>(read_fd.as_int())?;
         fds_writer.write::<c_int>(write_fd.as_int())?;
         Ok(0)

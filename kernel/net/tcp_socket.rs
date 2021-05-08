@@ -6,7 +6,7 @@ use crate::{
     },
     net::{socket::SockAddr, RecvFromFlags},
     user_buffer::UserBuffer,
-    user_buffer::UserBufferMut,
+    user_buffer::{UserBufReader, UserBufWriter, UserBufferMut},
 };
 use crate::{
     arch::SpinLockGuard,
@@ -198,19 +198,15 @@ impl FileLike for TcpSocket {
         })
     }
 
-    fn write(
-        &self,
-        _offset: usize,
-        mut buf: UserBuffer<'_>,
-        _options: &OpenOptions,
-    ) -> Result<usize> {
+    fn write(&self, _offset: usize, buf: UserBuffer<'_>, _options: &OpenOptions) -> Result<usize> {
         let mut total_len = 0;
+        let mut reader = UserBufReader::from(buf);
         loop {
             let copied_len = SOCKETS
                 .lock()
                 .get::<smoltcp::socket::TcpSocket>(self.handle)
                 .send(|dst| {
-                    let copied_len = buf.read_bytes(dst).unwrap_or(0);
+                    let copied_len = reader.read_bytes(dst).unwrap_or(0);
                     (copied_len, copied_len)
                 });
 
@@ -228,18 +224,14 @@ impl FileLike for TcpSocket {
         }
     }
 
-    fn read(
-        &self,
-        _offset: usize,
-        mut buf: UserBufferMut<'_>,
-        options: &OpenOptions,
-    ) -> Result<usize> {
+    fn read(&self, _offset: usize, buf: UserBufferMut<'_>, options: &OpenOptions) -> Result<usize> {
+        let mut writer = UserBufWriter::from(buf);
         SOCKET_WAIT_QUEUE.sleep_signalable_until(|| {
             let copied_len = SOCKETS
                 .lock()
                 .get::<smoltcp::socket::TcpSocket>(self.handle)
                 .recv(|src| {
-                    let copied_len = buf.write_bytes(src).unwrap_or(0);
+                    let copied_len = writer.write_bytes(src).unwrap_or(0);
                     (copied_len, copied_len)
                 });
 

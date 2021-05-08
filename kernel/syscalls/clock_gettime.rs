@@ -8,7 +8,7 @@ use crate::{
     timer::read_wall_clock,
 };
 use crate::{syscalls::SyscallHandler, timer::read_monotonic_clock};
-use core::convert::TryInto;
+use core::{convert::TryInto, mem::size_of};
 
 impl<'a> SyscallHandler<'a> {
     pub fn sys_clock_gettime(&mut self, clock: c_clockid, buf: UserVAddr) -> Result<isize> {
@@ -27,7 +27,7 @@ impl<'a> SyscallHandler<'a> {
             }
         };
 
-        let mut writer = UserBufWriter::new(buf);
+        let mut writer = UserBufWriter::from_uaddr(buf, size_of::<c_time>() + size_of::<c_long>());
         writer.write::<c_time>(tv_sec.try_into().unwrap())?;
         writer.write::<c_long>(tv_nsec.try_into().unwrap())?;
 

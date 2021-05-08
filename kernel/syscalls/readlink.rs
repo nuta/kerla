@@ -29,7 +29,7 @@ impl<'a> SyscallHandler<'a> {
             return Err(Errno::ERANGE.into());
         }
 
-        let mut writer = UserBufWriter::new(buf);
+        let mut writer = UserBufWriter::from_uaddr(buf, buf_size);
         writer.write_bytes(resolved_path.as_str().as_bytes())?;
         writer.write(0u8)?;
         Ok(writer.pos() as isize)

@@ -9,7 +9,7 @@ use crate::{
     },
     prelude::*,
     process::WaitQueue,
-    user_buffer::{UserBuffer, UserBufferMut},
+    user_buffer::{UserBufReader, UserBufWriter, UserBuffer, UserBufferMut},
 };
 
 const PIPE_SIZE: usize = 4096;
@@ -46,12 +46,7 @@ impl Pipe {
 pub struct PipeWriter(Arc<SpinLock<PipeInner>>);
 
 impl FileLike for PipeWriter {
-    fn write(
-        &self,
-        _offset: usize,
-        mut buf: UserBuffer<'_>,
-        options: &OpenOptions,
-    ) -> Result<usize> {
+    fn write(&self, _offset: usize, buf: UserBuffer<'_>, options: &OpenOptions) -> Result<usize> {
         let ret_value = PIPE_WAIT_QUEUE.sleep_signalable_until(|| {
             let mut pipe = self.0.lock();
             if pipe.closed_by_reader {
@@ -60,9 +55,10 @@ impl FileLike for PipeWriter {
             }
 
             let mut written_len = 0;
+            let mut reader = UserBufReader::from(buf.clone());
             loop {
                 let mut tmp = [0; 512];
-                let copied_len = buf.read_bytes(&mut tmp)?;
+                let copied_len = reader.read_bytes(&mut tmp)?;
                 if copied_len == 0 {
                     break;
                 }
@@ -124,22 +120,17 @@ impl FileLike for PipeReader {
         Err(Errno::EINVAL.into())
     }
 
-    fn read(
-        &self,
-        _offset: usize,
-        mut buf: UserBufferMut<'_>,
-        options: &OpenOptions,
-    ) -> Result<usize> {
+    fn read(&self, _offset: usize, buf: UserBufferMut<'_>, options: &OpenOptions) -> Result<usize> {
+        let mut writer = UserBufWriter::from(buf);
         let ret_value = PIPE_WAIT_QUEUE.sleep_signalable_until(|| {
             let mut pipe = self.0.lock();
 
-            let mut read_len = 0;
-            while let Some(src) = pipe.buf.pop_slice(buf.remaining_len()) {
-                read_len += buf.write_bytes(src)?;
+            while let Some(src) = pipe.buf.pop_slice(writer.remaining_len()) {
+                writer.write_bytes(src)?;
             }
 
-            if read_len > 0 {
-                Ok(Some(read_len))
+            if writer.written_len() > 0 {
+                Ok(Some(writer.written_len()))
             } else if options.nonblock || pipe.closed_by_writer {
                 Ok(Some(0))
             } else {

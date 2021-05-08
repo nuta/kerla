@@ -9,6 +9,7 @@ use crate::{
     process::current_process,
     syscalls::SyscallHandler,
     timer::read_monotonic_clock,
+    user_buffer::UserBuffer,
 };
 
 use crate::user_buffer::UserBufReader;
@@ -23,7 +24,8 @@ impl<'a> SyscallHandler<'a> {
 
             // Check the statuses of all specified files one by one.
             let mut ready_fds = 0;
-            let mut reader = UserBufReader::new(fds);
+            let fds_len = (nfds as usize) * (size_of::<Fd>() + 2 * size_of::<c_short>());
+            let mut reader = UserBufReader::from(UserBuffer::from_uaddr(fds, fds_len));
             for _ in 0..nfds {
                 let fd = reader.read::<Fd>()?;
                 let events = bitflags_from_user!(PollStatus, reader.read::<c_short>()?)?;
@@ -50,7 +52,7 @@ impl<'a> SyscallHandler<'a> {
                 fds.add(reader.pos())?.write::<c_short>(&revents)?;
 
                 // Skip revents in the reader.
-                reader.skip(size_of::<c_short>());
+                reader.skip(size_of::<c_short>())?;
             }
 
             if ready_fds > 0 {

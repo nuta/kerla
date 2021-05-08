@@ -9,7 +9,7 @@ use crate::{
         stat::{Stat, S_IFDIR},
     },
     prelude::*,
-    user_buffer::{UserBuffer, UserBufferMut},
+    user_buffer::{UserBufWriter, UserBuffer, UserBufferMut},
 };
 use core::str::from_utf8_unchecked;
 use hashbrown::HashMap;
@@ -36,17 +36,13 @@ struct InitramFsFile {
 }
 
 impl FileLike for InitramFsFile {
-    fn read(
-        &self,
-        offset: usize,
-        mut buf: UserBufferMut<'_>,
-        _options: &OpenOptions,
-    ) -> Result<usize> {
+    fn read(&self, offset: usize, buf: UserBufferMut<'_>, _options: &OpenOptions) -> Result<usize> {
         if offset > self.data.len() {
             return Ok(0);
         }
 
-        buf.write_bytes(&self.data[offset..])
+        let mut writer = UserBufWriter::from(buf);
+        writer.write_bytes(&self.data[offset..])
     }
 
     fn write(&self, _offset: usize, _buf: UserBuffer<'_>, _options: &OpenOptions) -> Result<usize> {
