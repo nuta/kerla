@@ -102,12 +102,14 @@ pub fn handle_timer_irq() {
     {
         let mut timers = TIMERS.lock();
         for timer in timers.iter_mut() {
-            timer.current -= 1;
+            if timer.current > 0 {
+                timer.current -= 1;
+            }
         }
 
         timers.retain(|timer| {
             if timer.current == 0 {
-                timer.process.lock().set_state(ProcessState::Sleeping);
+                timer.process.lock().resume();
             }
 
             timer.current > 0
