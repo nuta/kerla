@@ -2,7 +2,9 @@ use super::{
     apic::ack_interrupt, ioapic::VECTOR_IRQ_BASE, serial::SERIAL_IRQ, PageFaultReason, UserVAddr,
 };
 use crate::{
-    interrupt::handle_irq, mm::page_fault::handle_page_fault, process::kill_current_process,
+    interrupt::handle_irq,
+    mm::page_fault::handle_page_fault,
+    process::{current_process, signal::SIGSEGV, Process},
     timer::handle_timer_irq,
 };
 
@@ -162,7 +164,7 @@ unsafe extern "C" fn x64_handle_interrupt(vec: u8, frame: *const InterruptFrame)
                         cr2(),
                         frame.rip,
                     );
-                    kill_current_process();
+                    Process::exit_by_signal(current_process(), SIGSEGV);
                 }
             };
 

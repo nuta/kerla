@@ -7,12 +7,13 @@ use super::{
 use crate::{
     arch::{PageFaultReason, UserVAddr, PAGE_SIZE},
     fs::opened_file::OpenOptions,
-    process::{current_process, kill_current_process},
+    process::{current_process, signal::SIGSEGV, Process},
 };
 use core::cmp::min;
 use core::slice;
 
 pub fn handle_page_fault(unaligned_vaddr: UserVAddr, ip: usize, _reason: PageFaultReason) {
+    let current = current_process();
     let aligned_vaddr = match UserVAddr::new_nonnull(align_down(unaligned_vaddr.value(), PAGE_SIZE))
     {
         Ok(uaddr) => uaddr,
@@ -22,13 +23,12 @@ pub fn handle_page_fault(unaligned_vaddr: UserVAddr, ip: usize, _reason: PageFau
                 unaligned_vaddr,
                 ip
             );
-            kill_current_process()
+            Process::exit_by_signal(current, SIGSEGV);
         }
     };
-    let current = current_process();
-    let mut vm = current.vm().unwrap().lock();
 
     // Look for the associated vma area.
+    let mut vm = current.vm().unwrap().lock();
     let vma = match vm
         .vm_areas()
         .iter()
@@ -40,7 +40,8 @@ pub fn handle_page_fault(unaligned_vaddr: UserVAddr, ip: usize, _reason: PageFau
                 "no VMAs for address {}, killing the current process...",
                 unaligned_vaddr
             );
-            kill_current_process();
+            drop(vm);
+            Process::exit_by_signal(current, SIGSEGV);
         }
     };
 

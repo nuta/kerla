@@ -50,11 +50,6 @@ pub fn current_process_arc() -> &'static Arc<SpinLock<Process>> {
     CURRENT.get()
 }
 
-pub fn kill_current_process() -> ! {
-    // TODO:
-    todo!()
-}
-
 pub fn init() {
     JOIN_WAIT_QUEUE.init(WaitQueue::new);
     SCHEDULER.init(|| SpinLock::new(Scheduler::new()));

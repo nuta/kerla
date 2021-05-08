@@ -1,7 +1,7 @@
 use super::{
     elf::{Elf, ProgramHeader},
     process_group::{PgId, ProcessGroup},
-    signal::{Signal, SignalDelivery},
+    signal::{Signal, SignalDelivery, SIGKILL},
     *,
 };
 
@@ -317,6 +317,14 @@ impl Process {
         unreachable!();
     }
 
+    /// Terminates the **current** process by a signal. `proc` must be the
+    /// current process lock.
+    pub fn exit_by_signal(proc: SpinLockGuard<'_, Process>, _signal: Signal) -> ! {
+        Process::exit(
+            proc, 1, /* FIXME: how should we compute the exit status? */
+        );
+    }
+
     /// Sends a signal.
     pub fn send_signal(&mut self, signal: Signal) {
         // TODO: Wake the process up if it's sleeping.
@@ -363,13 +371,18 @@ impl Process {
 
     /// So-called `sigreturn`: restores the user context when the signal is
     /// delivered to a signal handler.
-    pub fn restore_signaled_user_stack(&mut self, current_frame: &mut SyscallFrame) {
-        if let Some(signaled_frame) = self.signaled_frame.take() {
-            self.arch
+    pub fn restore_signaled_user_stack(
+        mut current: SpinLockGuard<'_, Process>,
+        current_frame: &mut SyscallFrame,
+    ) {
+        if let Some(signaled_frame) = current.signaled_frame.take() {
+            current
+                .arch
                 .setup_sigreturn_stack(current_frame, &signaled_frame);
         } else {
             // The user intentionally called sigreturn(2) while it is not signaled.
-            kill_current_process();
+            // TODO: Should we ignore instead of the killing the process?
+            Process::exit_by_signal(current, SIGKILL);
         }
     }
 
