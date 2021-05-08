@@ -52,7 +52,7 @@ impl FileLike for PipeWriter {
         mut buf: UserBuffer<'_>,
         options: &OpenOptions,
     ) -> Result<usize> {
-        let ret_value = PIPE_WAIT_QUEUE.sleep_until(|| {
+        let ret_value = PIPE_WAIT_QUEUE.sleep_signalable_until(|| {
             let mut pipe = self.0.lock();
             if pipe.closed_by_reader {
                 // TODO: SIGPIPE?
@@ -130,7 +130,7 @@ impl FileLike for PipeReader {
         mut buf: UserBufferMut<'_>,
         options: &OpenOptions,
     ) -> Result<usize> {
-        let ret_value = PIPE_WAIT_QUEUE.sleep_until(|| {
+        let ret_value = PIPE_WAIT_QUEUE.sleep_signalable_until(|| {
             let mut pipe = self.0.lock();
 
             let mut read_len = 0;

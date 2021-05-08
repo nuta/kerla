@@ -65,7 +65,7 @@ impl FileLike for PtyMaster {
         mut buf: UserBufferMut<'_>,
         _options: &OpenOptions,
     ) -> Result<usize> {
-        let read_len = self.wait_queue.sleep_until(|| {
+        let read_len = self.wait_queue.sleep_signalable_until(|| {
             let mut buf_lock = self.buf.lock();
             if buf_lock.is_empty() {
                 // TODO: NOBLOCK

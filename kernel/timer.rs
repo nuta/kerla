@@ -25,7 +25,7 @@ pub fn _sleep_ms(ms: usize) {
         process: current_process_arc().clone(),
     });
 
-    current_process().set_state(ProcessState::Sleeping);
+    current_process().set_state(ProcessState::BlockedSignalable);
     switch();
 }
 

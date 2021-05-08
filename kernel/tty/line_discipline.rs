@@ -191,7 +191,7 @@ impl LineDiscipline {
     }
 
     pub fn read(&self, mut dst: UserBufferMut<'_>) -> Result<usize> {
-        self.wait_queue.sleep_until(|| {
+        self.wait_queue.sleep_signalable_until(|| {
             if !self.is_current_foreground() {
                 return Ok(None);
             }

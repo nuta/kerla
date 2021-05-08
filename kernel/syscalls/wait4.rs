@@ -23,7 +23,7 @@ impl<'a> SyscallHandler<'a> {
         options: WaitOptions,
         _rusage: Option<UserVAddr>,
     ) -> Result<isize> {
-        let (got_pid, status_value) = JOIN_WAIT_QUEUE.sleep_until(|| {
+        let (got_pid, status_value) = JOIN_WAIT_QUEUE.sleep_signalable_until(|| {
             let current = current_process();
             for child in current.children.iter() {
                 let child = child.lock();

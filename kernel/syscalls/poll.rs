@@ -16,7 +16,7 @@ use crate::user_buffer::UserBufReader;
 impl<'a> SyscallHandler<'a> {
     pub fn sys_poll(&mut self, fds: UserVAddr, nfds: c_nfds, timeout: c_int) -> Result<isize> {
         let started_at = read_monotonic_clock();
-        POLL_WAIT_QUEUE.sleep_until(|| {
+        POLL_WAIT_QUEUE.sleep_signalable_until(|| {
             if timeout > 0 && started_at.elapsed_msecs() >= (timeout as usize) {
                 return Ok(Some(0));
             }

@@ -16,7 +16,9 @@ impl WaitQueue {
     }
 
     /// Sleeps on the wait queue until `sleep_if_none` returns `Some`.
-    pub fn sleep_until<F, R>(&self, mut sleep_if_none: F) -> Result<R>
+    ///
+    /// If a signal is arrived, this method returns `Err(Errno::EINTR)`.
+    pub fn sleep_signalable_until<F, R>(&self, mut sleep_if_none: F) -> Result<R>
     where
         F: FnMut() -> Result<Option<R>>,
     {
@@ -35,7 +37,7 @@ impl WaitQueue {
             //
             //  3. Enqueue the current thread into the wait queue.
             //  4. Enter the sleep state despite a RX packet exists on the queue!
-            current_process().set_state(ProcessState::Sleeping);
+            current_process().set_state(ProcessState::BlockedSignalable);
             self.queue.lock().push_back(current_process_arc().clone());
 
             if current_process().is_signal_pending() {

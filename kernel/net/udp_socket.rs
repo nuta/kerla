@@ -87,7 +87,7 @@ impl FileLike for UdpSocket {
         _flags: RecvFromFlags,
         options: &OpenOptions,
     ) -> Result<(usize, SockAddr)> {
-        SOCKET_WAIT_QUEUE.sleep_until(|| {
+        SOCKET_WAIT_QUEUE.sleep_signalable_until(|| {
             let mut sockets = SOCKETS.lock();
             let mut socket = sockets.get::<smoltcp::socket::UdpSocket>(self.handle);
             match socket.recv() {

@@ -62,7 +62,7 @@ impl<'a> SyscallHandler<'a> {
     ) -> Result<isize> {
         let started_at = read_monotonic_clock();
         let timeout_ms = timeout.map(|timeval| timeval.as_msecs());
-        POLL_WAIT_QUEUE.sleep_until(|| {
+        POLL_WAIT_QUEUE.sleep_signalable_until(|| {
             match timeout_ms {
                 Some(timeout_ms) if started_at.elapsed_msecs() >= timeout_ms => {
                     return Ok(Some(0));

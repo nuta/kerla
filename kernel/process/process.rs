@@ -70,10 +70,14 @@ impl PId {
     }
 }
 
+/// Process states.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum ProcessState {
+    /// The process is runnable.
     Runnable,
-    Sleeping,
+    /// The process is sleeping. It can be resumed by signals.
+    BlockedSignalable,
+    /// The process has exited.
     ExitedWith(c_int),
 }
 
@@ -247,7 +251,7 @@ impl Process {
         self.state = new_state;
         match new_state {
             ProcessState::Runnable => {}
-            ProcessState::Sleeping | ProcessState::ExitedWith(_) => {
+            ProcessState::BlockedSignalable | ProcessState::ExitedWith(_) => {
                 scheduler.remove(self.pid);
             }
         }

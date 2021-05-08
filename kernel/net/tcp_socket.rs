@@ -89,7 +89,7 @@ impl FileLike for TcpSocket {
     }
 
     fn accept(&self, _options: &OpenOptions) -> Result<(Arc<dyn FileLike>, SockAddr)> {
-        SOCKET_WAIT_QUEUE.sleep_until(|| {
+        SOCKET_WAIT_QUEUE.sleep_signalable_until(|| {
             let mut sockets = SOCKETS.lock();
             let mut backlogs = self.backlogs.lock();
             match get_ready_backlog_index(&mut *sockets, &*backlogs) {
@@ -185,7 +185,7 @@ impl FileLike for TcpSocket {
         process_packets();
 
         // Wait until the connection has been established.
-        SOCKET_WAIT_QUEUE.sleep_until(|| {
+        SOCKET_WAIT_QUEUE.sleep_signalable_until(|| {
             if SOCKETS
                 .lock()
                 .get::<smoltcp::socket::TcpSocket>(self.handle)
@@ -234,7 +234,7 @@ impl FileLike for TcpSocket {
         mut buf: UserBufferMut<'_>,
         options: &OpenOptions,
     ) -> Result<usize> {
-        SOCKET_WAIT_QUEUE.sleep_until(|| {
+        SOCKET_WAIT_QUEUE.sleep_signalable_until(|| {
             let copied_len = SOCKETS
                 .lock()
                 .get::<smoltcp::socket::TcpSocket>(self.handle)
