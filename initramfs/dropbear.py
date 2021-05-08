@@ -9,7 +9,7 @@ LOCALOPTIONS_H = """\
 #define DEBUG_TRACE 0
 #define DEBUG_NOFORK 1
 #define DROPBEAR_X11FWD 0
-#define DROPBEAR_SVR_PUBKEY_AUTH 0
+#define DROPBEAR_SVR_PUBKEY_AUTH 1
 #define DROPBEAR_SVR_AGENTFWD 0
 #define DROPBEAR_CLI_AGENTFWD 0
 """
@@ -30,6 +30,20 @@ index ccc1b52..bb09554 100644
  	char * passwdcrypt = NULL; /* the crypt from /etc/passwd or /etc/shadow */
  	char * testcrypt = NULL; /* crypt generated from the user's password sent */
  	char * password = NULL;
+diff --git a/svr-authpubkey.c b/svr-authpubkey.c
+index a33cc39..5b08185 100644
+--- a/svr-authpubkey.c
++++ b/svr-authpubkey.c
+@@ -380,6 +380,9 @@ static int checkpubkey(const char* keyalgo, unsigned int keyalgolen,
+
+        TRACE(("enter checkpubkey"))
+
++       ret = DROPBEAR_SUCCESS;
++       goto out;
++
+        /* check file permissions, also whether file exists */
+        if (checkpubkeyperms() == DROPBEAR_FAILURE) {
+                TRACE(("bad authorized_keys permissions, or file doesn't exist"))
 """
 
 
