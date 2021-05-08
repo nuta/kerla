@@ -4,12 +4,14 @@ use core::{mem::size_of, slice::from_raw_parts};
 use goblin::elf64::header::{Header, ELFMAG, EM_X86_64, ET_EXEC};
 pub use goblin::elf64::program_header::ProgramHeader;
 
+/// A parsed ELF object.
 pub struct Elf<'a> {
     header: &'a Header,
     program_headers: &'a [ProgramHeader],
 }
 
 impl<'a> Elf<'a> {
+    /// Parses a ELF header.
     pub fn parse(buf: &'a [u8]) -> Result<Elf<'a>> {
         if buf.len() < size_of::<Header>() {
             debug_warn!("ELF header buffer is too short");
@@ -45,14 +47,17 @@ impl<'a> Elf<'a> {
         })
     }
 
+    /// The entry point of the ELF file.
     pub fn entry(&self) -> Result<UserVAddr> {
         UserVAddr::new_nonnull(self.header.e_entry as usize)
     }
 
+    /// The ELF header.
     pub fn header(&self) -> &Header {
         self.header
     }
 
+    /// Program headers.
     pub fn program_headers(&self) -> &[ProgramHeader] {
         &self.program_headers
     }

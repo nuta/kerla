@@ -10,7 +10,7 @@ const MULTIBOOT_MAGIC_LEGACY: u32 = 0x2badb002;
 const MULTIBOOT_MAGIC_2: u32 = 0x36d76289;
 const LINUXBOOT_MAGIC: u32 = 0xb002b002;
 
-/// See https://www.gnu.org/software/grub/manual/multiboot2/multiboot.html#Boot-information-format
+/// See <https://www.gnu.org/software/grub/manual/multiboot2/multiboot.html#Boot-information-format>
 #[derive(Debug, Copy, Clone)]
 #[repr(C, packed)]
 struct Multiboot2InfoHeader {
@@ -42,7 +42,7 @@ struct Multiboot2MemoryMapEntry {
     entry_type: u32,
     reserved: u32,
 }
-/// See https://www.gnu.org/software/grub/manual/multiboot/multiboot.html#Boot-information-format
+/// See <https://www.gnu.org/software/grub/manual/multiboot/multiboot.html#Boot-information-format>
 #[derive(Debug, Copy, Clone)]
 #[repr(C, packed)]
 struct MultibootLegacyInfo {

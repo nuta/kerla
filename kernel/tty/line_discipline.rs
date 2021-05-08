@@ -1,3 +1,5 @@
+//! Line discipline.
+
 use crate::{
     arch::SpinLock,
     prelude::*,

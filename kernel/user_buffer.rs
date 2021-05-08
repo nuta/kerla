@@ -1,8 +1,10 @@
+//! User pointers.
 use crate::arch::UserVAddr;
 use crate::prelude::*;
 use core::{cmp::min, mem::size_of, slice};
 use penguin_utils::alignment::align_up;
 
+/// Parses a bitflags field given from the user. Returns `Result<T>`.
 macro_rules! bitflags_from_user {
     ($st:tt, $input:expr) => {{
         let bits = $input;
@@ -22,6 +24,7 @@ enum Inner<'a> {
     User { base: UserVAddr, len: usize },
 }
 
+/// A user or kernel pointer.
 pub struct UserBuffer<'a> {
     inner: Inner<'a>,
     pos: usize,

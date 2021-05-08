@@ -1,5 +1,5 @@
 //! Initramfs parser.
-//! https://www.kernel.org/doc/html/latest/driver-api/early-userspace/buffer-format.html
+//! <https://www.kernel.org/doc/html/latest/driver-api/early-userspace/buffer-format.html>
 use crate::{
     fs::{
         file_system::FileSystem,

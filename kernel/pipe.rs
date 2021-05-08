@@ -1,3 +1,4 @@
+//! Unnamed pipe (`pipe(2)`).
 use penguin_utils::{once::Once, ring_buffer::RingBuffer};
 
 use crate::{

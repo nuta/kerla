@@ -1,3 +1,5 @@
+//! Interrupt handling.
+
 use crate::{
     arch::{enable_irq, SpinLock},
     net::process_packets,

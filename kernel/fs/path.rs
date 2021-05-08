@@ -2,10 +2,12 @@ use crate::prelude::*;
 use core::fmt;
 use core::ops::Deref;
 
+/// A path string reference (akin to `std::path::Path`).
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct Path {
     /// A path string. Trailing slashes are removed unless it points to the root
     /// directory (`"/"`).
+    // TODO: should we support non-UTF-8 characters?
     path: str,
 }
 
@@ -89,6 +91,8 @@ impl fmt::Display for Path {
         write!(f, "{}", &self.path)
     }
 }
+
+/// An iterator of path components (e.g. `a`, `b`, and `c` in `a/b/c`).
 pub struct Components<'a> {
     path: &'a str,
 }
@@ -110,6 +114,7 @@ impl<'a> Iterator for Components<'a> {
     }
 }
 
+/// A owned path string (akin to `std::path::PathBuf`).
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct PathBuf {
     path: String,

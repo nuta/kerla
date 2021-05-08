@@ -1,3 +1,5 @@
+//! Pseudo-terminal (PTY).
+
 use core::cmp::min;
 
 use alloc::sync::Arc;

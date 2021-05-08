@@ -85,6 +85,8 @@ impl Fd {
 
 /// Represents a path component.
 ///
+/// This is mainly used for resolving relative paths.
+///
 /// For example, in `/tmp/foo.txt`, `tmp` and `foo.txt` have separate `PathComponent`
 /// instances.
 #[derive(Clone)]
@@ -98,6 +100,10 @@ pub struct PathComponent {
 }
 
 impl PathComponent {
+    /// Creates an anonymous path.
+    ///
+    /// Sometimes you need to use this to implmenet file-like objects that are
+    /// not reachable from the root directory (e.g. unnamed pipes).
     pub fn new_anonymous(inode: INode) -> Arc<PathComponent> {
         Arc::new(PathComponent {
             parent_dir: None,
@@ -106,10 +112,12 @@ impl PathComponent {
         })
     }
 
+    /// Resolves into the absolute path.
     pub fn resolve_absolute_path(&self) -> PathBuf {
         let path = if self.parent_dir.is_some() {
             let mut path = String::from(&self.name);
             let mut parent_dir = &self.parent_dir;
+            // Visit its ancestor directories...
             while let Some(path_comp) = parent_dir {
                 path = path_comp.name.clone() + "/" + &path;
                 parent_dir = &path_comp.parent_dir;
@@ -128,6 +136,9 @@ impl PathComponent {
     }
 }
 
+/// An opened file.
+///
+/// This instance can be shared with multiple processes because of fork(2).
 pub struct OpenedFile {
     path: Arc<PathComponent>,
     pos: usize,
@@ -168,6 +179,7 @@ impl OpenedFile {
     }
 
     pub fn set_cloexec(&mut self, cloexec: bool) {
+        // FIXME: Modify LocalOpenedFile as well!
         self.options.close_on_exec = cloexec;
     }
 
@@ -234,12 +246,14 @@ impl OpenedFile {
     }
 }
 
+/// A opened file with process-local fields.
 #[derive(Clone)]
 struct LocalOpenedFile {
     opened_file: Arc<SpinLock<OpenedFile>>,
     close_on_exec: bool,
 }
 
+/// The opened file table.
 #[derive(Clone)]
 pub struct OpenedFileTable {
     files: Vec<Option<LocalOpenedFile>>,
@@ -254,6 +268,7 @@ impl OpenedFileTable {
         }
     }
 
+    /// Resolves the opened file by the file descriptor.
     pub fn get(&self, fd: Fd) -> Result<&Arc<SpinLock<OpenedFile>>> {
         match self.files.get(fd.as_usize()) {
             Some(Some(LocalOpenedFile { opened_file, .. })) => Ok(opened_file),
@@ -261,6 +276,7 @@ impl OpenedFileTable {
         }
     }
 
+    /// Closes an opened file.
     pub fn close(&mut self, fd: Fd) -> Result<()> {
         match self.files.get_mut(fd.as_usize()) {
             Some(opened_file) => *opened_file = None,
@@ -270,6 +286,7 @@ impl OpenedFileTable {
         Ok(())
     }
 
+    /// Opens a file.
     pub fn open(&mut self, path: Arc<PathComponent>, options: OpenOptions) -> Result<Fd> {
         self.alloc_fd(None).and_then(|fd| {
             self.open_with_fixed_fd(
@@ -285,6 +302,9 @@ impl OpenedFileTable {
         })
     }
 
+    /// Opens a file with the given file descriptor.
+    ///
+    /// Returns `EBADF` if the file descriptor is already in use.
     pub fn open_with_fixed_fd(
         &mut self,
         fd: Fd,
@@ -333,6 +353,10 @@ impl OpenedFileTable {
         Ok(())
     }
 
+    /// Duplicates a file descriptor.
+    ///
+    /// If `gte` is `Some`, a new file descriptor will be greater than or equals
+    /// to that value.
     pub fn dup(&mut self, fd: Fd, gte: Option<i32>, options: OpenOptions) -> Result<Fd> {
         let opened_file = match self.files.get(fd.as_usize()) {
             Some(Some(opened_file)) => opened_file.opened_file.clone(),
@@ -345,6 +369,7 @@ impl OpenedFileTable {
         })
     }
 
+    /// Duplicates a file descriptor into the given file descriptor `new`.
     pub fn dup2(&mut self, old: Fd, new: Fd, options: OpenOptions) -> Result<()> {
         let opened_file = match self.files.get(old.as_usize()) {
             Some(Some(opened_file)) => opened_file.opened_file.clone(),
@@ -359,10 +384,12 @@ impl OpenedFileTable {
         Ok(())
     }
 
+    /// Clones the table.
     pub fn fork(&self) -> OpenedFileTable {
         self.clone()
     }
 
+    /// Closes opened files with `CLOEXEC` set.
     pub fn close_cloexec_files(&mut self) {
         for slot in &mut self.files {
             if matches!(

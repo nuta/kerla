@@ -4,23 +4,24 @@ use super::{
     signal::{Signal, SignalDelivery},
     *,
 };
+
 use crate::{
     arch::{self, SpinLock, SyscallFrame},
     boot::INITIAL_ROOT_FS,
     ctypes::*,
+    fs::devfs::SERIAL_TTY,
     fs::{
         mount::RootFs,
         opened_file::{OpenOptions, OpenedFileTable},
         path::Path,
     },
+    mm::page_allocator::{alloc_pages, AllocPageFlags},
     mm::vm::{Vm, VmAreaType},
+    prelude::*,
+    process::signal::SIGCHLD,
     random::read_secure_random,
 };
-use crate::{
-    fs::devfs::SERIAL_TTY,
-    mm::page_allocator::{alloc_pages, AllocPageFlags},
-};
-use crate::{prelude::*, process::signal::SIGCHLD};
+
 use alloc::collections::BTreeMap;
 use alloc::sync::{Arc, Weak};
 use alloc::vec::Vec;
@@ -29,6 +30,8 @@ use core::sync::atomic::{AtomicI32, Ordering};
 use goblin::elf64::program_header::PT_LOAD;
 
 type ProcessTable = BTreeMap<PId, Arc<SpinLock<Process>>>;
+
+/// The process table. All processes are registered in with its process Id.
 pub static PROCESSES: SpinLock<ProcessTable> = SpinLock::new(BTreeMap::new());
 
 /// Returns an unused PID. Note that this function does not reserve the PID:
@@ -91,6 +94,7 @@ pub struct Process {
 
 impl Process {
     /*
+    /// Creates a kernel thread. Currently it's not used.
     pub fn new_kthread(ip: VAddr) -> Result<Arc<SpinLock<Process>>> {
         let stack_bottom = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
             .into_error_with_message(Errno::ENOMEM, "failed to allocate kernel stack")?;
@@ -110,6 +114,10 @@ impl Process {
     }
     */
 
+    /// Creates a per-CPU idle thread.
+    ///
+    /// An idle thread is a special type of kernel threads which is executed
+    /// only if there're no other runnable processes.
     pub fn new_idle_thread() -> Result<Arc<SpinLock<Process>>> {
         let process_group = ProcessGroup::new(PgId::new(0));
         let proc = Arc::new(SpinLock::new(Process {
@@ -130,6 +138,7 @@ impl Process {
         Ok(proc)
     }
 
+    /// Creates the initial process (PID=1).
     pub fn new_init_process(
         root_fs: Arc<SpinLock<RootFs>>,
         executable_path: Arc<PathComponent>,
@@ -197,30 +206,42 @@ impl Process {
         Ok(())
     }
 
+    /// Returns the process with the given process ID.
     pub fn find_by_pid(pid: PId) -> Option<Arc<SpinLock<Process>>> {
         PROCESSES.lock().get(&pid).cloned()
     }
 
+    /// The process ID.
     pub fn pid(&self) -> PId {
         self.pid
     }
 
+    /// The virtual memory space.
+    pub fn vm(&self) -> SpinLockGuard<'_, Vm> {
+        self.vm.as_ref().expect("not a user process").lock()
+    }
+
+    /// Changes the process group.
     pub fn set_process_group(&mut self, pg: Weak<SpinLock<ProcessGroup>>) {
         self.process_group = pg;
     }
 
+    /// The current process group.
     pub fn process_group(&self) -> Arc<SpinLock<ProcessGroup>> {
         self.process_group.upgrade().unwrap()
     }
 
+    /// The current process group as a `Weak` reference.
     pub fn process_group_weak(&self) -> &Weak<SpinLock<ProcessGroup>> {
         &self.process_group
     }
 
+    /// The current process state.
     pub fn state(&self) -> ProcessState {
         self.state
     }
 
+    /// Updates the process state.
     pub fn set_state(&mut self, new_state: ProcessState) {
         let scheduler = SCHEDULER.lock();
         let old_state = self.state;
@@ -240,10 +261,13 @@ impl Process {
         }
     }
 
+    /// Searches the opned file table by the file descriptor.
     pub fn get_opened_file_by_fd(&self, fd: Fd) -> Result<Arc<SpinLock<OpenedFile>>> {
         Ok(self.opened_files.lock().get(fd)?.clone())
     }
 
+    /// Terminates the **current** process. `proc` must be the current process
+    /// lock.
     pub fn exit(mut proc: SpinLockGuard<'_, Process>, status: c_int) -> ! {
         if proc.pid == PId::new(1) {
             panic!("init (pid=0) tried to exit")
@@ -263,18 +287,24 @@ impl Process {
         unreachable!();
     }
 
-    pub fn vm(&self) -> SpinLockGuard<'_, Vm> {
-        self.vm.as_ref().expect("not a user process").lock()
-    }
-
+    /// Sends a signal.
     pub fn signal(&mut self, signal: Signal) {
+        // TODO: Wake the process up if it's sleeping.
         self.signals.signal(signal);
     }
 
+    /// Returns `true` if there's a pending signal.
     pub fn is_signal_pending(&self) -> bool {
         self.signals.is_pending()
     }
 
+    /// Tries to delivering a pending signal.
+    ///
+    /// If there's a pending signal, it may modify `frame` (e.g. user return
+    /// address and stack pointer) to call the registered user's signal handler.
+    ///
+    /// **This method must be called only from the current process in the
+    /// system call handler.**
     pub fn try_delivering_signal(
         mut current: SpinLockGuard<'_, Process>,
         frame: &mut SyscallFrame,
@@ -301,6 +331,8 @@ impl Process {
         Ok(())
     }
 
+    /// So-called `sigreturn`: restores the user context when the signal is
+    /// delivered to a signal handler.
     pub fn restore_signaled_user_stack(&mut self, current_frame: &mut SyscallFrame) {
         if let Some(signaled_frame) = self.signaled_frame.take() {
             self.arch
@@ -311,6 +343,15 @@ impl Process {
         }
     }
 
+    /// Creates a new virtual memory space, loads the executable, and overwrites
+    /// the process.
+    ///
+    /// It modifies `frame` to start from the new executable's entry point with
+    /// new stack (ie. argv and envp) when the system call handler returns into
+    /// the userspace.
+    ///
+    /// **This method must be called only from the current process in the
+    /// system call handler.**
     pub fn execve(
         &mut self,
         frame: &mut SyscallFrame,
@@ -335,6 +376,9 @@ impl Process {
 
 impl Drop for Process {
     fn drop(&mut self) {
+        // Since the process's reference count has already reached to zero (that's
+        // why the process is being dropped), ProcessGroup::remove_dropped_processes
+        // should remove this process from its list.
         self.process_group
             .upgrade()
             .unwrap()
@@ -358,7 +402,8 @@ fn setup_userspace(
     do_setup_userspace(executable_path, argv, envp, root_fs, true)
 }
 
-#[allow(clippy::too_many_arguments)]
+/// Creates a new virtual memory space, parses and maps an executable file,
+/// and set up the user stack.
 fn do_setup_userspace(
     executable_path: Arc<PathComponent>,
     argv: &[&[u8]],

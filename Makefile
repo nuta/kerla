@@ -123,7 +123,7 @@ checkw:
 
 .PHONY: docs
 docs:
-	RUSTFLAGS="-C panic=abort -Z panic_abort_tests" $(CARGO) doc --workspace
+	RUSTFLAGS="-C panic=abort -Z panic_abort_tests" $(CARGO) doc
 
 .PHONY: lint
 lint:
