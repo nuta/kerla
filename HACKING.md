@@ -18,7 +18,7 @@ Make sure you the following softwares are installed:
 $ brew install qemu gdb python3
 $ brew install --cask docker
 $ rustup override set nightly
-$ rustup component add llvm-tools-preview
+$ rustup component add llvm-tools-preview rust-src
 $ cargo install cargo-watch cargo-binutils rustfilt
 ```
 
