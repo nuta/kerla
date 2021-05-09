@@ -287,6 +287,12 @@ impl Process {
 
     /// Resumes a process.
     pub fn resume(&mut self) {
+        debug_assert!(!matches!(self.state, ProcessState::ExitedWith(_)));
+
+        if self.state == ProcessState::Runnable {
+            return;
+        }
+
         self.set_state(ProcessState::Runnable);
         SCHEDULER.lock().enqueue(self.pid);
     }
@@ -327,8 +333,8 @@ impl Process {
 
     /// Sends a signal.
     pub fn send_signal(&mut self, signal: Signal) {
-        // TODO: Wake the process up if it's sleeping.
         self.signals.signal(signal);
+        self.resume();
     }
 
     /// Returns `true` if there's a pending signal.

@@ -41,6 +41,7 @@ impl WaitQueue {
             self.queue.lock().push_back(current_process_arc().clone());
 
             if current_process().has_pending_signals() {
+                current_process().resume();
                 self.queue
                     .lock()
                     .retain(|proc| !Arc::ptr_eq(&proc, current_process_arc()));
@@ -55,7 +56,7 @@ impl WaitQueue {
 
             if let Some(ret_value) = ret_value {
                 // The condition is met. The current thread doesn't have to sleep.
-                current_process().set_state(ProcessState::Runnable);
+                current_process().resume();
                 self.queue
                     .lock()
                     .retain(|proc| !Arc::ptr_eq(&proc, current_process_arc()));
