@@ -135,7 +135,7 @@ impl Cmdline {
         info!("cmdline: {}", s);
 
         let mut pci_enabled = true;
-        let mut omikuji = true;
+        let mut omikuji = false;
         let mut virtio_mmio_devices = ArrayVec::new();
         if !s.is_empty() {
             for config in s.split(' ') {

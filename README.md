@@ -77,47 +77,6 @@ Send me bug reports, feature requests, and patches on [GitHub](https://github.co
 
 CC0 or MIT. Choose whichever you prefer.
 
-----
-**TL;DR:** I'm writing a Linux clone in Rust just for fun :D
-
-## Will this project replace the existing Linux kernel?
-
-Absolutely no.
-
-## Why rewrite a Linux (compatible) kernel in Rust?
-
-Rust, the [most beloved](https://insights.stackoverflow.com/survey/2020#technology-most-loved-dreaded-and-wanted-languages) programming language, allows writing robust user-space programs in an expressive way.
-
-However, the kernel-space is a little bit eccentric: `panic!` will lead to a system crash, memory allocation failures should be handled without panicking, hidden control flows and hidden allocations are generally disliked.
-
-I started this project just for jun to explore the pros and cons of writing the general-purpose operating system kernel in pure Rust (with a little assembly).
-
-TODO: write about "allocation failrues are fine: we don't use intrusive list"
-
-## Is Rust good for writing a system software?
-
-In my opinion, yes unless the target environment is not too resource-constrained.
-
-Rust's ownership concept and the type system let you focus on fixing logic errors,
-not painful memory bugs and races.  `enum` forces you to handle all possible input /
-ouput patterns: if a pointer is nullable (i.e. `Option<NonNull<T>>`), you can't
-dereference it until you explicitly handle the null (`None`) case!
-Lastly, its build system (`cargo`) and IDE support ([`rust-analyzer`](https://rust-analyzer.github.io/)) are just awesome.
-
-However, in constrained devices ([class 1 devices](https://tools.ietf.org/html/rfc7228) or below), you'll face some problems:
-
-- Allocations failures are handled by `panic!`.
-- Hidden allocations: they're even not documented.
-- Too much stack consumption.
-
-I'd stress that these problems come from the implementation of the standard
-library, not the language design itself! Rust is getting improved continuously
-and regarding the allocation failures, people have already started working on it
-(see [the tracking issue](https://github.com/rust-lang/rust/issues/32838)).
-Moreover, you don't have to use `liballoc`. [`healpess` crate](https://docs.rs/heapless/) will be a good alternative.
-
-If Rust doesn't work for you, I recommend to try [Zig programming language](https://ziglang.org/). You'll be impressed especially if you're a C programmer.
-
 ## Related Work
 
 Emulating Linux ABI is not a novel work. Some UNIX-like kernels like [FreeBSD](https://docs.freebsd.org/en_US.ISO8859-1/articles/linux-emulation/article.html) and [NetBSD](https://www.netbsd.org/docs/guide/en/chap-linux.html) already have their own Linux emulation layers. Windows has a well-known feature called [Windows Subsystem for Linux (WSL)](https://github.com/microsoft/WSL) which enables running Linux binaries seamlessly. WSL 1 implements the feature by the ABI emulation. WSL 2 runs the real Linux kernel using the hardware-accelerated virtualization (Hyper-V) by the way.
