@@ -117,7 +117,7 @@ pub(super) fn init_user_stack(
     let mut auxv_ptrs = Vec::with_capacity(auxv.len());
     for auxv in auxv.iter().rev() {
         push_aux_data_to_stack(&mut sp, stack_bottom, auxv)?;
-        auxv_ptrs.push(Some(kernel_sp_to_user_sp(sp)?));
+        auxv_ptrs.push(Some(kernel_sp_to_user_sp(sp)));
     }
 
     // Write envp strings.
@@ -125,7 +125,7 @@ pub(super) fn init_user_stack(
     for env in envp {
         push_bytes_to_stack(&mut sp, stack_bottom, &[0])?;
         push_bytes_to_stack(&mut sp, stack_bottom, env)?;
-        envp_ptrs.push(kernel_sp_to_user_sp(sp)?);
+        envp_ptrs.push(kernel_sp_to_user_sp(sp));
     }
 
     // Write argv strings.
@@ -133,7 +133,7 @@ pub(super) fn init_user_stack(
     for arg in argv.iter().rev() {
         push_bytes_to_stack(&mut sp, stack_bottom, &[0])?;
         push_bytes_to_stack(&mut sp, stack_bottom, arg)?;
-        argv_ptrs.push(kernel_sp_to_user_sp(sp)?);
+        argv_ptrs.push(kernel_sp_to_user_sp(sp));
     }
 
     // The length of the string table wrote above could be unaligned.
@@ -160,5 +160,5 @@ pub(super) fn init_user_stack(
     // Push argc.
     push_usize_to_stack(&mut sp, stack_bottom, argv.len())?;
 
-    kernel_sp_to_user_sp(sp)
+    Ok(kernel_sp_to_user_sp(sp))
 }

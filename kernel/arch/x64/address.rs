@@ -187,13 +187,13 @@ impl UserVAddr {
     }
 
     #[inline(always)]
-    pub const fn add(self, offset: usize) -> Result<UserVAddr> {
-        UserVAddr::new_nonnull(self.0 as usize + offset)
+    pub const fn add(self, offset: usize) -> UserVAddr {
+        unsafe { UserVAddr::new_unchecked(self.0 as usize + offset) }
     }
 
     #[inline(always)]
-    pub const fn sub(self, offset: usize) -> Result<UserVAddr> {
-        UserVAddr::new_nonnull(self.0 as usize - offset)
+    pub const fn sub(self, offset: usize) -> UserVAddr {
+        unsafe { UserVAddr::new_unchecked(self.0 as usize - offset) }
     }
 
     #[inline(always)]

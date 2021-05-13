@@ -215,7 +215,7 @@ impl Thread {
         ];
 
         fn push_to_user_stack(rsp: UserVAddr, value: u64) -> Result<UserVAddr> {
-            let rsp = rsp.sub(8)?;
+            let rsp = rsp.sub(8);
             rsp.write::<u64>(&value)?;
             Ok(rsp)
         }
@@ -224,10 +224,10 @@ impl Thread {
         let mut user_rsp = UserVAddr::new_nonnull(frame.rsp as usize)?;
 
         // Avoid corrupting the red zone.
-        user_rsp = user_rsp.sub(128)?;
+        user_rsp = user_rsp.sub(128);
 
         // Copy the trampoline code.
-        user_rsp = user_rsp.sub(TRAMPOLINE.len())?;
+        user_rsp = user_rsp.sub(TRAMPOLINE.len());
         let trampoline_rip = user_rsp;
         user_rsp.write_bytes(TRAMPOLINE)?;
         user_rsp = push_to_user_stack(user_rsp, trampoline_rip.as_isize() as u64)?;

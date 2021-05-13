@@ -4,7 +4,7 @@ use crate::{
 };
 use crate::{
     arch::USER_STACK_TOP,
-    result::{Errno, Error, Result},
+    result::{Errno, Result},
 };
 use alloc::sync::Arc;
 use alloc::vec::Vec;
@@ -37,7 +37,7 @@ impl VmArea {
     }
 
     pub fn end(&self) -> UserVAddr {
-        self.start.add(self.len).unwrap()
+        self.start.add(self.len)
     }
 
     pub fn offset_in_vma(&self, vaddr: UserVAddr) -> usize {
@@ -150,10 +150,7 @@ impl Vm {
         let stack_bottom = self.stack_vma().start();
         let increment = align_up(increment, PAGE_SIZE);
         let heap_vma = self.heap_vma_mut();
-        let new_heap_top = heap_vma
-            .end()
-            .add(increment)
-            .map_err(|_| Error::new(Errno::ENOMEM))?;
+        let new_heap_top = heap_vma.end().add(increment);
 
         if new_heap_top >= stack_bottom {
             return Err(Errno::ENOMEM.into());
@@ -177,7 +174,7 @@ impl Vm {
 
     pub fn alloc_vaddr_range(&mut self, len: usize) -> Result<UserVAddr> {
         let next = self.valloc_next;
-        self.valloc_next = self.valloc_next.add(align_up(len, PAGE_SIZE))?;
+        self.valloc_next = self.valloc_next.add(align_up(len, PAGE_SIZE));
         if self.valloc_next >= USER_VALLOC_END {
             return Err(Errno::ENOMEM.into());
         }

@@ -133,7 +133,7 @@ impl<'a> UserBufReader<'a> {
 
         let value = match &self.buf.inner {
             Inner::Slice(src) => unsafe { *(src.as_ptr().add(self.pos) as *const T) },
-            Inner::User { base, .. } => base.add(self.pos)?.read()?,
+            Inner::User { base, .. } => base.add(self.pos).read()?,
         };
 
         self.pos += size_of::<T>();
@@ -152,7 +152,7 @@ impl<'a> UserBufReader<'a> {
                 dst[..copy_len].copy_from_slice(&src[self.pos..(self.pos + copy_len)]);
             }
             Inner::User { base, .. } => {
-                base.add(self.pos)?.read_bytes(&mut dst[..copy_len])?;
+                base.add(self.pos).read_bytes(&mut dst[..copy_len])?;
             }
         }
 
@@ -219,7 +219,7 @@ impl<'a> UserBufWriter<'a> {
                 dst[self.pos..(self.pos + len)].fill(value);
             }
             InnerMut::User { base, .. } => {
-                base.add(self.pos)?.fill(value, len)?;
+                base.add(self.pos).fill(value, len)?;
             }
         }
 
@@ -249,7 +249,7 @@ impl<'a> UserBufWriter<'a> {
                 dst[self.pos..(self.pos + copy_len)].copy_from_slice(&src[..copy_len]);
             }
             InnerMut::User { base, .. } => {
-                base.add(self.pos)?.write_bytes(&src[..copy_len])?;
+                base.add(self.pos).write_bytes(&src[..copy_len])?;
             }
         }
 
@@ -283,7 +283,7 @@ impl<'a> UserBufWriter<'a> {
                         return Ok(total_len);
                     }
 
-                    base.add(self.pos)?
+                    base.add(self.pos)
                         .write_bytes(&buf.as_slice()[..copy_len])?;
                     self.pos += written_len;
                     total_len += written_len;

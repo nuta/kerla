@@ -14,7 +14,7 @@ impl<'a> SyscallHandler<'a> {
         let mut total_len: usize = 0;
         for i in 0..iov_count {
             // Read an entry from the userspace.
-            let mut iov: IoVec = iov_base.add(i * size_of::<IoVec>())?.read()?;
+            let mut iov: IoVec = iov_base.add(i * size_of::<IoVec>()).read()?;
 
             // Handle the case when total_len exceed the limit.
             match total_len.checked_add(iov.len) {

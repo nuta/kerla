@@ -506,8 +506,8 @@ fn do_setup_userspace(
     let auxv = &[
         Auxv::Phdr(
             file_header_top
-                .sub(file_header_len)?
-                .add(elf.header().e_phoff as usize)?,
+                .sub(file_header_len)
+                .add(elf.header().e_phoff as usize),
         ),
         Auxv::Phnum(elf.program_headers().len()),
         Auxv::Phent(size_of::<ProgramHeader>()),
@@ -515,8 +515,8 @@ fn do_setup_userspace(
         Auxv::Random(random_bytes),
     ];
     const USER_STACK_LEN: usize = 128 * 1024; // TODO: Implement rlimit
-    let init_stack_top = file_header_top.sub(file_header_len)?;
-    let user_stack_bottom = init_stack_top.sub(USER_STACK_LEN).unwrap().value();
+    let init_stack_top = file_header_top.sub(file_header_len);
+    let user_stack_bottom = init_stack_top.sub(USER_STACK_LEN).value();
     let user_heap_bottom = align_up(end_of_image, PAGE_SIZE);
     let init_stack_len = align_up(estimate_user_init_stack_size(argv, envp, auxv), PAGE_SIZE);
     if user_heap_bottom >= user_stack_bottom || init_stack_len >= USER_STACK_LEN {
@@ -539,18 +539,14 @@ fn do_setup_userspace(
     )?;
     for i in 0..(file_header_len / PAGE_SIZE) {
         vm.page_table_mut().map_user_page(
-            file_header_top
-                .sub(((file_header_len / PAGE_SIZE) - i) * PAGE_SIZE)
-                .unwrap(),
+            file_header_top.sub(((file_header_len / PAGE_SIZE) - i) * PAGE_SIZE),
             file_header_pages.add(i * PAGE_SIZE),
         );
     }
 
     for i in 0..(init_stack_len / PAGE_SIZE) {
         vm.page_table_mut().map_user_page(
-            init_stack_top
-                .sub(((init_stack_len / PAGE_SIZE) - i) * PAGE_SIZE)
-                .unwrap(),
+            init_stack_top.sub(((init_stack_len / PAGE_SIZE) - i) * PAGE_SIZE),
             init_stack_pages.add(i * PAGE_SIZE),
         );
     }

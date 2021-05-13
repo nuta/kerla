@@ -49,7 +49,7 @@ impl<'a> SyscallHandler<'a> {
                 };
 
                 // Update revents.
-                fds.add(reader.pos())?.write::<c_short>(&revents)?;
+                fds.add(reader.pos()).write::<c_short>(&revents)?;
 
                 // Skip revents in the reader.
                 reader.skip(size_of::<c_short>())?;
