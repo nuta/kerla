@@ -15,4 +15,3 @@ no_std = []
 
 [dependencies]
 spin = "0.7.1"
-arrayvec = { version = "0.7.0", default-features = false }
