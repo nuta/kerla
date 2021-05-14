@@ -75,7 +75,7 @@ Send me bug reports, feature requests, and patches on [GitHub](https://github.co
 
 ## License
 
-CC0 or MIT. Choose whichever you prefer.
+See [LICENSE.md](https://github.com/nuta/penguin-kernel/blob/main/LICENSE.md).
 
 ## Related Work
 
