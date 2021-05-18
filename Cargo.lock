@@ -112,6 +112,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "kerla"
+version = "0.0.1"
+dependencies = [
+ "arrayvec",
+ "bitflags",
+ "buddy_system_allocator",
+ "crossbeam",
+ "goblin",
+ "hashbrown",
+ "kerla_utils",
+ "log",
+ "memoffset",
+ "smoltcp",
+ "spin",
+ "x86",
+]
+
+[[package]]
+name = "kerla_utils"
+version = "0.0.1"
+dependencies = [
+ "spin",
+]
+
+[[package]]
 name = "log"
 version = "0.4.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -133,31 +158,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cc14fc54a812b4472b4113facc3e44d099fbc0ea2ce0551fa5c703f8edfbfd38"
 dependencies = [
  "autocfg",
-]
-
-[[package]]
-name = "penguin-kernel"
-version = "0.0.0"
-dependencies = [
- "arrayvec",
- "bitflags",
- "buddy_system_allocator",
- "crossbeam",
- "goblin",
- "hashbrown",
- "log",
- "memoffset",
- "penguin_utils",
- "smoltcp",
- "spin",
- "x86",
-]
-
-[[package]]
-name = "penguin_utils"
-version = "0.0.0"
-dependencies = [
- "spin",
 ]
 
 [[package]]

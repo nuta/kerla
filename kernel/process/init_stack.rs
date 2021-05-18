@@ -8,7 +8,7 @@ use arch::UserVAddr;
 
 use core::mem::size_of;
 
-use penguin_utils::alignment::align_up;
+use kerla_utils::alignment::align_up;
 
 pub enum Auxv {
     /// End of a vector.

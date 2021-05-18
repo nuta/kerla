@@ -9,11 +9,11 @@ memory: guest=512, host=512
 
 boot: cdrom
 ata0: enabled=1, ioaddr1=0x1f0, ioaddr2=0x3f0, irq=14
-ata0-slave: type=cdrom, path=penguin.iso, status=inserted
+ata0-slave: type=cdrom, path=kerla.iso, status=inserted
 
 com1: enabled=1, mode=file, dev=bochs-serial.log
 magic_break: enabled=1
-debug_symbols: file=penguin-kernel.x64.symbols
+debug_symbols: file=kerla.x64.symbols
 
 info: action=report
 error: action=report

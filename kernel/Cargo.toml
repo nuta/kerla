@@ -1,15 +1,15 @@
 [package]
-name = "penguin-kernel"
-version = "0.0.0"
+name = "kerla"
+version = "0.0.1"
 authors = ["Seiya Nuta <nuta@seiya.me>"]
 edition = "2018"
 
 [[bin]]
-name = "penguin-kernel"
+name = "kerla"
 path = "main.rs"
 
 [dependencies]
-penguin_utils = { path = "../utils", features = ["no_std"] }
+kerla_utils = { path = "../utils", features = ["no_std"] }
 spin = "0.7.1"
 x86 = "0.36.0"
 memoffset = "0.6.2"

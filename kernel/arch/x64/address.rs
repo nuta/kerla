@@ -4,7 +4,7 @@ use core::{
     mem::{size_of, MaybeUninit},
     ptr, slice,
 };
-use penguin_utils::alignment::align_down;
+use kerla_utils::alignment::align_down;
 
 /// The base virtual address of straight mapping.
 pub const KERNEL_BASE_ADDR: u64 = 0xffff_8000_0000_0000;

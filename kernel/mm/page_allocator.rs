@@ -5,10 +5,10 @@ use crate::{
 };
 use arrayvec::ArrayVec;
 use bitflags::bitflags;
-use penguin_utils::bump_allocator::BumpAllocator as Allocator;
-use penguin_utils::byte_size::ByteSize;
+use kerla_utils::bump_allocator::BumpAllocator as Allocator;
+use kerla_utils::byte_size::ByteSize;
 // TODO:
-// use penguin_utils::buddy_allocator::BuddyAllocator as Allocator;
+// use kerla_utils::buddy_allocator::BuddyAllocator as Allocator;
 
 static ZONES: SpinLock<ArrayVec<Allocator, 8>> = SpinLock::new(ArrayVec::new_const());
 

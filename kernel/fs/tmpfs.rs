@@ -17,7 +17,7 @@ use crate::{
     user_buffer::UserBufferMut,
 };
 use hashbrown::HashMap;
-use penguin_utils::{downcast::downcast, once::Once};
+use kerla_utils::{downcast::downcast, once::Once};
 
 pub static TMP_FS: Once<Arc<TmpFs>> = Once::new();
 

@@ -9,7 +9,7 @@ use crate::{
     tty::pty::Ptmx,
 };
 use alloc::sync::Arc;
-use penguin_utils::once::Once;
+use kerla_utils::once::Once;
 
 use super::tmpfs::TmpFs;
 

@@ -21,7 +21,7 @@ use crate::{
 };
 use alloc::sync::Arc;
 use core::mem::size_of;
-use penguin_utils::alignment::align_up;
+use kerla_utils::alignment::align_up;
 
 const VIRTIO_NET_F_MAC: u64 = 1 << 5;
 

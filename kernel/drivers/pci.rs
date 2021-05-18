@@ -4,7 +4,7 @@ use crate::prelude::*;
 use arrayvec::ArrayVec;
 use core::convert::TryInto;
 use core::{mem::size_of, mem::MaybeUninit};
-use penguin_utils::alignment::is_aligned;
+use kerla_utils::alignment::is_aligned;
 use x86::io::{inl, outl};
 
 const PCI_IOPORT_ADDR: u16 = 0x0cf8;

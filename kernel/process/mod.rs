@@ -10,8 +10,8 @@ use arch::{UserVAddr, KERNEL_STACK_SIZE, PAGE_SIZE, USER_STACK_TOP};
 use core::cmp::max;
 use core::mem::size_of;
 
-use penguin_utils::once::Once;
-use penguin_utils::{alignment::align_up, lazy::Lazy};
+use kerla_utils::once::Once;
+use kerla_utils::{alignment::align_up, lazy::Lazy};
 
 mod elf;
 pub mod fork;

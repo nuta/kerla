@@ -20,7 +20,7 @@ impl<'a> SyscallHandler<'a> {
         // Linux's kernel features.
         writer.write_bytes_or_zeroes(b"4.0.0", UTS_FIELD_LEN)?;
         // version
-        writer.write_bytes_or_zeroes(b"penguin", UTS_FIELD_LEN)?;
+        writer.write_bytes_or_zeroes(b"kerla", UTS_FIELD_LEN)?;
         // machine
         writer.write_bytes_or_zeroes(b"", UTS_FIELD_LEN)?;
         // domainname

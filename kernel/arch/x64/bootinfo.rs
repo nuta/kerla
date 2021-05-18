@@ -3,8 +3,8 @@ use crate::boot::{BootInfo, RamArea, VirtioMmioDevice};
 use arrayvec::ArrayVec;
 use core::cmp::max;
 use core::mem::size_of;
-use penguin_utils::alignment::align_up;
-use penguin_utils::byte_size::ByteSize;
+use kerla_utils::alignment::align_up;
+use kerla_utils::byte_size::ByteSize;
 
 const MULTIBOOT_MAGIC_LEGACY: u32 = 0x2badb002;
 const MULTIBOOT_MAGIC_2: u32 = 0x36d76289;

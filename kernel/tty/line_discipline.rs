@@ -7,7 +7,7 @@ use crate::{
     user_buffer::{UserBufReader, UserBufWriter, UserBuffer, UserBufferMut},
 };
 use bitflags::bitflags;
-use penguin_utils::ring_buffer::RingBuffer;
+use kerla_utils::ring_buffer::RingBuffer;
 
 bitflags! {
     pub struct LFlag: u32 {

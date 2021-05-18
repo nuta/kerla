@@ -2,7 +2,7 @@
 use crate::arch::UserVAddr;
 use crate::prelude::*;
 use core::{cmp::min, mem::size_of, slice};
-use penguin_utils::alignment::align_up;
+use kerla_utils::alignment::align_up;
 
 /// Parses a bitflags field given from the user. Returns `Result<T>`.
 macro_rules! bitflags_from_user {

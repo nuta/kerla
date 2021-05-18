@@ -4,7 +4,7 @@ use crate::prelude::*;
 use crate::{fs::stat::Stat, user_buffer::UserBufferMut};
 use crate::{net::*, user_buffer::UserBuffer};
 use bitflags::bitflags;
-use penguin_utils::downcast::Downcastable;
+use kerla_utils::downcast::Downcastable;
 
 /// The inode number.
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]

@@ -20,7 +20,7 @@ endif
 
 # $(IMAGE): Use a Docker image for initramfs.
 ifeq ($(IMAGE),)
-INITRAMFS_PATH := build/penguin.initramfs
+INITRAMFS_PATH := build/kerla.initramfs
 else
 IMAGE_FILENAME := $(subst /,.s,$(IMAGE))
 INITRAMFS_PATH := build/$(IMAGE_FILENAME).initramfs
@@ -30,8 +30,8 @@ endif
 topdir      := $(PWD)
 build_mode  := $(if $(RELEASE),release,debug)
 target_json := kernel/arch/$(ARCH)/$(ARCH).json
-kernel_elf := penguin-kernel.$(ARCH).elf
-stripped_kernel_elf := penguin-kernel.$(ARCH).stripped.elf
+kernel_elf := kerla.$(ARCH).elf
+stripped_kernel_elf := kerla.$(ARCH).stripped.elf
 kernel_symbols := $(kernel_elf:.elf=.symbols)
 
 PROGRESS   := printf "  \\033[1;96m%8s\\033[0m  \\033[1;m%s\\033[0m\\n"
@@ -46,7 +46,7 @@ export RUSTFLAGS = -Z emit-stack-sizes
 CARGOFLAGS += -Z build-std=core,alloc -Z build-std-features=compiler-builtins-mem
 CARGOFLAGS += --target $(target_json)
 CARGOFLAGS += $(if $(RELEASE),--release,)
-TESTCARGOFLAGS += --package penguin-kernel -Z unstable-options
+TESTCARGOFLAGS += --package kerla -Z unstable-options
 TESTCARGOFLAGS += --config "target.$(ARCH).runner = '$(PYTHON3) $(topdir)/tools/run-qemu.py --arch $(ARCH)'"
 WATCHFLAGS += --clear
 export CARGO_FROM_MAKE=1
@@ -58,7 +58,7 @@ export INITRAMFS_PATH
 .PHONY: build
 build:
 	$(MAKE) build-crate
-	cp target/$(ARCH)/$(build_mode)/penguin-kernel $(kernel_elf)
+	cp target/$(ARCH)/$(build_mode)/kerla $(kernel_elf)
 
 	$(PROGRESS) "NM" $(kernel_symbols)
 	$(NM) $(kernel_elf) | rustfilt | awk '{ $$2=""; print $$0 }' > $(kernel_symbols)
@@ -84,11 +84,11 @@ buildw:
 
 .PHONY: iso
 iso: build
-	$(PROGRESS) MKISO penguin.iso
+	$(PROGRESS) MKISO kerla.iso
 	mkdir -p isofiles/boot/grub
 	cp boot/grub.cfg isofiles/boot/grub/grub.cfg
-	cp $(stripped_kernel_elf) isofiles/penguin.elf
-	grub-mkrescue -o penguin.iso isofiles
+	cp $(stripped_kernel_elf) isofiles/kerla.elf
+	grub-mkrescue -o kerla.iso isofiles
 
 .PHONY: run
 run: build
@@ -141,7 +141,7 @@ clean:
 #
 #  Build Rules
 #
-build/penguin.initramfs: $(wildcard initramfs/*.py) Makefile
+build/kerla.initramfs: $(wildcard initramfs/*.py) Makefile
 	mkdir -p build
 	$(PYTHON3) initramfs/__init__.py                       \
 		--build-dir build/initramfs                   \

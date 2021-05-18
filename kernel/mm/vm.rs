@@ -8,7 +8,7 @@ use crate::{
 };
 use alloc::sync::Arc;
 use alloc::vec::Vec;
-use penguin_utils::alignment::{align_up, is_aligned};
+use kerla_utils::alignment::{align_up, is_aligned};
 
 #[derive(Clone)]
 pub enum VmAreaType {

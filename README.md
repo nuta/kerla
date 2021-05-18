@@ -1,6 +1,6 @@
-# Penguin Kernel
+# Kerla
 
-Penguin is a monolithic operating system kernel from scratch in Rust which aims to be
+Kerla is a monolithic operating system kernel from scratch in Rust which aims to be
 compatible with the Linux ABI, that is, runs Linux binaries without any modifications.
 
 - Implements *NIX process concepts: context switching, signals, `fork(2)`, `execve(2)`, `wait4(2)`, etc.
@@ -13,23 +13,23 @@ compatible with the Linux ABI, that is, runs Linux binaries without any modifica
 - Supports x86_64.
 - Docker-based initramfs build system.
 
-Read [HACKING.md](https://github.com/nuta/penguin-kernel/blob/main/HACKING.md) for instructions on building from source, running on emulators, etc.
+***Check out [my blog post](https://seiya.me/blog/writing-linux-clone-in-rust) for motivation and my thoughts on writing an OS kernel in Rust.***
 
-## Demo: SSH into Penguin!
+## Demo: SSH into Kerla!
 
-You can play with Penguin over ssh. Your login is not visible from others (except
+You can play with Kerla over ssh. Your login is not visible from others (except
 me): we automatically launch a dedicated microVM on Firecracker for each TCP
 connection.
 
 ```
-$ ssh penguin.seiya.me TODO:
+$ ssh kerla-demo.seiya.me
 ```
 
 If you found bugs or missing features, let me know on GitHub issues :)
 
 ## Running a Docker Image (experimental)
 
-You can run a Docker image as a root file system (not as a container!) on Penguin Kenrel instead of our initramfs built from `initramfs` directory.
+You can run a Docker image as a root file system (not as a container!) on Kerla Kenrel instead of our initramfs built from `initramfs` directory.
 
 For example, to run [nuta/helloworld](https://hub.docker.com/r/nuta/helloworld) image ([Dockerfile](https://gist.github.com/nuta/4c9ecd0d1a401dc5be88095bea5a991a)), try the following command:
 
@@ -55,27 +55,23 @@ This feature is in the very early stage and I guess **almost all images out ther
 
 ## Building and Running the OS
 
-See [HACKING.md](https://github.com/nuta/penguin-kernel/blob/main/HACKING.md) for instructions on building from source, running on emulators, etc.
+See [HACKING.md](https://github.com/nuta/kerla/blob/main/HACKING.md) for instructions on building from source, running on emulators, etc.
 
 ## Compatibility
 
 See [COMPATIBILITY.md](COMPATIBILITY.md) for the current status.
 
-## Community
-
-- [Gitter](https://gitter.im/penguin/community) - Where you can ask any questions or help.
-
 ## Contributing
 
-Send me bug reports, feature requests, and patches on [GitHub](https://github.com/nuta/penguin-kernel) for example:
+Send me bug reports, feature requests, and patches on [GitHub](https://github.com/nuta/kerla) for example:
 
 - **Implementing missing features:** majority of existing Linux applications won't work due to the lack of features.
-- **Writing documentation:** I think Penguin could be good material to learn how operating system kernel works.
+- **Writing documentation:** I think Kerla could be good material to learn how operating system kernel works.
 - **Trying experimenting with Rust-y ideas:** for example currently I'm interested in [GhostCell](http://plv.mpi-sws.org/rustbelt/ghostcell/).
 
 ## License
 
-See [LICENSE.md](https://github.com/nuta/penguin-kernel/blob/main/LICENSE.md).
+See [LICENSE.md](https://github.com/nuta/kerla/blob/main/LICENSE.md).
 
 ## Related Work
 

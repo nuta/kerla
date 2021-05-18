@@ -16,7 +16,7 @@ use crate::{
     process::{self, switch, Process},
 };
 use alloc::sync::Arc;
-use penguin_utils::once::Once;
+use kerla_utils::once::Once;
 use tmpfs::TMP_FS;
 
 #[cfg(test)]

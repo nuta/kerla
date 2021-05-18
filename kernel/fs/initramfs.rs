@@ -13,9 +13,9 @@ use crate::{
 };
 use core::str::from_utf8_unchecked;
 use hashbrown::HashMap;
-use penguin_utils::byte_size::ByteSize;
-use penguin_utils::bytes_parser::BytesParser;
-use penguin_utils::once::Once;
+use kerla_utils::byte_size::ByteSize;
+use kerla_utils::bytes_parser::BytesParser;
+use kerla_utils::once::Once;
 
 use super::{inode::Symlink, opened_file::OpenOptions, path::PathBuf};
 

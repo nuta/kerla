@@ -10,7 +10,7 @@ use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use crossbeam::queue::ArrayQueue;
-use penguin_utils::once::Once;
+use kerla_utils::once::Once;
 use smoltcp::wire::{self, EthernetAddress, IpCidr};
 use smoltcp::{
     dhcp::Dhcpv4Client,

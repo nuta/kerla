@@ -6,7 +6,7 @@ use core::{
     debug_assert,
     ptr::{self, NonNull},
 };
-use penguin_utils::alignment::is_aligned;
+use kerla_utils::alignment::is_aligned;
 
 const ENTRIES_PER_TABLE: isize = 512;
 type PageTableEntry = u64;

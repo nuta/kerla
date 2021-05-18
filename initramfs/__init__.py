@@ -127,13 +127,13 @@ def build_package(root_dir: Path, pkg):
         dockerfile = pkg.generate_dockerfile()
         open("Dockerfile", "w").write(dockerfile)
 
-        container_id = f"penguin-{pkg.name}-container"
+        container_id = f"kerla-{pkg.name}-container"
         print(
             f"  \x1b[1;96m{'DOCKER':>8}\x1b[0m  \x1b[1;m{pkg.name}\x1b[0m")
         try:
             # Build the package in Docker.
             subprocess.run(
-                ["docker", "build", "-t", f"penguin-{pkg.name}", "."], cwd=tempdir,
+                ["docker", "build", "-t", f"kerla-{pkg.name}", "."], cwd=tempdir,
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
 
             # Remove the exisiting container with the same name.
@@ -143,7 +143,7 @@ def build_package(root_dir: Path, pkg):
             # Launch the container with that name.
             subprocess.run(
                 ["docker", "run", "--name", container_id,
-                    "-t", f"penguin-{pkg.name}", "/bin/true"],
+                    "-t", f"kerla-{pkg.name}", "/bin/true"],
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
         except subprocess.CalledProcessError as e:
             sys.exit(
@@ -193,7 +193,7 @@ def compute_tar_checksum(header):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="The penguin initramfs build system.")
+        description="The kerla initramfs build system.")
     parser.add_argument(
         "--build-dir", help="The build directory.", required=True)
     parser.add_argument("-o", dest="outfile", required=True)

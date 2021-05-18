@@ -1,5 +1,5 @@
 use crate::process::WaitQueue;
-use penguin_utils::once::Once;
+use kerla_utils::once::Once;
 
 pub static POLL_WAIT_QUEUE: Once<WaitQueue> = Once::new();
 
