@@ -129,6 +129,11 @@ impl VirtioNet {
                 super::virtio::VirtqDescBuffer::ReadOnlyFromDevice { .. } => unreachable!(),
             };
 
+            if total_len < size_of::<VirtioNetHeader>() {
+                warn!("virtio-net: received a too short buffer, ignoring...");
+                continue;
+            }
+
             trace!(
                 "virtio-net: received {} octets (paddr={}, payload_len={})",
                 total_len,
