@@ -311,7 +311,7 @@ impl VirtQueue {
                 .used
                 .add(size_of::<VirtqUsed>())
                 .as_ptr::<VirtqUsedElem>()
-                .offset(index as isize)
+                .offset((index % self.num_descs) as isize)
         }
     }
 }
