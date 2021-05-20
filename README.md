@@ -13,7 +13,7 @@ compatible with the Linux ABI, that is, runs Linux binaries without any modifica
 - Supports x86_64.
 - Docker-based initramfs build system.
 
-***Check out [my blog post](https://seiya.me/blog/writing-linux-clone-in-rust) for motivation and my thoughts on writing an OS kernel in Rust.***
+***Check out [my blog post](https://seiya.me/writing-linux-clone-in-rust) for motivation and my thoughts on writing an OS kernel in Rust.***
 
 ## Demo: SSH into Kerla!
 
