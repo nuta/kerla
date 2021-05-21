@@ -8,7 +8,7 @@
             "name": "Attach QEMU",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/penguin-kernel.x64.elf",
+            "program": "${workspaceFolder}/kerla.x64.elf",
             "cwd": "${workspaceFolder}",
             "args": [],
             "environment": [],
