@@ -60,6 +60,8 @@ fn idle_thread() -> ! {
 pub static INITIAL_ROOT_FS: Once<Arc<SpinLock<RootFs>>> = Once::new();
 
 pub fn boot_kernel(bootinfo: &BootInfo) -> ! {
+    info!("Booting Kerla...");
+
     // Initialize memory allocators first.
     page_allocator::init(&bootinfo.ram_areas);
     global_allocator::init();
