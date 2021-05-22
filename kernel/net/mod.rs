@@ -73,7 +73,7 @@ pub fn process_packets() {
         if let Some(config) = dhcp
             .poll(&mut iface, &mut sockets, timestamp)
             .unwrap_or_else(|e| {
-                info!("DHCP: {:?}", e);
+                trace!("DHCP: {:?}", e);
                 None
             })
         {
