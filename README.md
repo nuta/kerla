@@ -1,4 +1,7 @@
 # Kerla
+[![CI](https://github.com/nuta/kerla/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/nuta/kerla/actions/workflows/ci.yml)
+
+![screenshot](screenshot.png)
 
 Kerla is a monolithic operating system kernel from scratch in Rust which aims to be
 compatible with the Linux ABI, that is, runs Linux binaries without any modifications.
