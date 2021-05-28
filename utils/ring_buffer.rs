@@ -8,7 +8,7 @@ pub struct RingBuffer<T, const CAP: usize> {
 }
 
 impl<T, const CAP: usize> RingBuffer<T, CAP> {
-    pub fn new() -> RingBuffer<T, CAP> {
+    pub const fn new() -> RingBuffer<T, CAP> {
         RingBuffer {
             buf: unsafe { MaybeUninit::uninit().assume_init() },
             rp: 0,
