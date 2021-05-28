@@ -1,17 +1,38 @@
+use kerla_utils::ring_buffer::RingBuffer;
+
+use crate::arch::SpinLock;
 use crate::arch::{print_str, printchar, Backtrace, VAddr};
+use crate::lang_items::PANICKED;
 use core::mem::size_of;
 use core::slice;
 use core::str;
+use core::sync::atomic::Ordering;
 pub struct Printer;
+
+pub const KERNEL_LOG_BUF_SIZE: usize = 8192;
+pub static KERNEL_LOG_BUF: SpinLock<RingBuffer<u8, KERNEL_LOG_BUF_SIZE>> =
+    SpinLock::new(RingBuffer::new());
 
 impl core::fmt::Write for Printer {
     fn write_char(&mut self, c: char) -> core::fmt::Result {
         printchar(c);
+
+        // Don't write into the kernel log buffer as it may call a printk function
+        // due to an assertion.
+        if !PANICKED.load(Ordering::SeqCst) {
+            KERNEL_LOG_BUF.lock().push(c as u8).ok();
+        }
         Ok(())
     }
 
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
         print_str(s.as_bytes());
+
+        // Don't write into the kernel log buffer as it may call a printk function
+        // due to an assertion.
+        if !PANICKED.load(Ordering::SeqCst) {
+            KERNEL_LOG_BUF.lock().push_slice(s.as_bytes());
+        }
         Ok(())
     }
 }

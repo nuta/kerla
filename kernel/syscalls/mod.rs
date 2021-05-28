@@ -61,6 +61,7 @@ pub(self) mod set_tid_address;
 pub(self) mod setpgid;
 pub(self) mod socket;
 pub(self) mod stat;
+pub(self) mod syslog;
 pub(self) mod uname;
 pub(self) mod utimes;
 pub(self) mod wait4;
@@ -140,6 +141,7 @@ const SYS_READLINK: usize = 89;
 const SYS_CHMOD: usize = 90;
 const SYS_CHOWN: usize = 92;
 const SYS_GETUID: usize = 102;
+const SYS_SYSLOG: usize = 103;
 const SYS_SETUID: usize = 105;
 const SYS_SETGID: usize = 106;
 const SYS_GETEUID: usize = 107;
@@ -352,6 +354,7 @@ impl<'a> SyscallHandler<'a> {
                 a2,
                 bitflags_from_user!(GetRandomFlags, a3 as c_uint)?,
             ),
+            SYS_SYSLOG => self.sys_syslog(a1 as c_int, UserVAddr::new(a2)?, a3 as c_int),
             _ => {
                 debug_warn!(
                     "unimplemented system call: {} (n={})",
