@@ -47,7 +47,7 @@ impl<T, const CAP: usize> RingBuffer<T, CAP> {
     where
         T: Copy,
     {
-        if !self.is_writable() {
+        if !self.is_writable() || data.is_empty() {
             return 0;
         }
 
