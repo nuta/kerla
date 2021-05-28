@@ -6,8 +6,8 @@ pub static PANICKED: AtomicBool = AtomicBool::new(false);
 #[panic_handler]
 #[cfg(not(test))]
 fn panic(info: &core::panic::PanicInfo) -> ! {
-    error!("{}", info);
     PANICKED.store(true, Ordering::SeqCst);
+    error!("{}", info);
     crate::printk::backtrace();
     loop {
         crate::arch::halt();
