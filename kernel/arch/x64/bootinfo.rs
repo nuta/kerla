@@ -132,7 +132,7 @@ struct Cmdline {
 impl Cmdline {
     pub fn parse(cmdline: &[u8]) -> Cmdline {
         let s = core::str::from_utf8(cmdline).expect("cmdline is not a utf-8 string");
-        info!("cmdline: {}", s);
+        info!("cmdline: {}", if s.is_empty() { "(empty)" } else { s });
 
         let mut pci_enabled = true;
         let mut omikuji = false;
