@@ -76,7 +76,8 @@ pub enum SigAction {
     Handler { handler: UserVAddr },
 }
 
-const DEFAULT_ACTIONS: [SigAction; SIGMAX as usize] = [
+// TODO: Fill correct default actions
+pub const DEFAULT_ACTIONS: [SigAction; SIGMAX as usize] = [
     /* (unused) */ SigAction::Ignore,
     /* SIGHUP */ SigAction::Ignore,
     /* SIGINT */ SigAction::Terminate,
