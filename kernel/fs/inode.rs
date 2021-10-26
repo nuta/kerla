@@ -71,6 +71,12 @@ pub trait FileLike: Send + Sync + Downcastable {
         Err(Error::new(Errno::EBADF))
     }
 
+    /// `readlink(2)`.
+    fn readlink(&self) -> Result<PathBuf> {
+        // "EINVAL - The named file is not a symbolic link." -- readlink(2)
+        Err(Error::new(Errno::EINVAL))
+    }
+
     /// `poll(2)` and `select(2)`.
     fn poll(&self) -> Result<PollStatus> {
         Err(Error::new(Errno::EBADF))
@@ -191,6 +197,11 @@ pub trait Directory: Send + Sync + Downcastable {
     fn fsync(&self) -> Result<()> {
         Ok(())
     }
+    /// `readlink(2)`.
+    fn readlink(&self) -> Result<PathBuf> {
+        // "EINVAL - The named file is not a symbolic link." -- readlink(2)
+        Err(Error::new(Errno::EINVAL))
+    }
 }
 
 /// A symbolic link.
@@ -267,6 +278,15 @@ impl INode {
             INode::FileLike(file) => file.fsync(),
             INode::Symlink(file) => file.fsync(),
             INode::Directory(dir) => dir.fsync(),
+        }
+    }
+
+    /// `readlink(2)`.
+    pub fn readlink(&self) -> Result<PathBuf> {
+        match self {
+            INode::FileLike(file) => file.readlink(),
+            INode::Symlink(file) => file.linked_to(),
+            INode::Directory(dir) => dir.readlink(),
         }
     }
 }
