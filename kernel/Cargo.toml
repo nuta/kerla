@@ -19,5 +19,5 @@ goblin = { version = "0.3", default-features = false, features = ["elf64"] }
 bitflags = "1.3.2"
 hashbrown = { version = "0.11.2", features = ["nightly"] }
 log = "0.4"
-crossbeam = { version = "0.8.0", default-features = false, features = ["alloc"] }
+crossbeam = { version = "0.8.1", default-features = false, features = ["alloc"] }
 smoltcp = { version = "0.7.5", default-features = false, features = ["alloc", "proto-ipv4", "socket", "socket-raw", "socket-udp", "socket-tcp", "proto-dhcpv4", "ethernet"] }
