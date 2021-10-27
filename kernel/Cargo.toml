@@ -12,7 +12,7 @@ path = "main.rs"
 kerla_utils = { path = "../utils", features = ["no_std"] }
 spin = "0.7.1"
 x86 = "0.43.0"
-memoffset = "0.6.2"
+memoffset = "0.6.4"
 buddy_system_allocator = "0.8.0"
 arrayvec = { version = "0.7.0", default-features = false }
 goblin = { version = "0.3", default-features = false, features = ["elf64"] }
