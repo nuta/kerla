@@ -11,7 +11,7 @@ path = "main.rs"
 [dependencies]
 kerla_utils = { path = "../utils", features = ["no_std"] }
 spin = "0.7.1"
-x86 = "0.36.0"
+x86 = "0.43.0"
 memoffset = "0.6.2"
 buddy_system_allocator = "0.8.0"
 arrayvec = { version = "0.7.0", default-features = false }
