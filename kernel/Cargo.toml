@@ -17,7 +17,7 @@ buddy_system_allocator = "0.8.0"
 arrayvec = { version = "0.7.0", default-features = false }
 goblin = { version = "0.3", default-features = false, features = ["elf64"] }
 bitflags = "1.2.1"
-hashbrown = { version = "0.1.0", features = ["nightly"] }
+hashbrown = { version = "0.11.2", features = ["nightly"] }
 log = "0.4"
 crossbeam = { version = "0.8.0", default-features = false, features = ["alloc"] }
 smoltcp = { version = "0.7.5", default-features = false, features = ["alloc", "proto-ipv4", "socket", "socket-raw", "socket-udp", "socket-tcp", "proto-dhcpv4", "ethernet"] }
