@@ -4,7 +4,7 @@ use buddy_system_allocator::LockedHeap;
 use super::page_allocator::{alloc_pages, AllocPageFlags};
 
 #[global_allocator]
-static ALLOCATOR: LockedHeap = LockedHeap::empty();
+static ALLOCATOR: LockedHeap<32 /* order */> = LockedHeap::empty();
 
 #[alloc_error_handler]
 fn alloc_error_handler(layout: core::alloc::Layout) -> ! {
