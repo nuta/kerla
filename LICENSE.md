@@ -1,6 +1,6 @@
 # License
 
-This software is dual-licensed: Apache license version 2.0 and MIT license.
+This software is dual-licensed: Apache license version 2.0 and/or MIT license.
 
 ## Apache license version 2.0
 
