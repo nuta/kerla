@@ -11,30 +11,30 @@ Not supported.
 
 | No  | Name                   | Status        | Release | Notes |
 |-----|------------------------|---------------|---------|-------|
-| 0   | read                   | Unimplemented |         |       |
+| 0   | read                   |  Implemented  | `main`  |       |
 | 1   | write                  |  Implemented  | `main`  |       |
 | 2   | open                   | Unimplemented |         |       |
 | 3   | close                  | Unimplemented |         |       |
 | 4   | stat                   |  Implemented  | `main`  |       |
-| 5   | fstat                  | Unimplemented |         |       |
-| 6   | lstat                  | Unimplemented |         |       |
+| 5   | fstat                  |  Implemented  | `main`  |       |
+| 6   | lstat                  |  Implemented  | `main`  |       |
 | 7   | poll                   |  Implemented  | `main`  |       |
 | 8   | lseek                  | Unimplemented |         |       |
 | 9   | mmap                   |  Implemented  | `main`  |       |
 | 10  | mprotect               | Unimplemented |         |       |
 | 11  | munmap                 | Unimplemented |         |       |
-| 12  | brk                    | Unimplemented |         |       |
-| 13  | rt_sigaction           | Unimplemented |         |       |
+| 12  | brk                    |  Implemented  | `main`  |       |
+| 13  | rt_sigaction           |  Implemented  | `main`  |       |
 | 14  | rt_sigprocmask         | Unimplemented |         |       |
-| 15  | rt_sigreturn           | Unimplemented |         |       |
-| 16  | ioctl                  | Unimplemented |         |       |
+| 15  | rt_sigreturn           |  Implemented  | `main`  |       |
+| 16  | ioctl                  |  Implemented  | `main`  |       |
 | 17  | pread64                | Unimplemented |         |       |
 | 18  | pwrite64               | Unimplemented |         |       |
 | 19  | readv                  | Unimplemented |         |       |
-| 20  | writev                 | Unimplemented |         |       |
+| 20  | writev                 |  Implemented  | `main`  |       |
 | 21  | access                 | Unimplemented |         |       |
 | 22  | pipe                   |  Implemented  | `main`  |       |
-| 23  | select                 | Unimplemented |         |       |
+| 23  | select                 |  Implemented  | `main`  |       |
 | 24  | sched_yield            | Unimplemented |         |       |
 | 25  | mremap                 | Unimplemented |         |       |
 | 26  | msync                  | Unimplemented |         |       |
@@ -44,37 +44,37 @@ Not supported.
 | 30  | shmat                  | Unimplemented |         |       |
 | 31  | shmctl                 | Unimplemented |         |       |
 | 32  | dup                    | Unimplemented |         |       |
-| 33  | dup2                   | Unimplemented |         |       |
+| 33  | dup2                   |  Implemented  | `main`  |       |
 | 34  | pause                  | Unimplemented |         |       |
 | 35  | nanosleep              | Unimplemented |         |       |
 | 36  | getitimer              | Unimplemented |         |       |
 | 37  | alarm                  | Unimplemented |         |       |
 | 38  | setitimer              | Unimplemented |         |       |
-| 39  | getpid                 | Unimplemented |         |       |
+| 39  | getpid                 |  Implemented  | `main`  |       |
 | 40  | sendfile               | Unimplemented |         |       |
-| 41  | socket                 | Unimplemented |         |       |
-| 42  | connect                | Unimplemented |         |       |
-| 43  | accept                 | Unimplemented |         |       |
-| 44  | sendto                 | Unimplemented |         |       |
-| 45  | recvfrom               | Unimplemented |         |       |
+| 41  | socket                 |  Implemented  | `main`  |       |
+| 42  | connect                |  Implemented  | `main`  |       |
+| 43  | accept                 |  Implemented  | `main`  |       |
+| 44  | sendto                 |  Implemented  | `main`  |       |
+| 45  | recvfrom               |  Implemented  | `main`  |       |
 | 46  | sendmsg                | Unimplemented |         |       |
 | 47  | recvmsg                | Unimplemented |         |       |
 | 48  | shutdown               | Unimplemented |         |       |
-| 49  | bind                   | Unimplemented |         |       |
-| 50  | listen                 | Unimplemented |         |       |
-| 51  | getsockname            | Unimplemented |         |       |
-| 52  | getpeername            | Unimplemented |         |       |
+| 49  | bind                   |  Implemented  | `main`  |       |
+| 50  | listen                 |  Implemented  | `main`  |       |
+| 51  | getsockname            |  Implemented  | `main`  |       |
+| 52  | getpeername            |  Implemented  | `main`  |       |
 | 53  | socketpair             | Unimplemented |         |       |
 | 54  | setsockopt             | Unimplemented |         |       |
-| 55  | getsockopt             | Unimplemented |         |       |
+| 55  | getsockopt             |  Implemented  | `main`  |       |
 | 56  | clone                  | Unimplemented |         |       |
 | 57  | fork                   |  Implemented  | `main`  |       |
 | 58  | vfork                  | Unimplemented |         |       |
 | 59  | execve                 |  Implemented  | `main`  |       |
-| 60  | exit                   | Unimplemented |         |       |
+| 60  | exit                   |  Implemented  | `main`  |       |
 | 61  | wait4                  |  Implemented  | `main`  |       |
 | 62  | kill                   | Unimplemented |         |       |
-| 63  | uname                  | Unimplemented |         |       |
+| 63  | uname                  |  Implemented  | `main`  |       |
 | 64  | semget                 | Unimplemented |         |       |
 | 65  | semop                  | Unimplemented |         |       |
 | 66  | semctl                 | Unimplemented |         |       |
@@ -83,27 +83,27 @@ Not supported.
 | 69  | msgsnd                 | Unimplemented |         |       |
 | 70  | msgrcv                 | Unimplemented |         |       |
 | 71  | msgctl                 | Unimplemented |         |       |
-| 72  | fcntl                  | Unimplemented |         |       |
+| 72  | fcntl                  |  Implemented  | `main`  |       |
 | 73  | flock                  | Unimplemented |         |       |
-| 74  | fsync                  | Unimplemented |         |       |
+| 74  | fsync                  |  Implemented  | `main`  |       |
 | 75  | fdatasync              | Unimplemented |         |       |
 | 76  | truncate               | Unimplemented |         |       |
 | 77  | ftruncate              | Unimplemented |         |       |
 | 78  | getdents               | Unimplemented |         |       |
-| 79  | getcwd                 | Unimplemented |         |       |
-| 80  | chdir                  | Unimplemented |         |       |
+| 79  | getcwd                 |  Implemented  | `main`  |       |
+| 80  | chdir                  |  Implemented  | `main`  |       |
 | 81  | fchdir                 | Unimplemented |         |       |
 | 82  | rename                 | Unimplemented |         |       |
-| 83  | mkdir                  | Unimplemented |         |       |
+| 83  | mkdir                  |  Implemented  | `main`  |       |
 | 84  | rmdir                  | Unimplemented |         |       |
 | 85  | creat                  | Unimplemented |         |       |
-| 86  | link                   | Unimplemented |         |       |
+| 86  | link                   |  Implemented  | `main`  |       |
 | 87  | unlink                 | Unimplemented |         |       |
 | 88  | symlink                | Unimplemented |         |       |
-| 89  | readlink               | Unimplemented |         |       |
-| 90  | chmod                  | Unimplemented |         |       |
+| 89  | readlink               |  Implemented  | `main`  |       |
+| 90  | chmod                  |  Implemented  | `main`  |       |
 | 91  | fchmod                 | Unimplemented |         |       |
-| 92  | chown                  | Unimplemented |         |       |
+| 92  | chown                  |  Implemented  | `main`  |       |
 | 93  | fchown                 | Unimplemented |         |       |
 | 94  | lchown                 | Unimplemented |         |       |
 | 95  | umask                  | Unimplemented |         |       |
@@ -113,26 +113,26 @@ Not supported.
 | 99  | sysinfo                | Unimplemented |         |       |
 | 100 | times                  | Unimplemented |         |       |
 | 101 | ptrace                 | Unimplemented |         |       |
-| 102 | getuid                 | Unimplemented |         |       |
-| 103 | syslog                 | Unimplemented |         |       |
+| 102 | getuid                 |  Implemented  | `main`  |       |
+| 103 | syslog                 |  Implemented  | `main`  |       |
 | 104 | getgid                 | Unimplemented |         |       |
-| 105 | setuid                 | Unimplemented |         |       |
-| 106 | setgid                 | Unimplemented |         |       |
-| 107 | geteuid                | Unimplemented |         |       |
+| 105 | setuid                 |  Implemented  | `main`  |       |
+| 106 | setgid                 |  Implemented  | `main`  |       |
+| 107 | geteuid                |  Implemented  | `main`  |       |
 | 108 | getegid                | Unimplemented |         |       |
-| 109 | setpgid                | Unimplemented |         |       |
+| 109 | setpgid                |  Implemented  | `main`  |       |
 | 110 | getppid                | Unimplemented |         |       |
 | 111 | getpgrp                | Unimplemented |         |       |
 | 112 | setsid                 | Unimplemented |         |       |
 | 113 | setreuid               | Unimplemented |         |       |
 | 114 | setregid               | Unimplemented |         |       |
 | 115 | getgroups              | Unimplemented |         |       |
-| 116 | setgroups              | Unimplemented |         |       |
+| 116 | setgroups              |  Implemented  | `main`  |       |
 | 117 | setresuid              | Unimplemented |         |       |
 | 118 | getresuid              | Unimplemented |         |       |
 | 119 | setresgid              | Unimplemented |         |       |
 | 120 | getresgid              | Unimplemented |         |       |
-| 121 | getpgid                | Unimplemented |         |       |
+| 121 | getpgid                |  Implemented  | `main`  |       |
 | 122 | setfsuid               | Unimplemented |         |       |
 | 123 | setfsgid               | Unimplemented |         |       |
 | 124 | getsid                 | Unimplemented |         |       |
@@ -169,7 +169,7 @@ Not supported.
 | 155 | pivot_root             | Unimplemented |         |       |
 | 156 | sysctl                 | Unimplemented |         |       |
 | 157 | prctl                  | Unimplemented |         |       |
-| 158 | arch_prctl             | Unimplemented |         |       |
+| 158 | arch_prctl             |  Implemented  | `main`  |       |
 | 159 | adjtimex               | Unimplemented |         |       |
 | 160 | setrlimit              | Unimplemented |         |       |
 | 161 | chroot                 | Unimplemented |         |       |
@@ -228,8 +228,8 @@ Not supported.
 | 214 | epoll_ctl_old          | Unimplemented |         |       |
 | 215 | epoll_wait_old         | Unimplemented |         |       |
 | 216 | remap_file_pages       | Unimplemented |         |       |
-| 217 | getdents64             | Unimplemented |         |       |
-| 218 | set_tid_address        | Unimplemented |         |       |
+| 217 | getdents64             |  Implemented  | `main`  |       |
+| 218 | set_tid_address        |  Implemented  | `main`  |       |
 | 219 | restart_syscall        | Unimplemented |         |       |
 | 220 | semtimedop             | Unimplemented |         |       |
 | 221 | fadvise64              | Unimplemented |         |       |
@@ -239,14 +239,14 @@ Not supported.
 | 225 | timer_getoverrun       | Unimplemented |         |       |
 | 226 | timer_delete           | Unimplemented |         |       |
 | 227 | clock_settime          | Unimplemented |         |       |
-| 228 | clock_gettime          | Unimplemented |         |       |
+| 228 | clock_gettime          |  Implemented  | `main`  |       |
 | 229 | clock_getres           | Unimplemented |         |       |
 | 230 | clock_nanosleep        | Unimplemented |         |       |
 | 231 | exit_group             | Unimplemented |         |       |
 | 232 | epoll_wait             | Unimplemented |         |       |
 | 233 | epoll_ctl              | Unimplemented |         |       |
 | 234 | tgkill                 | Unimplemented |         |       |
-| 235 | utimes                 | Unimplemented |         |       |
+| 235 | utimes                 |  Implemented  | `main`  |       |
 | 236 | vserver                | Unimplemented |         |       |
 | 237 | mbind                  | Unimplemented |         |       |
 | 238 | set_mempolicy          | Unimplemented |         |       |
@@ -276,7 +276,7 @@ Not supported.
 | 262 | fstatat                | Unimplemented |         |       |
 | 263 | unlinkat               | Unimplemented |         |       |
 | 264 | renameat               | Unimplemented |         |       |
-| 265 | linkat                 | Unimplemented |         |       |
+| 265 | linkat                 |  Implemented  | `main`  |       |
 | 266 | symlinkat              | Unimplemented |         |       |
 | 267 | readlinkat             | Unimplemented |         |       |
 | 268 | fchmodat               | Unimplemented |         |       |
@@ -329,7 +329,7 @@ Not supported.
 | 315 | sched_getattr          | Unimplemented |         |       |
 | 316 | renameat2              | Unimplemented |         |       |
 | 317 | seccomp                | Unimplemented |         |       |
-| 318 | getrandom              | Unimplemented |         |       |
+| 318 | getrandom              |  Implemented  | `main`  |       |
 | 319 | memfd_create           | Unimplemented |         |       |
 | 320 | kexec_file_load        | Unimplemented |         |       |
 | 321 | bpf                    | Unimplemented |         |       |
