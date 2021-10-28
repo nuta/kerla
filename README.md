@@ -58,7 +58,7 @@ This feature is in a very early stage and I guess **almost all images out there 
 
 ## Building and Running the OS
 
-See [HACKING.md](https://github.com/nuta/kerla/blob/main/HACKING.md) for instructions on building from source, running on emulators, etc.
+See [Quickstart](https://github.com/nuta/kerla/blob/main/Documentation/quickstart.md) for instructions on building from source, running on emulators, etc.
 
 ## Compatibility
 
