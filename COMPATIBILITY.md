@@ -12,15 +12,15 @@ Not supported.
 | No  | Name                   | Status        | Release | Notes |
 |-----|------------------------|---------------|---------|-------|
 | 0   | read                   | Unimplemented |         |       |
-| 1   | write                  | Unimplemented |         |       |
+| 1   | write                  |  Implemented  | `main`  |       |
 | 2   | open                   | Unimplemented |         |       |
 | 3   | close                  | Unimplemented |         |       |
-| 4   | stat                   | Unimplemented |         |       |
+| 4   | stat                   |  Implemented  | `main`  |       |
 | 5   | fstat                  | Unimplemented |         |       |
 | 6   | lstat                  | Unimplemented |         |       |
 | 7   | poll                   |  Implemented  | `main`  |       |
 | 8   | lseek                  | Unimplemented |         |       |
-| 9   | mmap                   | Unimplemented |         |       |
+| 9   | mmap                   |  Implemented  | `main`  |       |
 | 10  | mprotect               | Unimplemented |         |       |
 | 11  | munmap                 | Unimplemented |         |       |
 | 12  | brk                    | Unimplemented |         |       |
@@ -72,7 +72,7 @@ Not supported.
 | 58  | vfork                  | Unimplemented |         |       |
 | 59  | execve                 |  Implemented  | `main`  |       |
 | 60  | exit                   | Unimplemented |         |       |
-| 61  | wait4                  | Unimplemented |         |       |
+| 61  | wait4                  |  Implemented  | `main`  |       |
 | 62  | kill                   | Unimplemented |         |       |
 | 63  | uname                  | Unimplemented |         |       |
 | 64  | semget                 | Unimplemented |         |       |
