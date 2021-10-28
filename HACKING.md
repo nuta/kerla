@@ -29,5 +29,10 @@ $ make                # Build the kernel (debug build)
 $ make RELEASE=1      # Build the kernel (release build)
 $ make run            # Run on QEMU
 $ make run GUI=1      # Run on QEMU with an application window
+                      # Note: Currently Kerla only use the serial port which
+                      #       appears in the terminal running `make run`.
 $ make run GDB=1      # Run on QEMU with GDB connection enabled
 ```
+
+### How to Use
+Once you boot the OS by `make run`, a Busybox shell shows up in your terminal. `initramfs/inittab.py` includes the boot script. Edit the file to run Dropbear SSH server instead of the shell.
