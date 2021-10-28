@@ -60,9 +60,12 @@ This feature is in a very early stage and I guess **almost all images out there 
 
 See [Quickstart](https://github.com/nuta/kerla/blob/main/Documentation/quickstart.md) for instructions on building from source, running on emulators, etc.
 
+## Current Roadmap
+[Roadmap - Run a Node.js Web Application on Kerla on Firecracker on AWS](https://github.com/nuta/kerla/projects/1)
+
 ## Compatibility
 
-See [COMPATIBILITY.md](COMPATIBILITY.md) for the current status.
+See [here](https://github.com/nuta/kerla/blob/main/Documentation/compatibility.md) for the current status.
 
 ## Contributing
 
