@@ -18,7 +18,7 @@ Not supported.
 | 4   | stat                   | Unimplemented |       |
 | 5   | fstat                  | Unimplemented |       |
 | 6   | lstat                  | Unimplemented |       |
-| 7   | poll                   | Unimplemented |       |
+| 7   | poll                   |  Implemented  |       |
 | 8   | lseek                  | Unimplemented |       |
 | 9   | mmap                   | Unimplemented |       |
 | 10  | mprotect               | Unimplemented |       |
@@ -33,7 +33,7 @@ Not supported.
 | 19  | readv                  | Unimplemented |       |
 | 20  | writev                 | Unimplemented |       |
 | 21  | access                 | Unimplemented |       |
-| 22  | pipe                   | Unimplemented |       |
+| 22  | pipe                   |  Implemented  |       |
 | 23  | select                 | Unimplemented |       |
 | 24  | sched_yield            | Unimplemented |       |
 | 25  | mremap                 | Unimplemented |       |
@@ -68,9 +68,9 @@ Not supported.
 | 54  | setsockopt             | Unimplemented |       |
 | 55  | getsockopt             | Unimplemented |       |
 | 56  | clone                  | Unimplemented |       |
-| 57  | fork                   | Unimplemented |       |
+| 57  | fork                   |  Implemented  |       |
 | 58  | vfork                  | Unimplemented |       |
-| 59  | execve                 | Unimplemented |       |
+| 59  | execve                 |  Implemented  |       |
 | 60  | exit                   | Unimplemented |       |
 | 61  | wait4                  | Unimplemented |       |
 | 62  | kill                   | Unimplemented |       |
