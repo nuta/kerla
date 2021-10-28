@@ -3,8 +3,8 @@
 
 ![screenshot](screenshot.png)
 
-Kerla is a monolithic operating system kernel from scratch in Rust which aims to be
-compatible with the Linux ABI, that is, runs Linux binaries without any modifications.
+Kerla is a monolithic operating system kernel written from scratch in Rust which aims to be
+compatible with the Linux ABI, that is, it runs Linux binaries without any modifications.
 
 - Implements *NIX process concepts: context switching, signals, `fork(2)`, `execve(2)`, `wait4(2)`, etc.
 - Supports commonly used system calls like `write(2)`, `stat(2)`, `mmap(2)`, `pipe(2)`, `poll(2)`, ...
@@ -51,7 +51,7 @@ $ make IMAGE=nuta/helloworld run
 |_| |_|\___|_|_|\___/    \_/\_/ \___/|_|  |_|\__,_(_)
 ```
 
-This feature is in the very early stage and I guess **almost all images out there won't work** because:
+This feature is in a very early stage and I guess **almost all images out there won't work** because:
 
 - They tend to be too large to be embedded into the kernel image.
 - They might use unimplemented features (e.g. position-independent executables used in Alpine Linux).
@@ -69,8 +69,8 @@ See [COMPATIBILITY.md](COMPATIBILITY.md) for the current status.
 Send me bug reports, feature requests, and patches on [GitHub](https://github.com/nuta/kerla) for example:
 
 - **Implementing missing features:** majority of existing Linux applications won't work due to the lack of features.
-- **Writing documentation:** I think Kerla could be good material to learn how operating system kernel works.
-- **Trying experimenting with Rust-y ideas:** for example currently I'm interested in [GhostCell](http://plv.mpi-sws.org/rustbelt/ghostcell/).
+- **Writing documentation:** I think Kerla could be good material to learn how an operating system kernel works.
+- **Trying to experiment with Rust-y ideas:** for example currently I'm interested in [GhostCell](http://plv.mpi-sws.org/rustbelt/ghostcell/).
 
 ## License
 
@@ -78,6 +78,6 @@ See [LICENSE.md](https://github.com/nuta/kerla/blob/main/LICENSE.md).
 
 ## Related Work
 
-Emulating Linux ABI is not a novel work. Some UNIX-like kernels like [FreeBSD](https://docs.freebsd.org/en_US.ISO8859-1/articles/linux-emulation/article.html) and [NetBSD](https://www.netbsd.org/docs/guide/en/chap-linux.html) already have their own Linux emulation layers. Windows has a well-known feature called [Windows Subsystem for Linux (WSL)](https://github.com/microsoft/WSL) which enables running Linux binaries seamlessly. WSL 1 implements the feature by the ABI emulation. WSL 2 runs the real Linux kernel using the hardware-accelerated virtualization (Hyper-V) by the way.
+Emulating Linux ABI is not a novel work. Some UNIX-like kernels like [FreeBSD](https://docs.freebsd.org/en_US.ISO8859-1/articles/linux-emulation/article.html) and [NetBSD](https://www.netbsd.org/docs/guide/en/chap-linux.html) already have their own Linux emulation layers. Windows has a well-known feature called [Windows Subsystem for Linux (WSL)](https://github.com/microsoft/WSL) which enables running Linux binaries seamlessly. WSL 1 implements the feature by ABI emulation. WSL 2 runs the real Linux kernel using the hardware-accelerated virtualization (Hyper-V).
 
 Aside from general-purpose operating systems, there're some attractive projects related to the Linux ABI emualtion. [OSv](https://github.com/cloudius-systems/osv/wiki/OSv-Linux-ABI-Compatibility) is a unikernel which runs unmodified Linux binaries. [rCore](https://github.com/rcore-os/rCore) is a teaching operating system which implements the Linux ABI in Rust. [Noah](https://dl.acm.org/doi/10.1145/3381052.3381327) suggests an intriguing approach to run unmodified Linux binaries on macOS.
