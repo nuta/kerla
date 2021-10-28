@@ -2,8 +2,8 @@ from . import Package
 
 RC_STARTUP = """\
 #!/bin/sh
-dropbearkey -t ed25519 -f /tmp/dropbear_host_key
-dropbear -F -B -r /tmp/dropbear_host_key -P /tmp/dropbear.pid
+# dropbearkey -t ed25519 -f /tmp/dropbear_host_key
+# dropbear -F -B -r /tmp/dropbear_host_key -P /tmp/dropbear.pid
 
 /bin/sh
 """
