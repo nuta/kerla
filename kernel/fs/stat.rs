@@ -46,6 +46,31 @@ pub const S_IFDIR: u32 = 0o040000;
 pub const S_IFREG: u32 = 0o100000;
 pub const S_IFLNK: u32 = 0o120000;
 
+/// set user ID on execution
+pub const S_ISUID: u32 = 0o04000;
+/// set group ID on execution
+pub const S_ISGID: u32 = 0o02000;
+/// sticky bit
+pub const S_ISVTX: u32 = 0o01000;
+/// read by owner
+pub const S_IRUSR: u32 = 0o00400;
+/// write by owner
+pub const S_IWUSR: u32 = 0o00200;
+/// execute/search by owner
+pub const S_IXUSR: u32 = 0o00100;
+/// read by group
+pub const S_IRGRP: u32 = 0o00040;
+/// write by group
+pub const S_IWGRP: u32 = 0o00020;
+/// execute/search by group
+pub const S_IXGRP: u32 = 0o00010;
+/// read by others
+pub const S_IROTH: u32 = 0o00004;
+/// write by others
+pub const S_IWOTH: u32 = 0o00002;
+/// execute/search by others
+pub const S_IXOTH: u32 = 0o00001;
+
 pub const O_ACCMODE: u32 = 0o3;
 
 // FIXME: OpenFlags also define these values.

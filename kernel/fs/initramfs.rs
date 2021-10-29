@@ -52,6 +52,11 @@ impl FileLike for InitramFsFile {
     fn stat(&self) -> Result<Stat> {
         Ok(self.stat)
     }
+
+    fn chmod(&self, mode: FileMode) -> Result<()> {
+        self.stat.mode = mode;
+        Ok(())
+    }
 }
 
 enum InitramFsINode {
@@ -115,6 +120,11 @@ impl Directory for InitramFsDir {
     fn create_dir(&self, _name: &str, _mode: FileMode) -> Result<INode> {
         Err(Errno::EROFS.into())
     }
+
+    fn chmod(&self, mode: FileMode) -> Result<()> {
+        self.stat.mode = mode;
+        Ok(())
+    }
 }
 
 struct InitramFsSymlink {
@@ -130,6 +140,11 @@ impl Symlink for InitramFsSymlink {
 
     fn linked_to(&self) -> Result<PathBuf> {
         Ok(self.dst.clone())
+    }
+
+    fn chmod(&self, mode: FileMode) -> Result<()> {
+        self.stat.mode = mode;
+        Ok(())
     }
 }
 
