@@ -9,7 +9,5 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
     PANICKED.store(true, Ordering::SeqCst);
     error!("{}", info);
     crate::printk::backtrace();
-    loop {
-        crate::arch::halt();
-    }
+    crate::arch::halt();
 }
