@@ -158,6 +158,7 @@ pub trait FileLike: Send + Sync + Downcastable {
     }
 
     fn chmod(&self, mode: FileMode) -> Result<()> {
+        self.stat()?.mode = mode;
         Ok(())
     }
 }
