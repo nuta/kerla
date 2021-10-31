@@ -157,7 +157,7 @@ pub trait FileLike: Send + Sync + Downcastable {
         Err(Error::new(Errno::EBADF))
     }
 
-    fn chmod(&self, mode: FileMode) -> Result<()> {
+    fn chmod(&self, _mode: FileMode) -> Result<()> {
         Err(Error::new(Errno::EBADF))
     }
 }
@@ -207,7 +207,7 @@ pub trait Directory: Send + Sync + Downcastable {
         Err(Error::new(Errno::EINVAL))
     }
     /// `chmod`
-    fn chmod(&self, mode: FileMode) -> Result<()>;
+    fn chmod(&mut self, mode: FileMode) -> Result<()>;
 }
 
 /// A symbolic link.
@@ -224,7 +224,7 @@ pub trait Symlink: Send + Sync + Downcastable {
     fn fsync(&self) -> Result<()> {
         Ok(())
     }
-    fn chmod(&self, mode: FileMode) -> Result<()>;
+    fn chmod(&mut self, mode: FileMode) -> Result<()>;
 }
 
 /// An inode object.
@@ -298,7 +298,7 @@ impl INode {
     }
 
     /// `chmod(2)`
-    pub fn chmod(&self, mode: FileMode) -> Result<()> {
+    pub fn chmod(&mut self, mode: FileMode) -> Result<()> {
         match self {
             INode::FileLike(file) => file.chmod(mode),
             INode::Symlink(file) => file.chmod(mode),

@@ -53,9 +53,8 @@ impl FileLike for InitramFsFile {
         Ok(self.stat)
     }
 
-    fn chmod(&self, mode: FileMode) -> Result<()> {
-        self.stat.mode = mode;
-        Ok(())
+    fn chmod(&self, _mode: FileMode) -> Result<()> {
+        Err(Error::new(Errno::EROFS))
     }
 }
 
@@ -121,7 +120,7 @@ impl Directory for InitramFsDir {
         Err(Errno::EROFS.into())
     }
 
-    fn chmod(&self, mode: FileMode) -> Result<()> {
+    fn chmod(&mut self, mode: FileMode) -> Result<()> {
         self.stat.mode = mode;
         Ok(())
     }
@@ -142,7 +141,7 @@ impl Symlink for InitramFsSymlink {
         Ok(self.dst.clone())
     }
 
-    fn chmod(&self, mode: FileMode) -> Result<()> {
+    fn chmod(&mut self, mode: FileMode) -> Result<()> {
         self.stat.mode = mode;
         Ok(())
     }
