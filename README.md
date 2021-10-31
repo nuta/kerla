@@ -2,11 +2,11 @@
 [![CI](https://github.com/nuta/kerla/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/nuta/kerla/actions/workflows/ci.yml)
 
 <p align="center">
-    <img src="assets/kerla.png" />
-
-    <p>Kerla is a monolithic operating system kernel written from scratch in Rust which aims to be
-compatible with the Linux ABI, that is, it runs Linux binaries without any modifications.</p>
+    <img src="assets/kerla-transparent.png" />
 </p>
+
+Kerla is a monolithic operating system kernel written from scratch in Rust which aims to be
+compatible with the Linux ABI, that is, it runs Linux binaries without any modifications.
 
 - Implements *NIX process concepts: context switching, signals, `fork(2)`, `execve(2)`, `wait4(2)`, etc.
 - Supports commonly used system calls like `write(2)`, `stat(2)`, `mmap(2)`, `pipe(2)`, `poll(2)`, ...
