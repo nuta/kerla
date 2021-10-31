@@ -11,8 +11,14 @@ static IRQ_HANDLERS: SpinLock<[Option<Box<dyn FnMut() + Send + Sync>>; 256]> =
     SpinLock::new([DEFAULT_IRQ_HANDLER; 256]);
 
 pub fn attach_irq<F: FnMut() + Send + Sync + 'static>(irq: u8, f: F) {
-    IRQ_HANDLERS.lock()[irq as usize] = Some(Box::new(f));
-    enable_irq(irq);
+    let mut handlers = IRQ_HANDLERS.lock();
+    match handlers[irq as usize] {
+        Some(_) => (panic!("hanler for IRQ: {} is already attached", irq)),
+        None => {
+            handlers[irq as usize] = Some(Box::new(f));
+            enable_irq(irq);
+        }
+    }
 }
 
 pub fn handle_irq(irq: u8) {
