@@ -6,24 +6,9 @@ use crate::{
 };
 use alloc::boxed::Box;
 
-static IRQ_HANDLERS: SpinLock<[Option<Box<dyn FnMut() + Send + Sync>>; 255]> = SpinLock::new([
-    None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
-    None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
-    None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
-    None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
-    None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
-    None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
-    None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
-    None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
-    None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
-    None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
-    None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
-    None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
-    None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
-    None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
-    None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
-    None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
-]);
+const DEFAULT_IRQ_HANDLER: Option<Box<dyn FnMut() + Send + Sync>> = None;
+static IRQ_HANDLERS: SpinLock<[Option<Box<dyn FnMut() + Send + Sync>>; 256]> =
+    SpinLock::new([DEFAULT_IRQ_HANDLER; 256]);
 
 pub fn attach_irq<F: FnMut() + Send + Sync + 'static>(irq: u8, f: F) {
     IRQ_HANDLERS.lock()[irq as usize] = Some(Box::new(f));
