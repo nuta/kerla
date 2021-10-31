@@ -1,10 +1,12 @@
 # Kerla
 [![CI](https://github.com/nuta/kerla/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/nuta/kerla/actions/workflows/ci.yml)
 
-![screenshot](screenshot.png)
+<p align="center">
+    <img src="assets/kerla.png" />
 
-Kerla is a monolithic operating system kernel written from scratch in Rust which aims to be
-compatible with the Linux ABI, that is, it runs Linux binaries without any modifications.
+    <p>Kerla is a monolithic operating system kernel written from scratch in Rust which aims to be
+compatible with the Linux ABI, that is, it runs Linux binaries without any modifications.</p>
+</p>
 
 - Implements *NIX process concepts: context switching, signals, `fork(2)`, `execve(2)`, `wait4(2)`, etc.
 - Supports commonly used system calls like `write(2)`, `stat(2)`, `mmap(2)`, `pipe(2)`, `poll(2)`, ...
@@ -19,6 +21,8 @@ compatible with the Linux ABI, that is, it runs Linux binaries without any modif
 ***Check out [my blog post](https://seiya.me/writing-linux-clone-in-rust) for motivation and my thoughts on writing an OS kernel in Rust.***
 
 ## Demo: SSH into Kerla!
+
+![screenshot](assets/screenshot.png)
 
 You can play with Kerla over ssh. Your login is not visible from others (except
 me): we automatically launch a dedicated microVM on Firecracker for each TCP
