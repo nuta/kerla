@@ -1,5 +1,3 @@
-use std::fs::read_link;
-
 use crate::fs::{path::Path, stat::FileMode};
 use crate::result::{Errno, Result};
 use crate::{process::current_process, syscalls::SyscallHandler};
