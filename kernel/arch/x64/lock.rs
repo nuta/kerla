@@ -28,7 +28,7 @@ impl<T: ?Sized> SpinLock<T> {
             backtrace();
         }
 
-        let rflags = unsafe { rflags::read() };
+        let rflags = rflags::read();
         unsafe {
             asm!("cli");
         }

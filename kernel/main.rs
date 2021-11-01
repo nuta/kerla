@@ -2,7 +2,6 @@
 #![no_main]
 #![feature(asm)]
 #![feature(global_asm)]
-#![feature(const_panic)]
 #![feature(custom_test_frameworks)]
 #![feature(alloc_error_handler)]
 #![feature(const_btree_new)]

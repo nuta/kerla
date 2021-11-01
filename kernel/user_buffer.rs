@@ -29,14 +29,12 @@ enum Inner<'a> {
 #[derive(Debug, Clone)]
 pub struct UserBuffer<'a> {
     inner: Inner<'a>,
-    pos: usize,
 }
 
 impl<'a> UserBuffer<'a> {
     pub fn from_uaddr(uaddr: UserVAddr, len: usize) -> UserBuffer<'static> {
         UserBuffer {
             inner: Inner::User { base: uaddr, len },
-            pos: 0,
         }
     }
 
@@ -52,7 +50,6 @@ impl<'a> From<&'a [u8]> for UserBuffer<'a> {
     fn from(slice: &'a [u8]) -> UserBuffer<'a> {
         UserBuffer {
             inner: Inner::Slice(slice),
-            pos: 0,
         }
     }
 }

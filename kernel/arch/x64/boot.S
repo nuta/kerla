@@ -1,5 +1,4 @@
 .section ".boot", "ax"
-.intel_syntax noprefix
 
 .code32
 

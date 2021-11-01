@@ -201,5 +201,5 @@ pub unsafe fn enable_interrupt() {
 }
 
 pub fn is_interrupt_enabled() -> bool {
-    unsafe { x86::current::rflags::read().contains(RFlags::FLAGS_IF) }
+    x86::current::rflags::read().contains(RFlags::FLAGS_IF)
 }

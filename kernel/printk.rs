@@ -105,7 +105,7 @@ macro_rules! warn_if_err {
     ($result:expr) => {
         #[cfg(debug_assertions)]
         if let Err(err) = $result {
-            $crate::debug_warn!("{}:{}: error returned: {:?}", file!(), line!(), err)
+            $crate::debug_warn!("{}:{}: error returned: {:?}", file!(), line!(), err);
         }
     };
 }

@@ -1,5 +1,3 @@
-.intel_syntax noprefix
-
 /// void copy_from_user(void *dst, const void *src, size_t len);
 /// void copy_to_user(void *dst, const void *src, size_t len);
 ///

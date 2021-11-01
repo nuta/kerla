@@ -1,4 +1,3 @@
-.intel_syntax noprefix
 .set INTERRUPT_HANDLER_SIZE, 16
 .set GS_RSP0,                0
 .set GS_RSP3,                8

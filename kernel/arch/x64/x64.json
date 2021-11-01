@@ -22,5 +22,5 @@
     "executables": true,
     "disable-redzone": true,
     "emit-debug-gdb-scripts": false,
-    "eliminate-frame-pointer": false
+    "frame-pointer": "always"
 }
