@@ -10,6 +10,7 @@ use crate::{
         mount::RootFs,
         path::Path,
     },
+    interrupt,
     mm::{global_allocator, page_allocator},
     net, pipe, poll,
     printk::PrintkLogger,
@@ -65,6 +66,7 @@ pub fn boot_kernel(bootinfo: &BootInfo) -> ! {
     // Initialize memory allocators first.
     page_allocator::init(&bootinfo.ram_areas);
     global_allocator::init();
+    interrupt::init();
 
     #[cfg(test)]
     {
