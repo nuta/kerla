@@ -158,7 +158,7 @@ pub trait FileLike: Send + Sync + Downcastable {
     }
 
     fn chmod(&self, _mode: FileMode) -> Result<()> {
-        Err(Error::new(Errno::EBADF))
+        Err(Error::new(Errno::ENOSYS))
     }
 }
 
