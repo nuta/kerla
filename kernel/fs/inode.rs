@@ -156,10 +156,6 @@ pub trait FileLike: Send + Sync + Downcastable {
     ) -> Result<(usize, SockAddr)> {
         Err(Error::new(Errno::EBADF))
     }
-
-    fn chmod(&self, _mode: FileMode) -> Result<()> {
-        Err(Error::new(Errno::ENOSYS))
-    }
 }
 
 /// Represents `d_type` in `linux_dirent`. See `getdents64(2)` manual.
@@ -206,8 +202,6 @@ pub trait Directory: Send + Sync + Downcastable {
         // "EINVAL - The named file is not a symbolic link." -- readlink(2)
         Err(Error::new(Errno::EINVAL))
     }
-    /// `chmod`
-    fn chmod(&mut self, mode: FileMode) -> Result<()>;
 }
 
 /// A symbolic link.
@@ -224,7 +218,6 @@ pub trait Symlink: Send + Sync + Downcastable {
     fn fsync(&self) -> Result<()> {
         Ok(())
     }
-    fn chmod(&mut self, mode: FileMode) -> Result<()>;
 }
 
 /// An inode object.
@@ -298,12 +291,8 @@ impl INode {
     }
 
     /// `chmod(2)`
-    pub fn chmod(&mut self, mode: FileMode) -> Result<()> {
-        match self {
-            INode::FileLike(file) => file.chmod(mode),
-            INode::Symlink(file) => file.chmod(mode),
-            INode::Directory(dir) => dir.chmod(mode),
-        }
+    pub fn chmod(&self, _mode: FileMode) -> Result<()> {
+        Err(Error::new(Errno::ENOSYS))
     }
 }
 

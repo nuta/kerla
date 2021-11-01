@@ -170,11 +170,6 @@ impl Directory for Dir {
 
         Ok((inode as Arc<dyn Directory>).into())
     }
-
-    fn chmod(&mut self, mode: FileMode) -> Result<()> {
-        self.stat()?.mode = mode;
-        Ok(())
-    }
 }
 
 struct File {
