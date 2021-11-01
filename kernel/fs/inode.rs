@@ -289,6 +289,11 @@ impl INode {
             INode::Directory(dir) => dir.readlink(),
         }
     }
+
+    /// `chmod(2)`
+    pub fn chmod(&self, _mode: FileMode) -> Result<()> {
+        Err(Error::new(Errno::ENOSYS))
+    }
 }
 
 impl From<Arc<dyn FileLike>> for INode {
