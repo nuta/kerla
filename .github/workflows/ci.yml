@@ -39,7 +39,7 @@ jobs:
   integration_tests:
     runs-on: ${{ matrix.os }}
     needs: build
-    os: ubuntu-20.04
+    runs-on: ubuntu-20.04
     steps:
       - name: Install QEMU
         run: apt-get install -y qemu-system
