@@ -29,6 +29,7 @@ use alloc::collections::BTreeMap;
 use alloc::sync::{Arc, Weak};
 use alloc::vec::Vec;
 use arch::SpinLockGuard;
+use arrayvec::ArrayString;
 use core::sync::atomic::{AtomicI32, Ordering};
 use goblin::elf64::program_header::PT_LOAD;
 
@@ -91,6 +92,7 @@ pub struct Process {
     pub(super) pid: PId,
     pub(super) state: ProcessState,
     pub(super) parent: Weak<SpinLock<Process>>,
+    pub(super) cmdline: ArrayString<128>,
     pub(super) children: Vec<Arc<SpinLock<Process>>>,
     pub(super) vm: Option<Arc<SpinLock<Vm>>>,
     pub(super) opened_files: Arc<SpinLock<OpenedFileTable>>,
@@ -132,6 +134,7 @@ impl Process {
             arch: arch::Thread::new_idle_thread(),
             state: ProcessState::Runnable,
             parent: Weak::new(),
+            cmdline: ArrayString::new(),
             children: Vec::new(),
             vm: None,
             pid: PId::new(0),
@@ -186,6 +189,14 @@ impl Process {
             OpenOptions::empty(),
         )?;
 
+        let mut cmdline = ArrayString::new();
+        for (i, arg) in argv.iter().enumerate() {
+            cmdline.push_str(core::str::from_utf8(arg).unwrap_or("[invalid utf-8]"));
+            if i != argv.len() - 1 {
+                cmdline.push(' ');
+            }
+        }
+
         let entry = setup_userspace(executable_path, argv, &[], &root_fs)?;
         let pid = PId::new(1);
         let stack_bottom = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)?;
@@ -197,6 +208,7 @@ impl Process {
             parent: Weak::new(),
             children: Vec::new(),
             state: ProcessState::Runnable,
+            cmdline,
             arch: arch::Thread::new_user_thread(entry.ip, entry.user_sp, kernel_sp),
             vm: Some(Arc::new(SpinLock::new(entry.vm))),
             opened_files: Arc::new(SpinLock::new(opened_files)),
@@ -221,6 +233,11 @@ impl Process {
     /// The process ID.
     pub fn pid(&self) -> PId {
         self.pid
+    }
+
+    /// The argv. Could be truncated if it's too long.
+    pub fn cmdline(&self) -> &str {
+        &self.cmdline
     }
 
     /// Its child processes.
@@ -407,6 +424,16 @@ impl Process {
         envp: &[&[u8]],
     ) -> Result<()> {
         self.opened_files.lock().close_cloexec_files();
+
+        self.cmdline.clear();
+        for (i, arg) in argv.iter().enumerate() {
+            self.cmdline
+                .push_str(core::str::from_utf8(arg).unwrap_or("[invalid utf-8]"));
+            if i != argv.len() - 1 {
+                self.cmdline.push(' ');
+            }
+        }
+
         let entry = setup_userspace(executable_path, argv, envp, &self.root_fs)?;
 
         // FIXME: Should we prevent try_delivering_signal()?

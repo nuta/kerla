@@ -186,8 +186,11 @@ impl<'a> SyscallHandler<'a> {
             || (n == 1) && (a1 == 2)
             || (n == 20) && (a1 == 2))
         {
+            let current = current_process();
             trace!(
-                "syscall: {}({:x}, {:x}, {:x}, {:x}, {:x}, {:x})",
+                "[{}:{}] syscall: {}({:x}, {:x}, {:x}, {:x}, {:x}, {:x})",
+                current.pid().as_i32(),
+                current.cmdline(),
                 syscall_name_by_number(n),
                 a1,
                 a2,
