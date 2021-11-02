@@ -28,7 +28,7 @@ pub fn fork(
         process_group: process_group.clone(),
         pid,
         state: ProcessState::Runnable,
-        parent: Some(parent_weak),
+        parent: parent_weak,
         children: Vec::new(),
         vm: Some(Arc::new(SpinLock::new(vm))),
         opened_files: Arc::new(SpinLock::new(opened_files)),
