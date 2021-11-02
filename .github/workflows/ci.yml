@@ -35,3 +35,20 @@ jobs:
 
       - name: Build the OS
         run: make RELEASE=1
+
+  integration_tests:
+    runs-on: ${{ matrix.os }}
+    needs: build
+    os: ubuntu-20.04
+    steps:
+      - name: Install QEMU
+        run: apt-get install -y qemu-system
+
+      - name: Build the OS
+        run: make RELEASE=1
+
+      - name: Run integration tests
+        run: make RELEASE=1 run INIT_SCRIPT="TESTS_DIR=/tests /tests/run.sh" | tee run.log
+
+      - name: Check if all tests are passed
+        run: cat run.log | grep "Passed all integration tests"
