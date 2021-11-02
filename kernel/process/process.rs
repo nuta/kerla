@@ -90,7 +90,7 @@ pub struct Process {
     pub(super) process_group: Weak<SpinLock<ProcessGroup>>,
     pub(super) pid: PId,
     pub(super) state: ProcessState,
-    pub(super) parent: Option<Weak<SpinLock<Process>>>,
+    pub(super) parent: Weak<SpinLock<Process>>,
     pub(super) children: Vec<Arc<SpinLock<Process>>>,
     pub(super) vm: Option<Arc<SpinLock<Vm>>>,
     pub(super) opened_files: Arc<SpinLock<OpenedFileTable>>,
@@ -131,7 +131,7 @@ impl Process {
             process_group: Arc::downgrade(&process_group),
             arch: arch::Thread::new_idle_thread(),
             state: ProcessState::Runnable,
-            parent: None,
+            parent: Weak::new(),
             children: Vec::new(),
             vm: None,
             pid: PId::new(0),
@@ -194,7 +194,7 @@ impl Process {
         let process = Arc::new(SpinLock::new(Process {
             process_group: Arc::downgrade(&process_group),
             pid,
-            parent: None,
+            parent: Weak::new(),
             children: Vec::new(),
             state: ProcessState::Runnable,
             arch: arch::Thread::new_user_thread(entry.ip, entry.user_sp, kernel_sp),
@@ -310,10 +310,8 @@ impl Process {
         }
 
         proc.set_state(ProcessState::ExitedWith(status));
-        if let Some(parent) = proc.parent.as_ref() {
-            if let Some(parent) = parent.upgrade() {
-                parent.lock().send_signal(SIGCHLD);
-            }
+        if let Some(parent) = proc.parent.upgrade() {
+            parent.lock().send_signal(SIGCHLD);
         }
 
         PROCESSES.lock().remove(&proc.pid);
