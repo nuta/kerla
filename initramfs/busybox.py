@@ -21,6 +21,8 @@ class Busybox(Package):
         self.symlinks = {}
         for cmd in COMMANDS:
             self.symlinks[f"/bin/{cmd}"] = "/bin/busybox"
+        self.symlinks[f"/bin/["] = "/bin/busybox"
+        self.symlinks[f"/bin/[["] = "/bin/busybox"
 
     def build(self):
         self.run("ln -s /usr/bin/ar /usr/bin/musl-ar")
@@ -48,7 +50,12 @@ class Busybox(Package):
         self.set_kconfig("UNAME", True)
         self.set_kconfig("ASH", True)
         self.set_kconfig("ASH_OPTIMIZE_FOR_SIZE", True)
+        self.set_kconfig("ASH_BASH_COMPAT", True)
+        self.set_kconfig("ASH_ECHO", True)
         self.set_kconfig("ASH_JOB_CONTROL", True)
+        self.set_kconfig("FEATURE_SH_MATH", True)
+        self.set_kconfig("TEST1", True)
+        self.set_kconfig("TEST2", True)
         self.set_kconfig("NSLOOKUP", True)
         self.set_kconfig("VERBOSE_RESOLUTION_ERRORS", True)
         self.set_kconfig("DEBUG", True)
