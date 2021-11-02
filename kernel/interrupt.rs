@@ -1,5 +1,4 @@
 //! Interrupt handling.
-#![feature(maybe_uninit_uninit_array, maybe_uninit_extra)]
 
 use crate::{
     arch::{enable_irq, SpinLock},
@@ -15,7 +14,7 @@ static IRQ_HANDLERS: SpinLock<[MaybeUninit<Box<dyn FnMut() + Send + Sync>>; 256]
 
 pub fn init() {
     let mut handlers = IRQ_HANDLERS.lock();
-    for mut handler in handlers.iter_mut() {
+    for handler in handlers.iter_mut() {
         handler.write(Box::new(empty_irq_handler));
     }
 }
