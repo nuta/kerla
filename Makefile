@@ -141,10 +141,10 @@ clean:
 #
 #  Build Rules
 #
-build/kerla.initramfs: $(wildcard initramfs/*.py) Makefile
+build/kerla.initramfs: $(wildcard initramfs/*.py) $(wildcard integration_tests/*) Makefile
 	mkdir -p build
 	$(PYTHON3) initramfs/__init__.py                       \
-		--build-dir build/initramfs                   \
+		--build-dir build/initramfs                    \
 		-o $@
 
 build/$(IMAGE_FILENAME).initramfs: tools/docker2initramfs.py Makefile
