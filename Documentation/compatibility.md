@@ -130,7 +130,7 @@ Not supported.
 | 107 | geteuid                | Partially             | `v0.0.1` |       |
 | 108 | getegid                | Unimplemented         |          |       |
 | 109 | setpgid                | Partially             | `v0.0.1` |       |
-| 110 | getppid                | Unimplemented         |          |       |
+| 110 | getppid                | Partially             | `v0.0.3` | PR# ? |
 | 111 | getpgrp                | Unimplemented         |          |       |
 | 112 | setsid                 | Unimplemented         |          |       |
 | 113 | setreuid               | Unimplemented         |          |       |
