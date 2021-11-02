@@ -1,5 +1,6 @@
 # Kerla
 [![CI](https://github.com/nuta/kerla/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/nuta/kerla/actions/workflows/ci.yml)
+[![Discord Chat](https://img.shields.io/discord/904705655095582752?logo=discord&style=social)](https://discord.gg/6Pu4ujpp6h)
 
 ![screenshot](screenshot.png)
 
