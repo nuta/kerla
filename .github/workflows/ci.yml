@@ -7,7 +7,7 @@ on:
     branches: "*"
 
 jobs:
-  build:
+  build_and_test:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -33,18 +33,14 @@ jobs:
       - name: Install cargo crates
         run: cargo install cargo-binutils rustfilt
 
-      - name: Build the OS
+      - name: Build Kerla
         run: make RELEASE=1
 
-  integration_tests:
-    needs: build
-    runs-on: ubuntu-20.04
-    steps:
       - name: Install QEMU
         run: sudo apt-get update && sudo apt-get install -y qemu-system
 
       - name: Run integration tests
-        run: make RELEASE=1 run INIT_SCRIPT="TESTS_DIR=/tests /tests/run.sh" | tee run.log
+        run: make run RELEASE=1 INIT_SCRIPT="TESTS_DIR=/tests /tests/run.sh" | tee run.log
 
-      - name: Check if all tests are passed
+      - name: Check if all integration tests are passed
         run: cat run.log | grep "Passed all integration tests"
