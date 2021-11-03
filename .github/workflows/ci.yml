@@ -41,7 +41,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Install QEMU
-        run: sudo apt-get install -y qemu-system
+        run: sudo apt-get update && sudo apt-get install -y qemu-system
 
       - name: Run integration tests
         run: make RELEASE=1 run INIT_SCRIPT="TESTS_DIR=/tests /tests/run.sh" | tee run.log
