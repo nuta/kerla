@@ -1,10 +1,10 @@
-#![cfg(test)]
 use x86::io::outw;
 
 #[repr(u32)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ExitStatus {
     Success = 0x10,
+    #[cfg(test)]
     Failure = 0x11,
 }
 
