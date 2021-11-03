@@ -22,10 +22,10 @@ unsafe fn serial_write(ch: char) {
 
 pub fn printchar(ch: char) {
     unsafe {
-        serial_write(ch);
-        if ch == '\n' {
+        if ch == '\n' && option_env!("DISABLE_AUTO_CR_PRINT").is_none() {
             serial_write('\r');
         }
+        serial_write(ch);
     }
 }
 
