@@ -45,6 +45,7 @@ jobs:
             RELEASE=1
             INIT_SCRIPT="TESTS_DIR=/tests /tests/run.sh"
             SEMIHOSTING_HALT_ON_PANIC=1
+            DISABLE_AUTO_CR_PRINT=1
           | tee run.log
 
       - name: Check if all integration tests are passed
