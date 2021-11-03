@@ -235,6 +235,24 @@ impl Process {
         self.pid
     }
 
+    /// The process parent.
+    fn parent(&self) -> Option<Arc<SpinLock<Process>>> {
+        if let Some(parent) = &self.parent.upgrade() {
+            Some(parent.clone())
+        } else {
+            None
+        }
+    }
+
+    /// The ID of process being parent of this process.
+    pub fn ppid(&self) -> PId {
+        if let Some(parent) = self.parent() {
+            parent.lock().pid()
+        } else {
+            PId::new(0)
+        }
+    }
+
     /// The argv. Could be truncated if it's too long.
     pub fn cmdline(&self) -> &str {
         &self.cmdline
