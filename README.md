@@ -26,7 +26,7 @@ me): we automatically launch a dedicated microVM on Firecracker for each TCP
 connection.
 
 ```
-$ ssh root@kerla-demo.seiya.me
+$ ssh root@demo.kerla.dev
 ```
 
 If you found bugs or missing features, let me know on GitHub issues :)
