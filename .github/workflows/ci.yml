@@ -46,7 +46,7 @@ jobs:
         run: >
           make run
           RELEASE=1
-          INIT_SCRIPT="TESTS_DIR=/integration_tests /integration_tests/run.sh"
+          INIT_SCRIPT="TESTS_DIR=/integration_tests /integration_tests/run.sh; halt -f"
           DISABLE_AUTO_CR_PRINT=1
           | tee run.log
 
