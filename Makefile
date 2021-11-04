@@ -21,6 +21,7 @@ endif
 # $(IMAGE): Use a Docker image for initramfs.
 ifeq ($(IMAGE),)
 INITRAMFS_PATH := build/kerla.initramfs
+export INIT_SCRIPT := /bin/sh
 else
 IMAGE_FILENAME := $(subst /,.s,$(IMAGE))
 INITRAMFS_PATH := build/$(IMAGE_FILENAME).initramfs
@@ -141,11 +142,12 @@ clean:
 #
 #  Build Rules
 #
-build/kerla.initramfs: $(wildcard initramfs/*.py) $(wildcard integration_tests/*) Makefile
+build/kerla.initramfs: $(wildcard initramfs/*) $(wildcard initramfs/*/*) Makefile
+	$(PROGRESS) "BUILD" initramfs
+	cd initramfs && docker buildx build -t kerla-initramfs .
+	$(PROGRESS) "EXPORT" initramfs
 	mkdir -p build
-	$(PYTHON3) initramfs/__init__.py                       \
-		--build-dir build/initramfs                    \
-		-o $@
+	$(PYTHON3) tools/docker2initramfs.py $@ kerla-initramfs
 
 build/$(IMAGE_FILENAME).initramfs: tools/docker2initramfs.py Makefile
 	$(PROGRESS) "EXPORT" $(IMAGE)
