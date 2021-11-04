@@ -62,7 +62,6 @@ ADD etc/banner /etc
 ADD etc/group /etc
 ADD etc/passwd /etc
 ADD etc/profile /etc
-ADD etc/resolv.conf /etc
 ADD integration_tests /integration_tests
 
 RUN ["/bin/busybox", "--install", "-s"]

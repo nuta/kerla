@@ -30,6 +30,11 @@ def main():
                 temp_dir = Path(temp_dir)
                 subprocess.run(["tar", "xf", temp_file],
                                cwd=temp_dir, check=True)
+
+                # XXX: This is a hack to get around the fact that the Docker overrides
+                #      the /etc/resolv.conf file.
+                (temp_dir / "etc" / "resolv.conf").write_text("nameserver 1.1.1.1")
+
                 filelist = list(
                     map(lambda p: "./" + str(p.relative_to(temp_dir)), temp_dir.glob("**/*")))
                 subprocess.run(
