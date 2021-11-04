@@ -6,6 +6,7 @@ pub fn idle() {
     }
 }
 
+#[cfg_attr(test, allow(unused))]
 pub fn halt() -> ! {
     if option_env!("SEMIHOSTING_HALT_ON_PANIC").is_some() {
         semihosting_halt(ExitStatus::Success);
