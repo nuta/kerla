@@ -1,6 +1,6 @@
 //! A virtio-net device driver.
 use super::virtio::{IsrStatus, Virtio};
-use crate::net::receive_ethernet_frame;
+use crate::net::{process_packets, receive_ethernet_frame};
 use crate::{
     arch::{SpinLock, VAddr, PAGE_SIZE},
     boot::VirtioMmioDevice,
@@ -237,6 +237,7 @@ impl DriverBuilder for VirtioNetBuilder {
         register_ethernet_driver(driver.clone());
         attach_irq(pci_device.config().interrupt_line(), move || {
             driver.lock().handle_irq();
+            process_packets();
         });
 
         Ok(())
@@ -270,6 +271,7 @@ impl DriverBuilder for VirtioNetBuilder {
 
         attach_irq(mmio_device.irq, move || {
             driver.lock().handle_irq();
+            process_packets();
         });
 
         Ok(())
