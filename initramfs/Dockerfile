@@ -52,6 +52,8 @@ COPY --from=empty_dir /empty_dir /sbin
 COPY --from=empty_dir /empty_dir /etc
 COPY --from=empty_dir /empty_dir /dev
 COPY --from=empty_dir /empty_dir /tmp
+COPY --from=empty_dir /empty_dir /usr/bin
+COPY --from=empty_dir /empty_dir /usr/sbin
 COPY --from=dropbear /build/dropbear /build/dropbearkey /bin
 COPY --from=curl     /build/src/curl /bin
 COPY --from=busybox  /build/busybox_unstripped /bin/busybox
@@ -62,7 +64,6 @@ ADD etc/passwd /etc
 ADD etc/profile /etc
 ADD etc/resolv.conf /etc
 ADD integration_tests /integration_tests
-ADD etc/resolv.conf /resolver
 
 RUN ["/bin/busybox", "--install", "-s"]
 CMD ["/bin/sh"]
