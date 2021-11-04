@@ -153,7 +153,10 @@ pub struct UserVAddr(u64);
 impl UserVAddr {
     pub const fn new(addr: usize) -> Result<Option<UserVAddr>> {
         if (addr as u64) >= KERNEL_BASE_ADDR {
-            return Err(Error::with_message(Errno::EFAULT, "invalid user pointer"));
+            return Err(Error::with_message_const(
+                Errno::EFAULT,
+                "invalid user pointer",
+            ));
         }
 
         if addr == 0 {
@@ -165,11 +168,17 @@ impl UserVAddr {
 
     pub const fn new_nonnull(addr: usize) -> Result<UserVAddr> {
         if (addr as u64) >= KERNEL_BASE_ADDR {
-            return Err(Error::with_message(Errno::EFAULT, "invalid user pointer"));
+            return Err(Error::with_message_const(
+                Errno::EFAULT,
+                "invalid user pointer",
+            ));
         }
 
         if addr == 0 {
-            return Err(Error::with_message(Errno::EFAULT, "null user pointer"));
+            return Err(Error::with_message_const(
+                Errno::EFAULT,
+                "null user pointer",
+            ));
         }
 
         Ok(UserVAddr(addr as u64))
@@ -204,8 +213,14 @@ impl UserVAddr {
     pub fn access_ok(self, len: usize) -> Result<()> {
         match self.value().checked_add(len) {
             Some(end) if end <= KERNEL_BASE_ADDR as usize => Ok(()),
-            Some(_end) => Err(Error::with_message(Errno::EFAULT, "invalid user pointer")),
-            None => Err(Error::with_message(Errno::EFAULT, "overflow in access_ok")),
+            Some(_end) => Err(Error::with_message_const(
+                Errno::EFAULT,
+                "invalid user pointer",
+            )),
+            None => Err(Error::with_message_const(
+                Errno::EFAULT,
+                "overflow in access_ok",
+            )),
         }
     }
 

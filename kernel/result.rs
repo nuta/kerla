@@ -1,5 +1,9 @@
 use core::fmt;
 
+use cfg_if::cfg_if;
+
+use crate::printk::{capture_backtrace, CapturedBacktrace};
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 #[repr(i32)]
 #[allow(unused)]
@@ -63,6 +67,8 @@ enum ErrorMessage {
 pub struct Error {
     errno: Errno,
     message: Option<ErrorMessage>,
+    #[cfg(debug_assertions)]
+    backtrace: Option<CapturedBacktrace>,
 }
 
 impl Error {
@@ -70,13 +76,26 @@ impl Error {
         Error {
             errno,
             message: None,
+            #[cfg(debug_assertions)]
+            backtrace: Some(capture_backtrace()),
         }
     }
 
-    pub const fn with_message(errno: Errno, message: &'static str) -> Error {
+    pub fn with_message(errno: Errno, message: &'static str) -> Error {
         Error {
             errno,
             message: Some(ErrorMessage::StaticStr(message)),
+            #[cfg(debug_assertions)]
+            backtrace: Some(capture_backtrace()),
+        }
+    }
+
+    pub const fn with_message_const(errno: Errno, message: &'static str) -> Error {
+        Error {
+            errno,
+            message: Some(ErrorMessage::StaticStr(message)),
+            #[cfg(debug_assertions)]
+            backtrace: None,
         }
     }
 
@@ -90,11 +109,39 @@ impl fmt::Debug for Error {
         if let Some(message) = self.message.as_ref() {
             match message {
                 ErrorMessage::StaticStr(message) => {
-                    write!(f, "[{:?}] {}", self.errno, message)
+                    cfg_if! {
+                        if #[cfg(debug_assertions)] {
+                            if let Some(ref trace) = self.backtrace {
+                                write!(
+                                    f,
+                                    "[{:?}] {}\n    This error originates from:\n{:?}",
+                                    self.errno, message, trace
+                                )
+                            } else {
+                                write!(f, "[{:?}] {}", self.errno, message)
+                            }
+                        } else {
+                            write!(f, "[{:?}] {}", self.errno, message)
+                        }
+                    }
                 }
             }
         } else {
-            write!(f, "{:?}", self.errno)
+            cfg_if! {
+                if #[cfg(debug_assertions)] {
+                    if let Some(ref trace) = self.backtrace {
+                        write!(
+                            f,
+                            "{:?}: This error originates from:\n{:?}",
+                            self.errno, trace
+                        )
+                    } else {
+                        write!(f, "{:?}", self.errno)
+                    }
+                } else {
+                    write!(f, "{:?}", self.errno)
+                }
+            }
         }
     }
 }

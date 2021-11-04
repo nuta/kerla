@@ -138,6 +138,7 @@ dependencies = [
  "arrayvec",
  "bitflags",
  "buddy_system_allocator",
+ "cfg-if",
  "crossbeam",
  "goblin",
  "hashbrown",

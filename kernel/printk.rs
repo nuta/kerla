@@ -1,12 +1,14 @@
+use alloc::boxed::Box;
+use arrayvec::ArrayVec;
 use kerla_utils::ring_buffer::RingBuffer;
 
 use crate::arch::SpinLock;
 use crate::arch::{print_str, printchar, Backtrace, VAddr};
 use crate::lang_items::PANICKED;
 use core::mem::size_of;
-use core::slice;
 use core::str;
 use core::sync::atomic::Ordering;
+use core::{fmt, slice};
 pub struct Printer;
 
 pub const KERNEL_LOG_BUF_SIZE: usize = 8192;
@@ -237,4 +239,46 @@ pub fn backtrace() {
             );
         }
     });
+}
+
+pub struct CapturedBacktraceFrame {
+    pub vaddr: VAddr,
+    pub offset: usize,
+    pub symbol_name: &'static str,
+}
+
+pub struct CapturedBacktrace {
+    pub trace: Box<ArrayVec<CapturedBacktraceFrame, 8>>,
+}
+
+/// Returns a saved backtrace.
+pub fn capture_backtrace() -> CapturedBacktrace {
+    let mut trace = Box::new(ArrayVec::new());
+    Backtrace::current_frame().traverse(|_, vaddr| {
+        if let Some(symbol) = resolve_symbol(vaddr) {
+            let _ = trace.try_push(CapturedBacktraceFrame {
+                vaddr,
+                symbol_name: symbol.name,
+                offset: vaddr.value() - symbol.addr.value(),
+            });
+        }
+    });
+    CapturedBacktrace { trace }
+}
+
+impl fmt::Debug for CapturedBacktrace {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for (i, frame) in self.trace.iter().enumerate() {
+            let _ = write!(
+                f,
+                "    #{}: {} {}()+0x{:x}\n",
+                i + 1,
+                frame.vaddr,
+                frame.symbol_name,
+                frame.offset
+            );
+        }
+
+        Ok(())
+    }
 }

@@ -19,9 +19,9 @@ impl Backtrace {
         }
     }
 
-    pub fn traverse<F>(self, callback: F)
+    pub fn traverse<F>(self, mut callback: F)
     where
-        F: Fn(usize, VAddr),
+        F: FnMut(usize, VAddr),
     {
         let mut frame = self.frame;
         for i in 0..BACKTRACE_MAX {
