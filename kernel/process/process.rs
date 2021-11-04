@@ -93,6 +93,7 @@ pub struct Process {
     pub(super) state: ProcessState,
     pub(super) parent: Weak<SpinLock<Process>>,
     pub(super) cmdline: ArrayString<128>,
+    pub(super) argv0: ArrayString<128>,
     pub(super) children: Vec<Arc<SpinLock<Process>>>,
     pub(super) vm: Option<Arc<SpinLock<Vm>>>,
     pub(super) opened_files: Arc<SpinLock<OpenedFileTable>>,
@@ -134,6 +135,7 @@ impl Process {
             arch: arch::Thread::new_idle_thread(),
             state: ProcessState::Runnable,
             parent: Weak::new(),
+            argv0: ArrayString::new(),
             cmdline: ArrayString::new(),
             children: Vec::new(),
             vm: None,
@@ -197,6 +199,9 @@ impl Process {
             }
         }
 
+        let mut argv0 = ArrayString::new();
+        argv0.push_str(cmdline.split(' ').next().unwrap());
+
         let entry = setup_userspace(executable_path, argv, &[], &root_fs)?;
         let pid = PId::new(1);
         let stack_bottom = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)?;
@@ -208,6 +213,7 @@ impl Process {
             parent: Weak::new(),
             children: Vec::new(),
             state: ProcessState::Runnable,
+            argv0,
             cmdline,
             arch: arch::Thread::new_user_thread(entry.ip, entry.user_sp, kernel_sp),
             vm: Some(Arc::new(SpinLock::new(entry.vm))),
@@ -254,8 +260,13 @@ impl Process {
     }
 
     /// The argv. Could be truncated if it's too long.
-    pub fn cmdline(&self) -> &str {
+    pub fn _cmdline(&self) -> &str {
         &self.cmdline
+    }
+
+    /// The argv0. Could be truncated if it's too long.
+    pub fn argv0(&self) -> &str {
+        &self.argv0
     }
 
     /// Its child processes.
@@ -451,6 +462,9 @@ impl Process {
                 self.cmdline.push(' ');
             }
         }
+
+        self.argv0.clear();
+        self.argv0.push_str(self.cmdline.split(' ').next().unwrap());
 
         let entry = setup_userspace(executable_path, argv, envp, &self.root_fs)?;
 

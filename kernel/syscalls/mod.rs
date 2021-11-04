@@ -194,7 +194,7 @@ impl<'a> SyscallHandler<'a> {
             trace!(
                 "[{}:{}] syscall: {}({:x}, {:x}, {:x}, {:x}, {:x}, {:x})",
                 current.pid().as_i32(),
-                current.cmdline(),
+                current.argv0(),
                 syscall_name_by_number(n),
                 a1,
                 a2,

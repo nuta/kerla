@@ -29,6 +29,7 @@ pub fn fork(
         pid,
         state: ProcessState::Runnable,
         parent: parent_weak,
+        argv0: parent.argv0,
         cmdline: parent.cmdline,
         children: Vec::new(),
         vm: Some(Arc::new(SpinLock::new(vm))),
