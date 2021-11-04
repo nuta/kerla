@@ -46,8 +46,7 @@ jobs:
         run: >
           make run
           RELEASE=1
-          INIT_SCRIPT="TESTS_DIR=/tests /tests/run.sh"
-          SEMIHOSTING_HALT_ON_PANIC=1
+          INIT_SCRIPT="TESTS_DIR=/integration_tests /integration_tests/run.sh"
           DISABLE_AUTO_CR_PRINT=1
           | tee run.log
 
