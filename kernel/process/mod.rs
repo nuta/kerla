@@ -1,17 +1,11 @@
-use crate::{
-    arch::{self, SpinLock},
-    fs::opened_file::*,
-};
+use crate::arch::{self, SpinLock};
 
 use alloc::sync::Arc;
 
-use arch::{UserVAddr, KERNEL_STACK_SIZE, PAGE_SIZE, USER_STACK_TOP};
+use arch::UserVAddr;
 
-use core::cmp::max;
-use core::mem::size_of;
-
+use kerla_utils::lazy::Lazy;
 use kerla_utils::once::Once;
-use kerla_utils::{alignment::align_up, lazy::Lazy};
 
 mod cmdline;
 mod elf;
