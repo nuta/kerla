@@ -139,7 +139,15 @@ src-docs:
 
 .PHONY: lint
 lint:
-	RUSTFLAGS="-C panic=abort -Z panic_abort_tests" $(CARGO) clippy --fix -Z unstable-options --allow-dirty
+	RUSTFLAGS="-C panic=abort -Z panic_abort_tests" $(CARGO) clippy
+
+.PHONY: strict-lint
+strict-lint:
+	RUSTFLAGS="-C panic=abort -Z panic_abort_tests" $(CARGO) clippy -- -D warnings
+
+.PHONY: lint-and-fix
+lint-and-fix:
+	RUSTFLAGS="-C panic=abort -Z panic_abort_tests" $(CARGO) clippy --fix -Z unstable-options
 
 .PHONY: print-stack-sizes
 print-stack-sizes: build
