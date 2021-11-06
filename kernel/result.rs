@@ -1,7 +1,5 @@
 use core::fmt;
 
-use cfg_if::cfg_if;
-
 use crate::printk::{capture_backtrace, CapturedBacktrace};
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -105,24 +103,32 @@ impl Error {
 }
 
 impl fmt::Debug for Error {
+    #[cfg(not(debug_assertions))]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let Some(message) = self.message.as_ref() {
             match message {
                 ErrorMessage::StaticStr(message) => {
-                    cfg_if! {
-                        if #[cfg(debug_assertions)] {
-                            if let Some(ref trace) = self.backtrace {
-                                write!(
-                                    f,
-                                    "[{:?}] {}\n    This error originates from:\n{:?}",
-                                    self.errno, message, trace
-                                )
-                            } else {
-                                write!(f, "[{:?}] {}", self.errno, message)
-                            }
-                        } else {
-                            write!(f, "[{:?}] {}", self.errno, message)
-                        }
+                    write!(f, "[{:?}] {}", self.errno, message)
+                }
+            }
+        } else {
+            write!(f, "{:?}", self.errno)
+        }
+    }
+
+    #[cfg(debug_assertions)]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(message) = self.message.as_ref() {
+            match message {
+                ErrorMessage::StaticStr(message) => {
+                    if let Some(ref trace) = self.backtrace {
+                        write!(
+                            f,
+                            "[{:?}] {}\n    This error originates from:\n{:?}",
+                            self.errno, message, trace
+                        )
+                    } else {
+                        write!(f, "[{:?}] {}", self.errno, message)
                     }
                 }
             }
