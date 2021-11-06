@@ -59,7 +59,7 @@ This feature is in a very early stage and I guess **almost all images out there 
 
 ## Building and Running the OS
 
-See [Quickstart](https://github.com/nuta/kerla/blob/main/Documentation/quickstart.md) for instructions on building from source, running on emulators, etc.
+See [Quickstart](https://kerla.dev/docs/quickstart.html) for instructions on building from source, running on emulators, etc.
 
 ## Current Roadmap
 [Roadmap - Run a Node.js Web Application on Kerla on Firecracker on AWS](https://github.com/nuta/kerla/projects/1)
