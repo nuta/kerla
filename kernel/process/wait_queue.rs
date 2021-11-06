@@ -44,7 +44,7 @@ impl WaitQueue {
                 current_process().resume();
                 self.queue
                     .lock()
-                    .retain(|proc| !Arc::ptr_eq(&proc, current_process()));
+                    .retain(|proc| !Arc::ptr_eq(proc, current_process()));
                 return Err(Errno::EINTR.into());
             }
 
@@ -59,7 +59,7 @@ impl WaitQueue {
                 current_process().resume();
                 self.queue
                     .lock()
-                    .retain(|proc| !Arc::ptr_eq(&proc, current_process()));
+                    .retain(|proc| !Arc::ptr_eq(proc, current_process()));
                 return ret_value;
             }
 

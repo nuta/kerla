@@ -46,6 +46,7 @@ fn push_usize_to_stack(sp: &mut VAddr, stack_bottom: VAddr, value: usize) -> Res
 }
 
 fn push_aux_data_to_stack(sp: &mut VAddr, stack_bottom: VAddr, auxv: &Auxv) -> Result<()> {
+    #[allow(clippy::single_match)]
     match auxv {
         Auxv::Random(values) => push_bytes_to_stack(sp, stack_bottom, values.as_slice())?,
         _ => {}

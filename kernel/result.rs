@@ -126,22 +126,14 @@ impl fmt::Debug for Error {
                     }
                 }
             }
+        } else if let Some(ref trace) = self.backtrace {
+            write!(
+                f,
+                "{:?}: This error originates from:\n{:?}",
+                self.errno, trace
+            )
         } else {
-            cfg_if! {
-                if #[cfg(debug_assertions)] {
-                    if let Some(ref trace) = self.backtrace {
-                        write!(
-                            f,
-                            "{:?}: This error originates from:\n{:?}",
-                            self.errno, trace
-                        )
-                    } else {
-                        write!(f, "{:?}", self.errno)
-                    }
-                } else {
-                    write!(f, "{:?}", self.errno)
-                }
-            }
+            write!(f, "{:?}", self.errno)
         }
     }
 }

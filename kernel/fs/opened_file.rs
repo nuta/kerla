@@ -337,17 +337,14 @@ impl OpenedFileTable {
         }
 
         let mut opened_file = opened_file.lock();
-        match opened_file.path.inode {
-            INode::FileLike(ref file) => {
-                if let Some(new_file) = file.open(&options)? {
-                    opened_file.path = Arc::new(PathComponent {
-                        name: opened_file.path.name.clone(),
-                        parent_dir: opened_file.path.parent_dir.clone(),
-                        inode: new_file.into(),
-                    });
-                }
+        if let INode::FileLike(ref file) = opened_file.path.inode {
+            if let Some(new_file) = file.open(&options)? {
+                opened_file.path = Arc::new(PathComponent {
+                    name: opened_file.path.name.clone(),
+                    parent_dir: opened_file.path.parent_dir.clone(),
+                    inode: new_file.into(),
+                });
             }
-            _ => {}
         }
 
         Ok(())

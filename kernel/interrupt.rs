@@ -6,9 +6,9 @@ use core::mem::MaybeUninit;
 
 fn empty_irq_handler() {}
 
-const UNINITIALIZED_IRQ_HANDLER: MaybeUninit<Box<dyn FnMut() + Send + Sync>> =
-    MaybeUninit::uninit();
-static IRQ_HANDLERS: SpinLock<[MaybeUninit<Box<dyn FnMut() + Send + Sync>>; 256]> =
+type IrqHandler = dyn FnMut() + Send + Sync;
+const UNINITIALIZED_IRQ_HANDLER: MaybeUninit<Box<IrqHandler>> = MaybeUninit::uninit();
+static IRQ_HANDLERS: SpinLock<[MaybeUninit<Box<IrqHandler>>; 256]> =
     SpinLock::new([UNINITIALIZED_IRQ_HANDLER; 256]);
 
 pub fn init() {

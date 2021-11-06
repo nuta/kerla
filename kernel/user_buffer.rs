@@ -315,7 +315,7 @@ impl UserCStr {
     }
 
     pub fn as_bytes(&self) -> &[u8] {
-        &self.string.as_bytes()
+        self.string.as_bytes()
     }
 
     pub fn as_str(&self) -> &str {

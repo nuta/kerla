@@ -116,9 +116,7 @@ impl Vm {
         len: usize,
         area_type: VmAreaType,
     ) -> Result<()> {
-        if start.access_ok(len).is_err() {
-            return Err(Errno::EINVAL.into());
-        }
+        start.access_ok(len)?;
 
         if !self.is_free_vaddr_range(start, len) {
             return Err(Errno::EINVAL.into());

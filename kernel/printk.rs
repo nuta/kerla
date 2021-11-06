@@ -52,6 +52,14 @@ macro_rules! print {
 /// Prints a string and a newline.
 #[macro_export]
 macro_rules! println {
+    () => {{
+        let now = crate::timer::read_monotonic_clock();
+        $crate::print!(
+            concat!("[{:>4}.{:03}] "),
+            now.secs(),
+            now.msecs() % 1000,
+        );
+    }};
     ($fmt:expr) => {{
         let now = crate::timer::read_monotonic_clock();
         $crate::print!(
@@ -269,9 +277,9 @@ pub fn capture_backtrace() -> CapturedBacktrace {
 impl fmt::Debug for CapturedBacktrace {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for (i, frame) in self.trace.iter().enumerate() {
-            let _ = write!(
+            let _ = writeln!(
                 f,
-                "    #{}: {} {}()+0x{:x}\n",
+                "    #{}: {} {}()+0x{:x}",
                 i + 1,
                 frame.vaddr,
                 frame.symbol_name,

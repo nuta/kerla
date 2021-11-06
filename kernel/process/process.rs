@@ -209,11 +209,7 @@ impl Process {
 
     /// The process parent.
     fn parent(&self) -> Option<Arc<Process>> {
-        if let Some(parent) = &self.parent.upgrade() {
-            Some(parent.clone())
-        } else {
-            None
-        }
+        self.parent.upgrade().as_ref().cloned()
     }
 
     /// The ID of process being parent of this process.
@@ -318,7 +314,6 @@ impl Process {
 
         PROCESSES.lock().remove(&proc.pid);
         JOIN_WAIT_QUEUE.wake_all();
-        drop(proc);
         switch();
         unreachable!();
     }
@@ -427,7 +422,7 @@ impl Process {
         let arch = parent.arch.fork(parent_frame)?;
         let vm = parent.vm().as_ref().unwrap().lock().fork()?;
         let opened_files = parent.opened_files().lock().fork();
-        let process_group = parent.process_group().clone();
+        let process_group = parent.process_group();
 
         let child = Arc::new(Process {
             process_group: AtomicRefCell::new(Arc::downgrade(&process_group)),
@@ -514,7 +509,7 @@ fn do_setup_userspace(
         return do_setup_userspace(shebang_path, &argv, envp, root_fs, false);
     }
 
-    let elf = Elf::parse(&buf)?;
+    let elf = Elf::parse(buf)?;
     let ip = elf.entry()?;
 
     let mut end_of_image = 0;

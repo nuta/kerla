@@ -59,6 +59,6 @@ impl<'a> Elf<'a> {
 
     /// Program headers.
     pub fn program_headers(&self) -> &[ProgramHeader] {
-        &self.program_headers
+        self.program_headers
     }
 }

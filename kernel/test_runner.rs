@@ -15,7 +15,7 @@ where
     fn run(&self) {
         print!("{} ... ", core::any::type_name::<T>());
         self();
-        print!("\x1b[92mok\x1b[0m\n");
+        println!("\x1b[92mok\x1b[0m");
     }
 }
 
@@ -24,7 +24,7 @@ pub fn run_tests(tests: &[&dyn Testable]) {
     for test in tests {
         test.run();
     }
-    print!("\n");
+    println!();
     println!("\x1b[92mPassed all tests :)\x1b[0m\n");
 }
 
