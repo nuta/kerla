@@ -38,6 +38,10 @@ impl<T: ?Sized> SpinLock<T> {
             rflags,
         }
     }
+
+    pub fn is_locked(&self) -> bool {
+        self.inner.is_locked()
+    }
 }
 
 unsafe impl<T: ?Sized + Send> Sync for SpinLock<T> {}
