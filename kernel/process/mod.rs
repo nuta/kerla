@@ -1,5 +1,5 @@
 use crate::{
-    arch::{self, SpinLock, SpinLockGuard},
+    arch::{self, SpinLock},
     fs::opened_file::*,
 };
 
@@ -13,6 +13,7 @@ use core::mem::size_of;
 use kerla_utils::once::Once;
 use kerla_utils::{alignment::align_up, lazy::Lazy};
 
+mod cmdline;
 mod elf;
 pub mod fork;
 mod init_stack;
@@ -31,22 +32,22 @@ pub use wait_queue::WaitQueue;
 use self::scheduler::Scheduler;
 
 cpu_local! {
-    static ref CURRENT: Lazy<Arc<SpinLock<Process>>> = Lazy::new();
+    static ref CURRENT: Lazy<Arc<Process>> = Lazy::new();
 }
 
 cpu_local! {
     // TODO: Should be pub(super)
-    pub static ref IDLE_THREAD: Lazy<Arc<SpinLock<Process>>> = Lazy::new();
+    pub static ref IDLE_THREAD: Lazy<Arc<Process>> = Lazy::new();
 }
 
 static SCHEDULER: Once<SpinLock<Scheduler>> = Once::new();
 pub static JOIN_WAIT_QUEUE: Once<WaitQueue> = Once::new();
 
-pub fn current_process() -> SpinLockGuard<'static, Process> {
-    CURRENT.get().lock()
+pub fn current_process() -> &'static Arc<Process> {
+    CURRENT.get()
 }
 
-pub fn current_process_arc() -> &'static Arc<SpinLock<Process>> {
+pub fn current_process_arc() -> &'static Arc<Process> {
     CURRENT.get()
 }
 

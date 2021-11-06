@@ -117,10 +117,7 @@ impl LineDiscipline {
 
     fn is_current_foreground(&self) -> bool {
         let foreground_pg = &*self.foreground_process_group.lock();
-        Weak::ptr_eq(
-            current_process().process_group_weak(),
-            foreground_pg,
-        )
+        current_process().belongs_to_process_group(foreground_pg)
         // If the foreground process is not yet set, allow any processes to read
         // from the tty. I'm not sure whether it is a correct behaviour.
         || foreground_pg.upgrade().is_none()

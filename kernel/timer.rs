@@ -15,7 +15,7 @@ static TIMERS: SpinLock<Vec<Timer>> = SpinLock::new(Vec::new());
 
 struct Timer {
     current: usize,
-    process: Arc<SpinLock<Process>>,
+    process: Arc<Process>,
 }
 
 /// Suspends the current process at least `ms` milliseconds.
@@ -109,7 +109,7 @@ pub fn handle_timer_irq() {
 
         timers.retain(|timer| {
             if timer.current == 0 {
-                timer.process.lock().resume();
+                timer.process.resume();
             }
 
             timer.current > 0

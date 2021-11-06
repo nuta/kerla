@@ -27,7 +27,7 @@ impl<'a> SyscallHandler<'a> {
         trace!(
             "[{}:{}] open(\"{}\")",
             current.pid().as_i32(),
-            current.argv0(),
+            current.cmdline().argv0(),
             path.as_str()
         );
 

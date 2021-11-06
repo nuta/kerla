@@ -189,9 +189,6 @@ interrupt_common:
 
 .global kthread_entry
 kthread_entry:
-    // Release held locks before enabling interrupts.
-    call after_switch
-
     sti
 
     // Clear the frame pointer to stop backtracing here.
@@ -206,9 +203,6 @@ kthread_entry:
 
 .global userland_entry
 userland_entry:
-    // Release held locks before enabling interrupts.
-    call after_switch
-
     // Sanitize registers to prevent information leak.
     xor rax, rax
     xor rbx, rbx
@@ -232,8 +226,6 @@ userland_entry:
 
 .global forked_child_entry
 forked_child_entry:
-    call after_switch
-
     pop rdx
     pop rdi
     pop rsi

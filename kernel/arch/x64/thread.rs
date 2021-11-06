@@ -1,3 +1,5 @@
+use core::cell::UnsafeCell;
+
 use super::{
     address::VAddr,
     gdt::{USER_CS64, USER_DS},
@@ -11,16 +13,19 @@ use crate::{
     mm::page_allocator::{alloc_pages, AllocPageFlags},
     process::signal::Signal,
 };
+use crossbeam::atomic::AtomicCell;
 use x86::current::segmentation::wrfsbase;
 
 #[repr(C, packed)]
 pub struct Thread {
-    rsp: u64,
-    pub(super) fsbase: u64,
+    rsp: UnsafeCell<u64>,
+    pub(super) fsbase: AtomicCell<u64>,
     pub(super) xsave_area: Option<VAddr>,
     interrupt_stack: VAddr,
     syscall_stack: VAddr,
 }
+
+unsafe impl Sync for Thread {}
 
 extern "C" {
     fn kthread_entry();
@@ -65,8 +70,8 @@ impl Thread {
         };
 
         Thread {
-            rsp: rsp as u64,
-            fsbase: 0,
+            rsp: UnsafeCell::new(rsp as u64),
+            fsbase: AtomicCell::new(0),
             xsave_area: None,
             interrupt_stack,
             syscall_stack,
@@ -109,8 +114,8 @@ impl Thread {
         };
 
         Thread {
-            rsp: rsp as u64,
-            fsbase: 0,
+            rsp: UnsafeCell::new(rsp as u64),
+            fsbase: AtomicCell::new(0),
             xsave_area: Some(xsave_area),
             interrupt_stack,
             syscall_stack,
@@ -126,8 +131,8 @@ impl Thread {
             .as_vaddr();
 
         Thread {
-            rsp: 0,
-            fsbase: 0,
+            rsp: UnsafeCell::new(0),
+            fsbase: AtomicCell::new(0),
             xsave_area: None,
             interrupt_stack,
             syscall_stack,
@@ -183,8 +188,8 @@ impl Thread {
             .as_vaddr();
 
         Ok(Thread {
-            rsp: rsp as u64,
-            fsbase: self.fsbase,
+            rsp: UnsafeCell::new(rsp as u64),
+            fsbase: AtomicCell::new(self.fsbase.load()),
             xsave_area: Some(xsave_area),
             interrupt_stack,
             syscall_stack,
@@ -250,7 +255,7 @@ impl Thread {
     }
 }
 
-pub fn switch_thread(prev: &mut Thread, next: &mut Thread) {
+pub fn switch_thread(prev: &Thread, next: &Thread) {
     let head = cpu_local_head();
 
     // Switch the kernel stack.
@@ -275,7 +280,7 @@ pub fn switch_thread(prev: &mut Thread, next: &mut Thread) {
     head.rsp3 = 0xbaad_5a5a_5b5b_baad;
 
     unsafe {
-        wrfsbase(next.fsbase);
-        do_switch_thread(&mut prev.rsp as *mut u64, &mut next.rsp as *mut u64);
+        wrfsbase(next.fsbase.load());
+        do_switch_thread(prev.rsp.get(), next.rsp.get());
     }
 }

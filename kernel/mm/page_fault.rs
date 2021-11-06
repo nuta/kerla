@@ -13,24 +13,6 @@ use core::cmp::min;
 use core::slice;
 
 pub fn handle_page_fault(unaligned_vaddr: UserVAddr, ip: usize, _reason: PageFaultReason) {
-    // FIXME: A dead lock may occur here when the page fault originates from
-    //        a usercopy functions and the current process lock is held during
-    //        copying (e.g. Thread::setup_signal_stack).
-    //
-    //        Possible fixes are:
-    //
-    //            a) Add cpu-local variable `CURRENT_VM` akin to `CURRENT`, which
-    //               stores the current process's vm struct. Assuming that we
-    //               don't need to lock the vm struct when calling a usercopy
-    //               function.
-    //
-    //               A disadvantage of this approach is we can't access other fields
-    //               like PID, signal control block, etc.
-    //
-    //            b) Disable demand paging, namely, map all pages in advance
-    //               so that usercopy won't cause a page fault.
-    //
-    //        I do believe there's a better way to address this issue...
     let current = current_process();
     let aligned_vaddr = match UserVAddr::new_nonnull(align_down(unaligned_vaddr.value(), PAGE_SIZE))
     {
@@ -46,7 +28,8 @@ pub fn handle_page_fault(unaligned_vaddr: UserVAddr, ip: usize, _reason: PageFau
     };
 
     // Look for the associated vma area.
-    let mut vm = current.vm().unwrap().lock();
+    let vm_ref = current.vm();
+    let mut vm = vm_ref.as_ref().unwrap().lock();
     let vma = match vm
         .vm_areas()
         .iter()
@@ -59,6 +42,7 @@ pub fn handle_page_fault(unaligned_vaddr: UserVAddr, ip: usize, _reason: PageFau
                 unaligned_vaddr
             );
             drop(vm);
+            drop(vm_ref);
             Process::exit_by_signal(current, SIGSEGV);
         }
     };

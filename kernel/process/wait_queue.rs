@@ -5,7 +5,7 @@ use crate::{arch::SpinLock, result::Errno};
 use alloc::{collections::VecDeque, sync::Arc};
 
 pub struct WaitQueue {
-    queue: SpinLock<VecDeque<Arc<SpinLock<Process>>>>,
+    queue: SpinLock<VecDeque<Arc<Process>>>,
 }
 
 impl WaitQueue {
@@ -71,14 +71,14 @@ impl WaitQueue {
     pub fn _wake_one(&self) {
         let mut queue = self.queue.lock();
         if let Some(process) = queue.pop_front() {
-            process.lock().resume();
+            process.resume();
         }
     }
 
     pub fn wake_all(&self) {
         let mut queue = self.queue.lock();
         while let Some(process) = queue.pop_front() {
-            process.lock().resume();
+            process.resume();
         }
     }
 }

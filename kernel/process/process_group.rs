@@ -24,7 +24,7 @@ impl PgId {
 /// A process group.
 pub struct ProcessGroup {
     pgid: PgId,
-    processes: Vec<Weak<SpinLock<Process>>>,
+    processes: Vec<Weak<Process>>,
 }
 
 impl ProcessGroup {
@@ -58,12 +58,12 @@ impl ProcessGroup {
     }
 
     /// Adds a process into the group.
-    pub fn add(&mut self, proc: Weak<SpinLock<Process>>) {
+    pub fn add(&mut self, proc: Weak<Process>) {
         self.processes.push(proc);
     }
 
     /// Removes a process from the group.
-    pub fn remove(&mut self, proc: &Weak<SpinLock<Process>>) {
+    pub fn remove(&mut self, proc: &Weak<Process>) {
         self.processes.retain(|p| !Weak::ptr_eq(p, proc));
         if self.processes.is_empty() {
             PROCESS_GROUPS.lock().remove(&self.pgid);
@@ -81,7 +81,7 @@ impl ProcessGroup {
     /// Sends a signal to all processes in the proces group.
     pub fn signal(&mut self, signal: Signal) {
         for proc in &self.processes {
-            proc.upgrade().unwrap().lock().send_signal(signal);
+            proc.upgrade().unwrap().send_signal(signal);
         }
     }
 }

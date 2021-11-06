@@ -25,7 +25,8 @@ impl<'a> SyscallHandler<'a> {
             };
 
             current_process()
-                .signals_mut()
+                .signals()
+                .lock()
                 .set_action(signum, new_action)?;
         }
 
