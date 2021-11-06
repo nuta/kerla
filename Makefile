@@ -42,6 +42,7 @@ BOCHS      ?= bochs
 NM         ?= rust-nm
 READELF    ?= readelf
 STRIP      ?= rust-strip
+DRAWIO     ?= /Applications/draw.io.app/Contents/MacOS/draw.io
 
 export RUSTFLAGS = -Z emit-stack-sizes
 CARGOFLAGS += -Z build-std=core,alloc -Z build-std-features=compiler-builtins-mem
@@ -126,7 +127,11 @@ checkw:
 docs:
 	$(PROGRESS) "MDBOOK" build/docs
 	mkdir -p build
+	make doc-images
 	mdbook build -d $(topdir)/build/docs Documentation
+
+.PHONY: doc-images
+doc-images: $(patsubst %.drawio, %.svg, $(wildcard Documentation/*.drawio))
 
 .PHONY: docsw
 docsw:
@@ -172,3 +177,7 @@ build/$(IMAGE_FILENAME).initramfs: tools/docker2initramfs.py Makefile
 	$(PROGRESS) "EXPORT" $(IMAGE)
 	mkdir -p build
 	$(PYTHON3) tools/docker2initramfs.py $@ $(IMAGE)
+
+%.svg: %.drawio
+	$(PROGRESS) "DRAWIO" $@
+	$(DRAWIO) -x -f svg -o $@ $<

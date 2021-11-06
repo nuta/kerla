@@ -191,7 +191,7 @@ Not supported.
 | 168 | swapoff                | Unimplemented         |          |                                            |
 | 169 | reboot                 | Partially             | `v0.0.3` | Halts the system regardless of parameters. |
 | 170 | sethostname            | Unimplemented         |          |                                            |
-| 171 | setdov0.0.1name        | Unimplemented         |          |                                            |
+| 171 | setdomainname          | Unimplemented         |          |                                            |
 | 172 | iopl                   | Unimplemented         |          |                                            |
 | 173 | ioperm                 | Unimplemented         |          |                                            |
 | 174 | create_module          | Unimplemented         |          |                                            |
