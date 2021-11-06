@@ -1,4 +1,4 @@
-use super::{current_process, current_process_arc, switch, Process, ProcessState};
+use super::{current_process, switch, Process, ProcessState};
 use crate::result::Result;
 use crate::{arch::SpinLock, result::Errno};
 
@@ -38,13 +38,13 @@ impl WaitQueue {
             //  3. Enqueue the current thread into the wait queue.
             //  4. Enter the sleep state despite a RX packet exists on the queue!
             current_process().set_state(ProcessState::BlockedSignalable);
-            self.queue.lock().push_back(current_process_arc().clone());
+            self.queue.lock().push_back(current_process().clone());
 
             if current_process().has_pending_signals() {
                 current_process().resume();
                 self.queue
                     .lock()
-                    .retain(|proc| !Arc::ptr_eq(&proc, current_process_arc()));
+                    .retain(|proc| !Arc::ptr_eq(&proc, current_process()));
                 return Err(Errno::EINTR.into());
             }
 
@@ -59,7 +59,7 @@ impl WaitQueue {
                 current_process().resume();
                 self.queue
                     .lock()
-                    .retain(|proc| !Arc::ptr_eq(&proc, current_process_arc()));
+                    .retain(|proc| !Arc::ptr_eq(&proc, current_process()));
                 return ret_value;
             }
 

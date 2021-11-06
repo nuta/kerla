@@ -2,10 +2,10 @@ use crate::{
     arch::{SpinLock, TICK_HZ},
     ctypes::*,
     prelude::*,
-    process::{self, current_process_arc, Process, ProcessState},
+    process::{self, current_process, Process, ProcessState},
 };
 use core::sync::atomic::{AtomicUsize, Ordering};
-use process::{current_process, switch};
+use process::switch;
 
 const PREEMPT_PER_TICKS: usize = 30;
 static MONOTONIC_TICKS: AtomicUsize = AtomicUsize::new(0);
@@ -22,7 +22,7 @@ struct Timer {
 pub fn _sleep_ms(ms: usize) {
     TIMERS.lock().push(Timer {
         current: ms * TICK_HZ / 1000,
-        process: current_process_arc().clone(),
+        process: current_process().clone(),
     });
 
     current_process().set_state(ProcessState::BlockedSignalable);

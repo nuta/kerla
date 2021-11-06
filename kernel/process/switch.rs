@@ -15,7 +15,7 @@ pub fn switch() {
     // of the currently running thread.
     let interrupt_enabled = is_interrupt_enabled();
 
-    let prev = current_process_arc().clone();
+    let prev = current_process().clone();
     let prev_pid = prev.pid();
     let prev_state = prev.state();
     let next = {
