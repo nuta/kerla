@@ -124,6 +124,17 @@ checkw:
 
 .PHONY: docs
 docs:
+	$(PROGRESS) "MDBOOK" build/docs
+	mkdir -p build
+	mdbook build -d $(topdir)/build/docs Documentation
+
+.PHONY: docsw
+docsw:
+	mkdir -p build
+	mdbook serve -d $(topdir)/build/docs Documentation
+
+.PHONY: src-docs
+src-docs:
 	RUSTFLAGS="-C panic=abort -Z panic_abort_tests" $(CARGO) doc
 
 .PHONY: lint

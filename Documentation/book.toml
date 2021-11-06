@@ -5,5 +5,5 @@
 authors = ["Seiya Nuta"]
 language = "en"
 multilingual = false
-src = "Documentation"
+src = "."
 title = "Kerla Documentation"

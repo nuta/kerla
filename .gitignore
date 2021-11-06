@@ -1,7 +1,6 @@
 /target
 /build
 /isofiles
-/book
 *.elf
 *.bin
 *.pyc
