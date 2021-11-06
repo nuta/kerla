@@ -33,11 +33,11 @@ jobs:
       - name: Install cargo crates
         run: cargo install cargo-binutils rustfilt
 
-      - name: Lint
-        run: make strict-lint
-
       - name: Build Kerla
         run: make RELEASE=1
+
+      - name: Lint
+        run: make strict-lint
 
       - name: Install QEMU
         run: sudo apt-get update && sudo apt-get install -y qemu-system
