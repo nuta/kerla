@@ -17,7 +17,7 @@ pub fn switch() {
 
     let prev = current_process_arc().clone();
     let prev_pid = prev.pid();
-    let prev_state = prev.state.load();
+    let prev_state = prev.state();
     let next = {
         let scheduler = SCHEDULER.lock();
 

@@ -89,41 +89,20 @@ pub enum ProcessState {
 /// The process control block.
 pub struct Process {
     pub arch: arch::Thread,
-    pub(super) process_group: AtomicRefCell<Weak<SpinLock<ProcessGroup>>>,
-    pub(super) pid: PId,
-    pub(super) state: AtomicCell<ProcessState>,
-    pub(super) parent: Weak<Process>,
-    pub(super) cmdline: AtomicRefCell<Cmdline>,
-    pub(super) children: SpinLock<Vec<Arc<Process>>>,
-    pub(super) vm: AtomicRefCell<Option<Arc<SpinLock<Vm>>>>,
-    pub(super) opened_files: Arc<SpinLock<OpenedFileTable>>,
-    pub(super) root_fs: Arc<SpinLock<RootFs>>,
-    pub(super) signals: SpinLock<SignalDelivery>,
-    pub(super) signaled_frame: AtomicCell<Option<SyscallFrame>>,
+    process_group: AtomicRefCell<Weak<SpinLock<ProcessGroup>>>,
+    pid: PId,
+    state: AtomicCell<ProcessState>,
+    parent: Weak<Process>,
+    cmdline: AtomicRefCell<Cmdline>,
+    children: SpinLock<Vec<Arc<Process>>>,
+    vm: AtomicRefCell<Option<Arc<SpinLock<Vm>>>>,
+    opened_files: Arc<SpinLock<OpenedFileTable>>,
+    root_fs: Arc<SpinLock<RootFs>>,
+    signals: SpinLock<SignalDelivery>,
+    signaled_frame: AtomicCell<Option<SyscallFrame>>,
 }
 
 impl Process {
-    /*
-    /// Creates a kernel thread. Currently it's not used.
-    pub fn new_kthread(ip: VAddr) -> Result<Arc<Process>> {
-        let stack_bottom = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
-            .into_error_with_message(Errno::ENOMEM, "failed to allocate kernel stack")?;
-        let sp = stack_bottom.as_vaddr().add(KERNEL_STACK_SIZE);
-        let process = Arc::new(Process {
-            inner: SpinLock::new(MutableFields {
-                arch: arch::Thread::new_kthread(ip, sp),
-                state: ProcessState::Runnable,
-            }),
-            vm: None,
-            pid: alloc_pid().into_error_with_message(Errno::EAGAIN, "failed to allocate PID")?,
-            opened_files: Arc::new(SpinLock::new(OpenedFileTable::new())),
-        });
-
-        SCHEDULER.lock().enqueue(process.clone());
-        Ok(process)
-    }
-    */
-
     /// Creates a per-CPU idle thread.
     ///
     /// An idle thread is a special type of kernel threads which is executed
@@ -437,6 +416,39 @@ impl Process {
         self.arch
             .setup_execve_stack(frame, entry.ip, entry.user_sp)?;
         Ok(())
+    }
+
+    /// Creates a new process. The calling process (`self`) will be the parent
+    /// process of the created process. Returns the created child process.
+    pub fn fork(parent: &Arc<Process>, parent_frame: &SyscallFrame) -> Result<Arc<Process>> {
+        let parent_weak = Arc::downgrade(parent);
+        let mut process_table = PROCESSES.lock();
+        let pid = alloc_pid(&mut process_table)?;
+        let arch = parent.arch.fork(parent_frame)?;
+        let vm = parent.vm().as_ref().unwrap().lock().fork()?;
+        let opened_files = parent.opened_files().lock().fork();
+        let process_group = parent.process_group().clone();
+
+        let child = Arc::new(Process {
+            process_group: AtomicRefCell::new(Arc::downgrade(&process_group)),
+            pid,
+            state: AtomicCell::new(ProcessState::Runnable),
+            parent: parent_weak,
+            cmdline: AtomicRefCell::new(parent.cmdline().clone()),
+            children: SpinLock::new(Vec::new()),
+            vm: AtomicRefCell::new(Some(Arc::new(SpinLock::new(vm)))),
+            opened_files: Arc::new(SpinLock::new(opened_files)),
+            root_fs: parent.root_fs().clone(),
+            arch,
+            signals: SpinLock::new(SignalDelivery::new()),
+            signaled_frame: AtomicCell::new(None),
+        });
+
+        process_group.lock().add(Arc::downgrade(&child));
+        parent.children().push(child.clone());
+        process_table.insert(pid, child.clone());
+        SCHEDULER.lock().enqueue(pid);
+        Ok(child)
     }
 }
 

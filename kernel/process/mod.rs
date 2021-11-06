@@ -15,7 +15,6 @@ use kerla_utils::{alignment::align_up, lazy::Lazy};
 
 mod cmdline;
 mod elf;
-pub mod fork;
 mod init_stack;
 #[allow(clippy::module_inception)]
 mod process;
