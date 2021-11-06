@@ -247,8 +247,6 @@ impl BuddyAllocator {
     }
 }
 
-unsafe impl Send for BuddyAllocator {}
-
 #[cfg(all(test, not(feature = "no_std")))]
 mod tests {
     use super::*;
