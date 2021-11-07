@@ -386,6 +386,11 @@ impl OpenedFileTable {
         self.clone()
     }
 
+    /// Closes all opened files.
+    pub fn close_all(&mut self) {
+        self.files.clear();
+    }
+
     /// Closes opened files with `CLOEXEC` set.
     pub fn close_cloexec_files(&mut self) {
         for slot in &mut self.files {
