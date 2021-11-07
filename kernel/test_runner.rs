@@ -1,4 +1,5 @@
 #![cfg(test)]
+#![allow(clippy::print_with_newline)]
 
 use crate::arch::*;
 use core::panic::PanicInfo;
