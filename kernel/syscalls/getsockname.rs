@@ -12,7 +12,6 @@ impl<'a> SyscallHandler<'a> {
             .opened_files()
             .lock()
             .get(fd)?
-            .lock()
             .getsockname()?;
 
         write_sockaddr(&endpoint, Some(sockaddr), Some(socklen))?;

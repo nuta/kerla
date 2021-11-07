@@ -33,12 +33,7 @@ impl<'a> SyscallHandler<'a> {
                 let revents = if fd.as_int() < 0 || events.is_empty() {
                     0
                 } else {
-                    let status = current_process()
-                        .opened_files()
-                        .lock()
-                        .get(fd)?
-                        .lock()
-                        .poll()?;
+                    let status = current_process().opened_files().lock().get(fd)?.poll()?;
 
                     let revents = events & status;
                     if !revents.is_empty() {

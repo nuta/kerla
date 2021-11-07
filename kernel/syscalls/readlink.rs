@@ -18,7 +18,6 @@ impl<'a> SyscallHandler<'a> {
                 .opened_files()
                 .lock()
                 .get(Fd::new(fd))?
-                .lock()
                 .path()
                 .resolve_absolute_path()
         } else {

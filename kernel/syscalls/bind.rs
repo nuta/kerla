@@ -6,7 +6,7 @@ impl<'a> SyscallHandler<'a> {
     pub fn sys_bind(&mut self, fd: Fd, addr: UserVAddr, addr_len: usize) -> Result<isize> {
         let sockaddr = read_sockaddr(addr, addr_len)?;
         let opened_file = current_process().get_opened_file_by_fd(fd)?;
-        opened_file.lock().bind(sockaddr)?;
+        opened_file.bind(sockaddr)?;
         Ok(0)
     }
 }

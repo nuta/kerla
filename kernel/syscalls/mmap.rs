@@ -32,7 +32,6 @@ impl<'a> SyscallHandler<'a> {
                 .opened_files()
                 .lock()
                 .get(fd)?
-                .lock()
                 .as_file()?
                 .clone();
 

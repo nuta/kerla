@@ -19,13 +19,12 @@ impl<'a> SyscallHandler<'a> {
         let mut opened_files = current.opened_files().lock();
         match cmd {
             F_SETFD => {
-                opened_files.get(fd)?.lock().set_cloexec(arg == 1);
+                opened_files.get(fd)?.set_cloexec(arg == 1);
                 Ok(0)
             }
             F_SETFL => {
                 opened_files
                     .get(fd)?
-                    .lock()
                     .set_flags(OpenFlags::from_bits_truncate(arg as i32))?;
                 Ok(0)
             }

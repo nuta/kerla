@@ -161,7 +161,7 @@ impl RootFs {
                 CwdOrFd::AtCwd => Ok(self.cwd_path.clone()),
                 CwdOrFd::Fd(fd) => {
                     let opened_file = opened_files.get(*fd)?;
-                    Ok(opened_file.lock().path().clone())
+                    Ok(opened_file.path().clone())
                 }
             }
         }

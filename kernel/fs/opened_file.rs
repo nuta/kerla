@@ -5,9 +5,11 @@ use super::{
 use crate::ctypes::c_int;
 use crate::fs::inode::PollStatus;
 use crate::prelude::*;
-use crate::{arch::SpinLock, user_buffer::UserBufferMut};
+use crate::user_buffer::UserBufferMut;
 use crate::{net::*, user_buffer::UserBuffer};
+use atomic_refcell::AtomicRefCell;
 use bitflags::bitflags;
+use crossbeam::atomic::AtomicCell;
 
 const FD_MAX: c_int = 1024;
 
@@ -141,13 +143,17 @@ impl PathComponent {
 /// This instance can be shared with multiple processes because of fork(2).
 pub struct OpenedFile {
     path: Arc<PathComponent>,
-    pos: usize,
-    options: OpenOptions,
+    pos: AtomicCell<usize>,
+    options: AtomicRefCell<OpenOptions>,
 }
 
 impl OpenedFile {
     pub fn new(path: Arc<PathComponent>, options: OpenOptions, pos: usize) -> OpenedFile {
-        OpenedFile { path, pos, options }
+        OpenedFile {
+            path,
+            pos: AtomicCell::new(pos),
+            options: AtomicRefCell::new(options),
+        }
     }
 
     pub fn as_file(&self) -> Result<&Arc<dyn FileLike>> {
@@ -159,7 +165,11 @@ impl OpenedFile {
     }
 
     pub fn pos(&self) -> usize {
-        self.pos
+        self.pos.load()
+    }
+
+    pub fn options(&self) -> OpenOptions {
+        *self.options.borrow()
     }
 
     pub fn path(&self) -> &Arc<PathComponent> {
@@ -170,82 +180,105 @@ impl OpenedFile {
         &self.path.inode
     }
 
-    pub fn read(&mut self, buf: UserBufferMut<'_>) -> Result<usize> {
-        let read_len = self.as_file()?.read(self.pos, buf, &self.options)?;
-        self.pos += read_len;
+    pub fn read(&self, buf: UserBufferMut<'_>) -> Result<usize> {
+        // Avoid holding self.options and self.pos locks by copying.
+        let options = self.options();
+        let pos = self.pos();
+
+        let read_len = self.as_file()?.read(pos, buf, &options)?;
+        self.pos.fetch_add(read_len);
         Ok(read_len)
     }
 
-    pub fn write(&mut self, buf: UserBuffer<'_>) -> Result<usize> {
-        let written_len = self.as_file()?.write(self.pos, buf, &self.options)?;
-        self.pos += written_len;
+    pub fn write(&self, buf: UserBuffer<'_>) -> Result<usize> {
+        // Avoid holding self.options and self.pos locks by copying.
+        let options = self.options();
+        let pos = self.pos();
+
+        let written_len = self.as_file()?.write(pos, buf, &options)?;
+        self.pos.fetch_add(written_len);
         Ok(written_len)
     }
 
-    pub fn set_cloexec(&mut self, cloexec: bool) {
+    pub fn set_cloexec(&self, cloexec: bool) {
         // FIXME: Modify LocalOpenedFile as well!
-        self.options.close_on_exec = cloexec;
+        self.options.borrow_mut().close_on_exec = cloexec;
     }
 
-    pub fn set_flags(&mut self, flags: OpenFlags) -> Result<()> {
+    pub fn set_flags(&self, flags: OpenFlags) -> Result<()> {
         if flags.contains(OpenFlags::O_NONBLOCK) {
-            self.options.nonblock = true;
+            self.options.borrow_mut().nonblock = true;
         }
 
         Ok(())
     }
 
-    pub fn fsync(&mut self) -> Result<()> {
+    pub fn fsync(&self) -> Result<()> {
         self.path.inode.fsync()
     }
 
-    pub fn ioctl(&mut self, cmd: usize, arg: usize) -> Result<isize> {
+    pub fn ioctl(&self, cmd: usize, arg: usize) -> Result<isize> {
         self.as_file()?.ioctl(cmd, arg)
     }
 
-    pub fn listen(&mut self, backlog: i32) -> Result<()> {
+    pub fn listen(&self, backlog: i32) -> Result<()> {
         self.as_file()?.listen(backlog)
     }
 
-    pub fn accept(&mut self) -> Result<(Arc<dyn FileLike>, SockAddr)> {
-        self.as_file()?.accept(&self.options)
+    pub fn accept(&self) -> Result<(Arc<dyn FileLike>, SockAddr)> {
+        // Avoid holding self.options lock by copying.
+        let options = self.options();
+
+        self.as_file()?.accept(&options)
     }
 
-    pub fn bind(&mut self, sockaddr: SockAddr) -> Result<()> {
+    pub fn bind(&self, sockaddr: SockAddr) -> Result<()> {
         self.as_file()?.bind(sockaddr)
     }
 
-    pub fn getsockname(&mut self) -> Result<SockAddr> {
+    pub fn getsockname(&self) -> Result<SockAddr> {
         self.as_file()?.getsockname()
     }
 
-    pub fn getpeername(&mut self) -> Result<SockAddr> {
+    pub fn getpeername(&self) -> Result<SockAddr> {
         self.as_file()?.getpeername()
     }
 
-    pub fn connect(&mut self, sockaddr: SockAddr) -> Result<()> {
-        self.as_file()?.connect(sockaddr, &self.options)
+    pub fn connect(&self, sockaddr: SockAddr) -> Result<()> {
+        // Avoid holding self.options lock by copying.
+        let options = self.options();
+
+        self.as_file()?.connect(sockaddr, &options)
     }
 
-    pub fn sendto(&mut self, buf: UserBuffer<'_>, sockaddr: Option<SockAddr>) -> Result<usize> {
-        self.as_file()?.sendto(buf, sockaddr, &self.options)
+    pub fn sendto(&self, buf: UserBuffer<'_>, sockaddr: Option<SockAddr>) -> Result<usize> {
+        // Avoid holding self.options lock by copying.
+        let options = self.options();
+
+        self.as_file()?.sendto(buf, sockaddr, &options)
     }
 
     pub fn recvfrom(
-        &mut self,
+        &self,
         buf: UserBufferMut<'_>,
         flags: RecvFromFlags,
     ) -> Result<(usize, SockAddr)> {
-        self.as_file()?.recvfrom(buf, flags, &self.options)
+        // Avoid holding self.options lock by copying.
+        let options = self.options();
+
+        self.as_file()?.recvfrom(buf, flags, &options)
     }
 
-    pub fn poll(&mut self) -> Result<PollStatus> {
+    pub fn poll(&self) -> Result<PollStatus> {
         self.as_file()?.poll()
     }
 
-    pub fn readdir(&mut self) -> Result<Option<DirEntry>> {
-        let entry = self.as_dir()?.readdir(self.pos)?;
-        self.pos += 1;
+    pub fn readdir(&self) -> Result<Option<DirEntry>> {
+        // Avoid holding self.pos lock by copying.
+        let pos = self.pos();
+
+        let entry = self.as_dir()?.readdir(pos)?;
+        self.pos.fetch_add(1);
         Ok(entry)
     }
 }
@@ -253,7 +286,7 @@ impl OpenedFile {
 /// A opened file with process-local fields.
 #[derive(Clone)]
 struct LocalOpenedFile {
-    opened_file: Arc<SpinLock<OpenedFile>>,
+    opened_file: Arc<OpenedFile>,
     close_on_exec: bool,
 }
 
@@ -273,7 +306,7 @@ impl OpenedFileTable {
     }
 
     /// Resolves the opened file by the file descriptor.
-    pub fn get(&self, fd: Fd) -> Result<&Arc<SpinLock<OpenedFile>>> {
+    pub fn get(&self, fd: Fd) -> Result<&Arc<OpenedFile>> {
         match self.files.get(fd.as_usize()) {
             Some(Some(LocalOpenedFile { opened_file, .. })) => Ok(opened_file),
             _ => Err(Error::new(Errno::EBADF)),
@@ -295,11 +328,11 @@ impl OpenedFileTable {
         self.alloc_fd(None).and_then(|fd| {
             self.open_with_fixed_fd(
                 fd,
-                Arc::new(SpinLock::new(OpenedFile {
+                Arc::new(OpenedFile {
                     path,
-                    options,
-                    pos: 0,
-                })),
+                    options: AtomicRefCell::new(options),
+                    pos: AtomicCell::new(0),
+                }),
                 options,
             )
             .map(|_| fd)
@@ -312,9 +345,25 @@ impl OpenedFileTable {
     pub fn open_with_fixed_fd(
         &mut self,
         fd: Fd,
-        opened_file: Arc<SpinLock<OpenedFile>>,
+        mut opened_file: Arc<OpenedFile>,
         options: OpenOptions,
     ) -> Result<()> {
+        if let INode::FileLike(file) = &opened_file.path.inode {
+            if let Some(new_inode) = file.open(&options)? {
+                // Replace inode if FileLike::open returned Some. Currently it's
+                // used only for /dev/ptmx.
+                opened_file = Arc::new(OpenedFile {
+                    pos: AtomicCell::new(0),
+                    options: AtomicRefCell::new(options),
+                    path: Arc::new(PathComponent {
+                        name: opened_file.path.name.clone(),
+                        parent_dir: opened_file.path.parent_dir.clone(),
+                        inode: new_inode.into(),
+                    }),
+                })
+            }
+        }
+
         match self.files.get_mut(fd.as_usize()) {
             Some(Some(_)) => {
                 return Err(Error::with_message(
@@ -336,17 +385,6 @@ impl OpenedFileTable {
                 self.files[fd.as_usize()] = Some(LocalOpenedFile {
                     opened_file: opened_file.clone(),
                     close_on_exec: options.close_on_exec,
-                });
-            }
-        }
-
-        let mut opened_file = opened_file.lock();
-        if let INode::FileLike(ref file) = opened_file.path.inode {
-            if let Some(new_file) = file.open(&options)? {
-                opened_file.path = Arc::new(PathComponent {
-                    name: opened_file.path.name.clone(),
-                    parent_dir: opened_file.path.parent_dir.clone(),
-                    inode: new_file.into(),
                 });
             }
         }
