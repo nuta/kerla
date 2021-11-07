@@ -315,6 +315,11 @@ impl Process {
             parent.send_signal(SIGCHLD);
         }
 
+        // Close opened files here instead of in Drop::drop because `proc` is
+        // not dropped until it's joined by the parent process. Drop them to
+        // make pipes closed.
+        proc.opened_files.lock().close_all();
+
         PROCESSES.lock().remove(&proc.pid);
         JOIN_WAIT_QUEUE.wake_all();
         switch();

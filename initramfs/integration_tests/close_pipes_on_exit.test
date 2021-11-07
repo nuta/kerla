@@ -1,0 +1,13 @@
+#
+# Checks if a pipe is closed on a process exit.
+#
+# Busybox runs $(echo foo) in a forked process and the parent process read child's
+# output through a pipe until read(2) return 0, i.e. EOF. Since the parent calls
+# wait4(2) after the pipe is closed, on child's exit, its opened files must be
+# closed to return EOF to the parent.
+#
+# This script is a regression test for: https://github.com/nuta/kerla/issues/54
+set -ue
+
+result=$(echo hello from pipe)
+echo $result | grep "hello from pipe"
