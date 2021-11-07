@@ -1,3 +1,5 @@
+use core::fmt;
+
 use crate::{
     fs::{
         inode::{FileLike, INodeNo},
@@ -15,6 +17,12 @@ pub(super) struct NullFile {}
 impl NullFile {
     pub fn new() -> NullFile {
         NullFile {}
+    }
+}
+
+impl fmt::Debug for NullFile {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("DevNull").finish()
     }
 }
 

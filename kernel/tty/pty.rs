@@ -1,6 +1,6 @@
 //! Pseudo-terminal (PTY).
 
-use core::cmp::min;
+use core::{cmp::min, fmt};
 
 use alloc::sync::Arc;
 use alloc::vec::Vec;
@@ -135,6 +135,14 @@ impl FileLike for PtyMaster {
     }
 }
 
+impl fmt::Debug for PtyMaster {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("PtyMaster")
+            .field("index", &self.index)
+            .finish()
+    }
+}
+
 pub struct PtySlave {
     master: Arc<PtyMaster>,
 }
@@ -223,6 +231,14 @@ impl FileLike for PtySlave {
     }
 }
 
+impl fmt::Debug for PtySlave {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("PtySlave")
+            .field("master", &self.master.index)
+            .finish()
+    }
+}
+
 pub struct Ptmx {
     pts_dir: Arc<tmpfs::Dir>,
 }
@@ -265,5 +281,11 @@ impl FileLike for Ptmx {
         let status = PollStatus::empty();
         // TODO: What should we return?
         Ok(status)
+    }
+}
+
+impl fmt::Debug for Ptmx {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Ptmx").finish()
     }
 }

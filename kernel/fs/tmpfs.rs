@@ -2,7 +2,10 @@ use crate::{
     prelude::*,
     user_buffer::{UserBufReader, UserBufWriter},
 };
-use core::sync::atomic::{AtomicUsize, Ordering};
+use core::{
+    fmt,
+    sync::atomic::{AtomicUsize, Ordering},
+};
 
 use super::{
     file_system::FileSystem,
@@ -172,6 +175,12 @@ impl Directory for Dir {
     }
 }
 
+impl fmt::Debug for Dir {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("TmpFsDir").finish()
+    }
+}
+
 struct File {
     data: SpinLock<Vec<u8>>,
     stat: Stat,
@@ -210,6 +219,12 @@ impl FileLike for File {
         let mut reader = UserBufReader::from(buf);
         data.resize(offset + reader.remaining_len(), 0);
         reader.read_bytes(&mut data[offset..])
+    }
+}
+
+impl fmt::Debug for File {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("TmpFsFile").finish()
     }
 }
 

@@ -30,7 +30,7 @@ impl DevFs {
         let pts_dir = root_dir.add_dir("pts");
 
         NULL_FILE.init(|| Arc::new(NullFile::new()) as Arc<dyn FileLike>);
-        SERIAL_TTY.init(|| Arc::new(Tty::new()));
+        SERIAL_TTY.init(|| Arc::new(Tty::new("serial")));
         PTMX.init(|| Arc::new(Ptmx::new(pts_dir)));
 
         root_dir.add_file("null", NULL_FILE.clone());

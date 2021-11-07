@@ -1,3 +1,6 @@
+use arrayvec::ArrayString;
+use core::fmt;
+
 use crate::{
     arch::{print_str, SpinLock, UserVAddr},
     ctypes::*,
@@ -15,12 +18,16 @@ use crate::{
 };
 
 pub struct Tty {
+    name: ArrayString<8>,
     discipline: LineDiscipline,
 }
 
 impl Tty {
-    pub fn new() -> Tty {
+    pub fn new(name: &str) -> Tty {
+        let mut name_buf = ArrayString::new();
+        let _ = name_buf.try_push_str(name);
         Tty {
+            name: name_buf,
             discipline: LineDiscipline::new(),
         }
     }
@@ -50,6 +57,12 @@ impl Tty {
 const TIOCGPGRP: usize = 0x540f;
 const TIOCSPGRP: usize = 0x5410;
 const TIOCGWINSZ: usize = 0x5413;
+
+impl fmt::Debug for Tty {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Tty").field("name", &self.name).finish()
+    }
+}
 
 impl FileLike for Tty {
     fn ioctl(&self, cmd: usize, arg: usize) -> Result<isize> {
