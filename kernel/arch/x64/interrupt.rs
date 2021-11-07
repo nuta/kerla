@@ -195,11 +195,3 @@ unsafe extern "C" fn x64_handle_interrupt(vec: u8, frame: *const InterruptFrame)
         }
     }
 }
-
-pub unsafe fn enable_interrupt() {
-    asm!("sti");
-}
-
-pub fn is_interrupt_enabled() -> bool {
-    x86::current::rflags::read().contains(RFlags::FLAGS_IF)
-}
