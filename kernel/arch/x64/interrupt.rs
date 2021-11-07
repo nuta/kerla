@@ -4,7 +4,7 @@ use super::{
 use crate::{
     interrupt::handle_irq,
     mm::page_fault::handle_page_fault,
-    process::{current_process, signal::SIGSEGV, Process},
+    process::{signal::SIGSEGV, Process},
     timer::handle_timer_irq,
 };
 
@@ -164,7 +164,7 @@ unsafe extern "C" fn x64_handle_interrupt(vec: u8, frame: *const InterruptFrame)
                         cr2(),
                         frame.rip,
                     );
-                    Process::exit_by_signal(current_process(), SIGSEGV);
+                    Process::exit_by_signal(SIGSEGV);
                 }
             };
 

@@ -17,6 +17,7 @@ use crate::{
     prelude::*,
     process::{
         cmdline::Cmdline,
+        current_process,
         elf::{Elf, ProgramHeader},
         init_stack::{estimate_user_init_stack_size, init_user_stack, Auxv},
         process_group::{PgId, ProcessGroup},
@@ -91,7 +92,7 @@ pub enum ProcessState {
 
 /// The process control block.
 pub struct Process {
-    pub arch: arch::Thread,
+    arch: arch::Process,
     process_group: AtomicRefCell<Weak<SpinLock<ProcessGroup>>>,
     pid: PId,
     state: AtomicCell<ProcessState>,
@@ -99,7 +100,7 @@ pub struct Process {
     cmdline: AtomicRefCell<Cmdline>,
     children: SpinLock<Vec<Arc<Process>>>,
     vm: AtomicRefCell<Option<Arc<SpinLock<Vm>>>>,
-    opened_files: Arc<SpinLock<OpenedFileTable>>,
+    opened_files: SpinLock<OpenedFileTable>,
     root_fs: Arc<SpinLock<RootFs>>,
     signals: SpinLock<SignalDelivery>,
     signaled_frame: AtomicCell<Option<SyscallFrame>>,
@@ -114,7 +115,7 @@ impl Process {
         let process_group = ProcessGroup::new(PgId::new(0));
         let proc = Arc::new(Process {
             process_group: AtomicRefCell::new(Arc::downgrade(&process_group)),
-            arch: arch::Thread::new_idle_thread(),
+            arch: arch::Process::new_idle_thread(),
             state: AtomicCell::new(ProcessState::Runnable),
             parent: Weak::new(),
             cmdline: AtomicRefCell::new(Cmdline::new()),
@@ -122,7 +123,7 @@ impl Process {
             vm: AtomicRefCell::new(None),
             pid: PId::new(0),
             root_fs: INITIAL_ROOT_FS.clone(),
-            opened_files: Arc::new(SpinLock::new(OpenedFileTable::new())),
+            opened_files: SpinLock::new(OpenedFileTable::new()),
             signals: SpinLock::new(SignalDelivery::new()),
             signaled_frame: AtomicCell::new(None),
         });
@@ -184,9 +185,9 @@ impl Process {
             children: SpinLock::new(Vec::new()),
             state: AtomicCell::new(ProcessState::Runnable),
             cmdline: AtomicRefCell::new(Cmdline::from_argv(argv)),
-            arch: arch::Thread::new_user_thread(entry.ip, entry.user_sp, kernel_sp),
+            arch: arch::Process::new_user_thread(entry.ip, entry.user_sp, kernel_sp),
             vm: AtomicRefCell::new(Some(Arc::new(SpinLock::new(entry.vm)))),
-            opened_files: Arc::new(SpinLock::new(opened_files)),
+            opened_files: SpinLock::new(opened_files),
             root_fs,
             signals: SpinLock::new(SignalDelivery::new()),
             signaled_frame: AtomicCell::new(None),
@@ -208,6 +209,11 @@ impl Process {
     /// The process ID.
     pub fn pid(&self) -> PId {
         self.pid
+    }
+
+    /// The arch-specific information.
+    pub fn arch(&self) -> &arch::Process {
+        &self.arch
     }
 
     /// The process parent.
@@ -239,7 +245,7 @@ impl Process {
     }
 
     /// The ppened files table.
-    pub fn opened_files(&self) -> &Arc<SpinLock<OpenedFileTable>> {
+    pub fn opened_files(&self) -> &SpinLock<OpenedFileTable> {
         &self.opened_files
     }
 
@@ -303,35 +309,32 @@ impl Process {
         Ok(self.opened_files.lock().get(fd)?.clone())
     }
 
-    /// Terminates the **current** process. `proc` must be the current process
-    /// lock.
-    pub fn exit(proc: &Arc<Process>, status: c_int) -> ! {
-        if proc.pid == PId::new(1) {
+    /// Terminates the **current** process.
+    pub fn exit(status: c_int) -> ! {
+        let current = current_process();
+        if current.pid == PId::new(1) {
             panic!("init (pid=0) tried to exit")
         }
 
-        proc.set_state(ProcessState::ExitedWith(status));
-        if let Some(parent) = proc.parent.upgrade() {
+        current.set_state(ProcessState::ExitedWith(status));
+        if let Some(parent) = current.parent.upgrade() {
             parent.send_signal(SIGCHLD);
         }
 
         // Close opened files here instead of in Drop::drop because `proc` is
         // not dropped until it's joined by the parent process. Drop them to
         // make pipes closed.
-        proc.opened_files.lock().close_all();
+        current.opened_files.lock().close_all();
 
-        PROCESSES.lock().remove(&proc.pid);
+        PROCESSES.lock().remove(&current.pid);
         JOIN_WAIT_QUEUE.wake_all();
         switch();
         unreachable!();
     }
 
-    /// Terminates the **current** process by a signal. `proc` must be the
-    /// current process lock.
-    pub fn exit_by_signal(proc: &Arc<Process>, _signal: Signal) -> ! {
-        Process::exit(
-            proc, 1, /* FIXME: how should we compute the exit status? */
-        );
+    /// Terminates the **current** process by a signal.
+    pub fn exit_by_signal(_signal: Signal) -> ! {
+        Process::exit(1 /* FIXME: how should we compute the exit status? */);
     }
 
     /// Sends a signal.
@@ -345,22 +348,19 @@ impl Process {
         self.signals.lock().is_pending()
     }
 
-    /// Tries to delivering a pending signal.
+    /// Tries to delivering a pending signal to the current process.
     ///
     /// If there's a pending signal, it may modify `frame` (e.g. user return
     /// address and stack pointer) to call the registered user's signal handler.
-    ///
-    /// **This method must be called only from the current process in the
-    /// system call handler.**
-    pub fn try_delivering_signal(current: &Arc<Process>, frame: &mut SyscallFrame) -> Result<()> {
+    pub fn try_delivering_signal(frame: &mut SyscallFrame) -> Result<()> {
         // TODO: sigmask
-
+        let current = current_process();
         if let Some((signal, sigaction)) = current.signals.lock().pop_pending() {
             match sigaction {
                 SigAction::Ignore => {}
                 SigAction::Terminate => {
                     trace!("terminating {:?} by {:?}", current.pid, signal,);
-                    Process::exit(current, 1 /* FIXME: */);
+                    Process::exit(1 /* FIXME: */);
                 }
                 SigAction::Handler { handler } => {
                     trace!("delivering {:?} to {:?}", signal, current.pid,);
@@ -385,39 +385,38 @@ impl Process {
         } else {
             // The user intentionally called sigreturn(2) while it is not signaled.
             // TODO: Should we ignore instead of the killing the process?
-            Process::exit_by_signal(current, SIGKILL);
+            Process::exit_by_signal(SIGKILL);
         }
     }
 
     /// Creates a new virtual memory space, loads the executable, and overwrites
-    /// the process.
+    /// the **current** process.
     ///
     /// It modifies `frame` to start from the new executable's entry point with
     /// new stack (ie. argv and envp) when the system call handler returns into
     /// the userspace.
-    ///
-    /// **This method must be called only from the current process in the
-    /// system call handler.**
     pub fn execve(
-        &self,
         frame: &mut SyscallFrame,
         executable_path: Arc<PathComponent>,
         argv: &[&[u8]],
         envp: &[&[u8]],
     ) -> Result<()> {
-        self.opened_files.lock().close_cloexec_files();
-        self.cmdline.borrow_mut().set_by_argv(argv);
+        let current = current_process();
+        current.opened_files.lock().close_cloexec_files();
+        current.cmdline.borrow_mut().set_by_argv(argv);
 
-        let entry = setup_userspace(executable_path, argv, envp, &self.root_fs)?;
+        let entry = setup_userspace(executable_path, argv, envp, &current.root_fs)?;
 
         // FIXME: Should we prevent try_delivering_signal()?
-        self.signaled_frame.store(None);
+        current.signaled_frame.store(None);
 
         entry.vm.page_table().switch();
-        *self.vm.borrow_mut() = Some(Arc::new(SpinLock::new(entry.vm)));
+        *current.vm.borrow_mut() = Some(Arc::new(SpinLock::new(entry.vm)));
 
-        self.arch
+        current
+            .arch
             .setup_execve_stack(frame, entry.ip, entry.user_sp)?;
+
         Ok(())
     }
 
@@ -440,7 +439,7 @@ impl Process {
             cmdline: AtomicRefCell::new(parent.cmdline().clone()),
             children: SpinLock::new(Vec::new()),
             vm: AtomicRefCell::new(Some(Arc::new(SpinLock::new(vm)))),
-            opened_files: Arc::new(SpinLock::new(opened_files)),
+            opened_files: SpinLock::new(opened_files),
             root_fs: parent.root_fs().clone(),
             arch,
             signals: SpinLock::new(SignalDelivery::new()),
@@ -457,6 +456,12 @@ impl Process {
 
 impl Drop for Process {
     fn drop(&mut self) {
+        trace!(
+            "dropping {:?} (cmdline={})",
+            self.pid(),
+            self.cmdline().as_str()
+        );
+
         // Since the process's reference count has already reached to zero (that's
         // why the process is being dropped), ProcessGroup::remove_dropped_processes
         // should remove this process from its list.

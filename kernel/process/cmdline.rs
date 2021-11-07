@@ -20,6 +20,10 @@ impl Cmdline {
         cmdline
     }
 
+    pub fn as_str(&self) -> &str {
+        &self.cmdline
+    }
+
     pub fn argv0(&self) -> &str {
         &self.argv0
     }

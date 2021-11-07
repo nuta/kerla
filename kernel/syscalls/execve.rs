@@ -1,6 +1,7 @@
 use crate::arch::UserVAddr;
 use crate::fs::path::Path;
 use crate::prelude::*;
+use crate::process::Process;
 use crate::user_buffer::UserCStr;
 use crate::{process::current_process, syscalls::SyscallHandler};
 use core::mem::size_of;
@@ -42,7 +43,7 @@ impl<'a> SyscallHandler<'a> {
 
         let argv_slice: Vec<&[u8]> = argv.as_slice().iter().map(|s| s.as_bytes()).collect();
         let envp_slice: Vec<&[u8]> = envp.as_slice().iter().map(|s| s.as_bytes()).collect();
-        current.execve(self.frame, executable, &argv_slice, &envp_slice)?;
+        Process::execve(self.frame, executable, &argv_slice, &envp_slice)?;
         Ok(0)
     }
 }

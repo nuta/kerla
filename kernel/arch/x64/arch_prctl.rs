@@ -12,7 +12,7 @@ pub fn arch_prctl(current: &Arc<Process>, code: i32, uaddr: UserVAddr) -> Result
         // TODO: Move to arch directory.
         ARCH_SET_FS => {
             let value = uaddr.value() as u64;
-            current.arch.fsbase.store(value);
+            current.arch().fsbase.store(value);
             unsafe {
                 wrfsbase(value);
             }

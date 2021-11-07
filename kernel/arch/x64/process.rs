@@ -17,7 +17,7 @@ use crossbeam::atomic::AtomicCell;
 use x86::current::segmentation::wrfsbase;
 
 #[repr(C, packed)]
-pub struct Thread {
+pub struct Process {
     rsp: UnsafeCell<u64>,
     pub(super) fsbase: AtomicCell<u64>,
     pub(super) xsave_area: Option<VAddr>,
@@ -25,7 +25,7 @@ pub struct Thread {
     syscall_stack: VAddr,
 }
 
-unsafe impl Sync for Thread {}
+unsafe impl Sync for Process {}
 
 extern "C" {
     fn kthread_entry();
@@ -40,9 +40,9 @@ unsafe fn push_stack(mut rsp: *mut u64, value: u64) -> *mut u64 {
     rsp
 }
 
-impl Thread {
+impl Process {
     #[allow(unused)]
-    pub fn new_kthread(ip: VAddr, sp: VAddr) -> Thread {
+    pub fn new_kthread(ip: VAddr, sp: VAddr) -> Process {
         let interrupt_stack = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
             .expect("failed to allocate kernel stack")
             .as_vaddr();
@@ -69,7 +69,7 @@ impl Thread {
             rsp
         };
 
-        Thread {
+        Process {
             rsp: UnsafeCell::new(rsp as u64),
             fsbase: AtomicCell::new(0),
             xsave_area: None,
@@ -78,7 +78,7 @@ impl Thread {
         }
     }
 
-    pub fn new_user_thread(ip: UserVAddr, sp: UserVAddr, kernel_sp: VAddr) -> Thread {
+    pub fn new_user_thread(ip: UserVAddr, sp: UserVAddr, kernel_sp: VAddr) -> Process {
         let interrupt_stack = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
             .expect("failed to allocate kernel stack")
             .as_vaddr();
@@ -113,7 +113,7 @@ impl Thread {
             rsp
         };
 
-        Thread {
+        Process {
             rsp: UnsafeCell::new(rsp as u64),
             fsbase: AtomicCell::new(0),
             xsave_area: Some(xsave_area),
@@ -122,7 +122,7 @@ impl Thread {
         }
     }
 
-    pub fn new_idle_thread() -> Thread {
+    pub fn new_idle_thread() -> Process {
         let interrupt_stack = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
             .expect("failed to allocate kernel stack")
             .as_vaddr();
@@ -130,7 +130,7 @@ impl Thread {
             .expect("failed to allocate kernel stack")
             .as_vaddr();
 
-        Thread {
+        Process {
             rsp: UnsafeCell::new(0),
             fsbase: AtomicCell::new(0),
             xsave_area: None,
@@ -139,7 +139,7 @@ impl Thread {
         }
     }
 
-    pub fn fork(&self, frame: &SyscallFrame) -> Result<Thread> {
+    pub fn fork(&self, frame: &SyscallFrame) -> Result<Process> {
         // TODO: Check the size of XSAVE area.
         let xsave_area = alloc_pages(1, AllocPageFlags::KERNEL)
             .expect("failed to allocate xsave area")
@@ -187,7 +187,7 @@ impl Thread {
             .expect("failed allocate kernel stack")
             .as_vaddr();
 
-        Ok(Thread {
+        Ok(Process {
             rsp: UnsafeCell::new(rsp as u64),
             fsbase: AtomicCell::new(self.fsbase.load()),
             xsave_area: Some(xsave_area),
@@ -255,7 +255,7 @@ impl Thread {
     }
 }
 
-pub fn switch_thread(prev: &Thread, next: &Thread) {
+pub fn switch_thread(prev: &Process, next: &Process) {
     let head = cpu_local_head();
 
     // Switch the kernel stack.
