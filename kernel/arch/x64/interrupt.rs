@@ -8,7 +8,7 @@ use crate::{
     timer::handle_timer_irq,
 };
 
-use x86::{controlregs::cr2, current::rflags::RFlags, irq::*};
+use x86::{controlregs::cr2, irq::*};
 
 /// The interrupt stack frame.
 #[derive(Debug, Copy, Clone)]
