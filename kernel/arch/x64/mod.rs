@@ -18,10 +18,10 @@ mod ioapic;
 mod lock;
 mod page_table;
 mod pit;
+mod process;
 mod semihosting;
 mod serial;
 mod syscall;
-mod thread;
 mod tss;
 
 pub const KERNEL_STACK_SIZE: usize = PAGE_SIZE * 256;
@@ -40,8 +40,8 @@ pub use interrupt::{enable_interrupt, is_interrupt_enabled};
 pub use ioapic::enable_irq;
 pub use lock::{SpinLock, SpinLockGuard};
 pub use page_table::{PageFaultReason, PageTable};
+pub use process::{switch_thread, Process};
 #[cfg(test)]
 pub use semihosting::{semihosting_halt, ExitStatus};
 pub use serial::{print_str, printchar};
 pub use syscall::SyscallFrame;
-pub use thread::{switch_thread, Thread};

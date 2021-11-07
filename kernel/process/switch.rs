@@ -58,7 +58,7 @@ pub fn switch() {
 
     // Switch into the next thread.
     CURRENT.as_mut().set(next.clone());
-    arch::switch_thread(&prev.arch, &next.arch);
+    arch::switch_thread(prev.arch(), next.arch());
 
     // Don't call destructors as we've already decremented (dropped) the
     // reference count by `Arc::decrement_strong_count` above.

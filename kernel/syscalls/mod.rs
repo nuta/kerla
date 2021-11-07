@@ -210,7 +210,7 @@ impl<'a> SyscallHandler<'a> {
             err
         });
 
-        if let Err(err) = Process::try_delivering_signal(current_process(), self.frame) {
+        if let Err(err) = Process::try_delivering_signal(self.frame) {
             debug_warn!("failed to setup the signal stack: {:?}", err);
         }
 

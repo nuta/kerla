@@ -23,7 +23,7 @@ pub fn handle_page_fault(unaligned_vaddr: UserVAddr, ip: usize, _reason: PageFau
                 unaligned_vaddr,
                 ip
             );
-            Process::exit_by_signal(current, SIGSEGV);
+            Process::exit_by_signal(SIGSEGV);
         }
     };
 
@@ -43,7 +43,7 @@ pub fn handle_page_fault(unaligned_vaddr: UserVAddr, ip: usize, _reason: PageFau
             );
             drop(vm);
             drop(vm_ref);
-            Process::exit_by_signal(current, SIGSEGV);
+            Process::exit_by_signal(SIGSEGV);
         }
     };
 
