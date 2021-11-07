@@ -274,7 +274,8 @@ impl INode {
 
     /// `chmod(2)`
     pub fn chmod(&self, _mode: FileMode) -> Result<()> {
-        Err(Error::new(Errno::ENOSYS))
+        // FIXME: Ignore all chmod requests for now.
+        Ok(())
     }
 }
 

@@ -145,31 +145,27 @@ impl Process {
         // Open stdin.
         opened_files.open_with_fixed_fd(
             Fd::new(0),
-            Arc::new(SpinLock::new(OpenedFile::new(
+            Arc::new(OpenedFile::new(
                 console.clone(),
                 OpenFlags::O_RDONLY.into(),
                 0,
-            ))),
+            )),
             OpenOptions::empty(),
         )?;
         // Open stdout.
         opened_files.open_with_fixed_fd(
             Fd::new(1),
-            Arc::new(SpinLock::new(OpenedFile::new(
+            Arc::new(OpenedFile::new(
                 console.clone(),
                 OpenFlags::O_WRONLY.into(),
                 0,
-            ))),
+            )),
             OpenOptions::empty(),
         )?;
         // Open stderr.
         opened_files.open_with_fixed_fd(
             Fd::new(2),
-            Arc::new(SpinLock::new(OpenedFile::new(
-                console,
-                OpenFlags::O_WRONLY.into(),
-                0,
-            ))),
+            Arc::new(OpenedFile::new(console, OpenFlags::O_WRONLY.into(), 0)),
             OpenOptions::empty(),
         )?;
 
@@ -305,7 +301,7 @@ impl Process {
     }
 
     /// Searches the opned file table by the file descriptor.
-    pub fn get_opened_file_by_fd(&self, fd: Fd) -> Result<Arc<SpinLock<OpenedFile>>> {
+    pub fn get_opened_file_by_fd(&self, fd: Fd) -> Result<Arc<OpenedFile>> {
         Ok(self.opened_files.lock().get(fd)?.clone())
     }
 

@@ -13,13 +13,11 @@ impl<'a> SyscallHandler<'a> {
             "[{}:{}] write(file={:?}, len={})",
             current_process().pid().as_i32(),
             current_process().cmdline().argv0(),
-            opened_file.lock().inode(),
+            opened_file.inode(),
             len
         );
 
-        let written_len = opened_file
-            .lock()
-            .write(UserBuffer::from_uaddr(uaddr, len))?;
+        let written_len = opened_file.write(UserBuffer::from_uaddr(uaddr, len))?;
 
         // MAX_READ_WRITE_LEN limit guarantees total_len is in the range of isize.
         Ok(written_len as isize)

@@ -31,9 +31,7 @@ impl<'a> SyscallHandler<'a> {
                 continue;
             }
 
-            total_len += opened_file
-                .lock()
-                .write(UserBuffer::from_uaddr(iov.base, iov.len))?;
+            total_len += opened_file.write(UserBuffer::from_uaddr(iov.base, iov.len))?;
         }
 
         // MAX_READ_WRITE_LEN limit guarantees total_len is in the range of isize.

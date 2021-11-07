@@ -10,7 +10,7 @@ impl<'a> SyscallHandler<'a> {
     pub fn sys_getdents64(&mut self, fd: Fd, dirp: UserVAddr, len: usize) -> Result<isize> {
         let current = current_process();
         let opened_files = current.opened_files().lock();
-        let mut dir = opened_files.get(fd)?.lock();
+        let dir = opened_files.get(fd)?;
         let mut writer = UserBufWriter::from_uaddr(dirp, len);
         while let Some(entry) = dir.readdir()? {
             let alignment = size_of::<u64>();

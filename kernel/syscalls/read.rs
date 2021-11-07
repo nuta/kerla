@@ -12,13 +12,11 @@ impl<'a> SyscallHandler<'a> {
             "[{}:{}] read(file={:?}, len={})",
             current_process().pid().as_i32(),
             current_process().cmdline().argv0(),
-            opened_file.lock().inode(),
+            opened_file.inode(),
             len
         );
 
-        let read_len = opened_file
-            .lock()
-            .read(UserBufferMut::from_uaddr(uaddr, len))?;
+        let read_len = opened_file.read(UserBufferMut::from_uaddr(uaddr, len))?;
 
         // MAX_READ_WRITE_LEN limit guarantees total_len is in the range of isize.
         Ok(read_len as isize)

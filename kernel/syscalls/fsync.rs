@@ -6,7 +6,7 @@ use crate::syscalls::SyscallHandler;
 impl<'a> SyscallHandler<'a> {
     pub fn sys_fsync(&mut self, fd: Fd) -> Result<isize> {
         let opened_file = current_process().get_opened_file_by_fd(fd)?;
-        opened_file.lock().fsync()?;
+        opened_file.fsync()?;
         Ok(0)
     }
 }
