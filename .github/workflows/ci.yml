@@ -3,8 +3,6 @@ name: CI
 on:
   push:
     branches: "*"
-  pull_request:
-    branches: "*"
 
 jobs:
   build_and_test:
@@ -13,17 +11,30 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Release builds.
           - os: ubuntu-20.04
+            build_options: RELEASE=1
+
+            # Debug builds.
+          - os: ubuntu-20.04
+            build_options:
     steps:
       - uses: actions/checkout@v2
+
+      - name: Cache files
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo
+            target
+            build
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
 
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: 3.9
-
-      - name: Docker
-        run: docker ps
 
       - name: Set up Rust
         run: |
@@ -34,7 +45,7 @@ jobs:
         run: cargo install cargo-binutils rustfilt
 
       - name: Build Kerla
-        run: make RELEASE=1
+        run: make ${{ matrix.build_options }}
 
       - name: Lint
         run: make strict-lint
@@ -43,12 +54,12 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y qemu-system
 
       - name: Run unit tests
-        run: make test RELEASE=1
+        run: make test ${{ matrix.build_options }}
 
       - name: Run integration tests
         run: >
           make run
-          RELEASE=1
+          ${{ matrix.build_options }}
           INIT_SCRIPT="TESTS_DIR=/integration_tests /integration_tests/run.sh; halt -f"
           DISABLE_AUTO_CR_PRINT=1
           | tee run.log
