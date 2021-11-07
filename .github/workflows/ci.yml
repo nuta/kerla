@@ -21,6 +21,16 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: Cache files
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo
+            target
+            build
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
