@@ -2,7 +2,6 @@ use alloc::boxed::Box;
 use arrayvec::ArrayVec;
 use kerla_utils::ring_buffer::RingBuffer;
 
-use crate::arch::SpinLock;
 use crate::arch::{print_str, printchar, Backtrace, VAddr};
 use crate::lang_items::PANICKED;
 use core::mem::size_of;
@@ -12,8 +11,10 @@ use core::{fmt, slice};
 pub struct Printer;
 
 pub const KERNEL_LOG_BUF_SIZE: usize = 8192;
-pub static KERNEL_LOG_BUF: SpinLock<RingBuffer<u8, KERNEL_LOG_BUF_SIZE>> =
-    SpinLock::new(RingBuffer::new());
+// We use spin::Mutex here because SpinLock's debugging features may cause a
+// problem (capturing a backtrace requires memory allocation).
+pub static KERNEL_LOG_BUF: spin::Mutex<RingBuffer<u8, KERNEL_LOG_BUF_SIZE>> =
+    spin::Mutex::new(RingBuffer::new());
 
 impl core::fmt::Write for Printer {
     fn write_char(&mut self, c: char) -> core::fmt::Result {

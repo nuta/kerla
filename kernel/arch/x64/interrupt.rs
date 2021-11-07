@@ -8,7 +8,7 @@ use crate::{
     timer::handle_timer_irq,
 };
 
-use x86::{controlregs::cr2, current::rflags::RFlags, irq::*};
+use x86::{controlregs::cr2, irq::*};
 
 /// The interrupt stack frame.
 #[derive(Debug, Copy, Clone)]
@@ -194,12 +194,4 @@ unsafe extern "C" fn x64_handle_interrupt(vec: u8, frame: *const InterruptFrame)
             panic!("unexpected interrupt: vec={}", vec);
         }
     }
-}
-
-pub unsafe fn enable_interrupt() {
-    asm!("sti");
-}
-
-pub fn is_interrupt_enabled() -> bool {
-    x86::current::rflags::read().contains(RFlags::FLAGS_IF)
 }

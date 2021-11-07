@@ -1,7 +1,7 @@
 use super::*;
 use crate::process::PId;
 use crate::{
-    arch::{self, enable_interrupt, is_interrupt_enabled},
+    arch::{self},
     process::process::PROCESSES,
 };
 
@@ -11,10 +11,6 @@ use core::mem::{self};
 
 /// Yields execution to another thread.
 pub fn switch() {
-    // Save the current interrupt enable flag to restore it in the next execution
-    // of the currently running thread.
-    let interrupt_enabled = is_interrupt_enabled();
-
     let prev = current_process().clone();
     let prev_pid = prev.pid();
     let prev_state = prev.state();
@@ -46,10 +42,17 @@ pub fn switch() {
         lock.page_table().switch();
     }
 
-    // Drop `next_thread` here because `switch_thread` won't return when the current
-    // process is being destroyed (e.g. by exit(2)) and it leads to a memory leak.
+    // Drop `prev` and `next` here because `switch_thread` won't return when the
+    // current process is being destroyed (e.g. by exit(2)).
+    //
+    // Since processes are referenced from at least the following two places,
+    // we can safely decrement reference counts without immediately drop here:
+    //
+    // - prev or next: they holds Arc<Process> (not &Arc<Process>).
+    // - Their parent processes's list of children.
     //
     // To cheat the borrow checker we do so by `Arc::decrement_strong_count`.
+    debug_assert!(Arc::strong_count(&prev) > 1);
     debug_assert!(Arc::strong_count(&next) > 1);
     unsafe {
         Arc::decrement_strong_count(Arc::as_ptr(&prev));
@@ -64,14 +67,4 @@ pub fn switch() {
     // reference count by `Arc::decrement_strong_count` above.
     mem::forget(prev);
     mem::forget(next);
-
-    // Now we're in the next thread. Release held locks and continue executing.
-
-    // Retstore the interrupt enable flag manually because lock guards
-    // (`prev` and `next`) that holds the flag state are `mem::forget`-ed.
-    if interrupt_enabled {
-        unsafe {
-            enable_interrupt();
-        }
-    }
 }
