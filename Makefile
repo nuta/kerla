@@ -49,10 +49,13 @@ CARGOFLAGS += -Z build-std=core,alloc -Z build-std-features=compiler-builtins-me
 CARGOFLAGS += --target $(target_json)
 CARGOFLAGS += $(if $(RELEASE),--release,)
 TESTCARGOFLAGS += --package kerla -Z unstable-options
-TESTCARGOFLAGS += --config "target.$(ARCH).runner = '$(PYTHON3) $(topdir)/tools/run-qemu.py --arch $(ARCH)'"
+TESTCARGOFLAGS += --config "target.$(ARCH).runner = './tools/run-unittests.sh'"
 WATCHFLAGS += --clear
 export CARGO_FROM_MAKE=1
 export INITRAMFS_PATH
+export ARCH
+export PYTHON3
+export NM
 
 #
 #  Build Commands
