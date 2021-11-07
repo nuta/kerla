@@ -166,6 +166,10 @@ impl OpenedFile {
         &self.path
     }
 
+    pub fn inode(&self) -> &INode {
+        &self.path.inode
+    }
+
     pub fn read(&mut self, buf: UserBufferMut<'_>) -> Result<usize> {
         let read_len = self.as_file()?.read(self.pos, buf, &self.options)?;
         self.pos += read_len;

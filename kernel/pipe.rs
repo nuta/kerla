@@ -1,4 +1,6 @@
 //! Unnamed pipe (`pipe(2)`).
+use core::fmt;
+
 use kerla_utils::{once::Once, ring_buffer::RingBuffer};
 
 use crate::{
@@ -106,6 +108,12 @@ impl FileLike for PipeWriter {
     }
 }
 
+impl fmt::Debug for PipeWriter {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("PipeWriter").finish()
+    }
+}
+
 impl Drop for PipeWriter {
     fn drop(&mut self) {
         self.0.lock().closed_by_writer = true;
@@ -152,6 +160,12 @@ impl FileLike for PipeReader {
         }
 
         Ok(status)
+    }
+}
+
+impl fmt::Debug for PipeReader {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("PipeReader").finish()
     }
 }
 

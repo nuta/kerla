@@ -1,3 +1,5 @@
+use core::fmt::{self, Debug};
+
 use super::{opened_file::OpenOptions, path::PathBuf, stat::FileMode};
 use crate::ctypes::c_short;
 use crate::prelude::*;
@@ -40,27 +42,7 @@ bitflags! {
 ///
 /// This trait represents an object which behaves like a file such as files on
 /// disks (aka. regular files), UDP/TCP sockets, device files like tty, etc.
-///
-/// # Locking
-///
-/// Some `FileLike` implementation assume **the owner process's lock are not held.**
-///
-/// The following code would cause a dead lock if `FileLike` implementation also
-/// internally tries to lock the owner process:
-///
-/// ```ignore
-/// // DON'T DO THIS: The owner process lock is held when `FileLike::stat()` is
-/// // called. It will cause a dead lock if the method tries to lock it :/
-/// current_process().opened_files().lock().get(fd)?.stat()?;
-/// //                                     ^^^^^^^^^
-/// //                               OpenedFileTable::get() returns &Arc<...>.
-/// //                               The current process lock needs to be held.
-///
-/// // GOOD: The owner process is unlocked when `FileLike::stat()` is called :D
-/// let opened_file: Arc<SpinLock<OpenedFile>> = current_process().get_opened_file_by_fd(fd)?;
-/// opened_file.stat()?;
-/// ```
-pub trait FileLike: Send + Sync + Downcastable {
+pub trait FileLike: Debug + Send + Sync + Downcastable {
     /// `open(2)`.
     fn open(&self, _options: &OpenOptions) -> Result<Option<Arc<dyn FileLike>>> {
         Ok(None)
@@ -180,7 +162,7 @@ pub struct DirEntry {
 }
 
 /// Represents a directory.
-pub trait Directory: Send + Sync + Downcastable {
+pub trait Directory: Debug + Send + Sync + Downcastable {
     /// Looks for an existing file.
     fn lookup(&self, name: &str) -> Result<INode>;
     /// Creates a file. Returns `EEXIST` if the it already exists.
@@ -209,7 +191,7 @@ pub trait Directory: Send + Sync + Downcastable {
 /// # Locking
 ///
 /// See [`FileLike`] documentation.
-pub trait Symlink: Send + Sync + Downcastable {
+pub trait Symlink: Debug + Send + Sync + Downcastable {
     /// `stat(2)`.
     fn stat(&self) -> Result<Stat>;
     /// The path linked to.
@@ -293,6 +275,16 @@ impl INode {
     /// `chmod(2)`
     pub fn chmod(&self, _mode: FileMode) -> Result<()> {
         Err(Error::new(Errno::ENOSYS))
+    }
+}
+
+impl fmt::Debug for INode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            INode::FileLike(file) => fmt::Debug::fmt(file, f),
+            INode::Directory(dir) => fmt::Debug::fmt(dir, f),
+            INode::Symlink(symlink) => fmt::Debug::fmt(symlink, f),
+        }
     }
 }
 

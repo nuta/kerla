@@ -9,7 +9,7 @@ use crate::{
     user_buffer::{UserBufReader, UserBufWriter, UserBufferMut},
 };
 use alloc::{collections::BTreeSet, sync::Arc};
-use core::convert::TryInto;
+use core::{convert::TryInto, fmt};
 use smoltcp::socket::{UdpPacketMetadata, UdpSocketBuffer};
 use smoltcp::wire::IpEndpoint;
 
@@ -120,5 +120,11 @@ impl FileLike for UdpSocket {
         }
 
         Ok(status)
+    }
+}
+
+impl fmt::Debug for UdpSocket {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("UdpSocket").finish()
     }
 }

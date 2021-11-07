@@ -1,3 +1,5 @@
+use core::fmt;
+
 use alloc::sync::Arc;
 
 use crate::{
@@ -17,5 +19,11 @@ impl UnixSocket {
 impl FileLike for UnixSocket {
     fn connect(&self, _endpoint: SockAddr, _options: &OpenOptions) -> Result<()> {
         Err(Errno::EACCES.into())
+    }
+}
+
+impl fmt::Debug for UnixSocket {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("UnixSocket").finish()
     }
 }

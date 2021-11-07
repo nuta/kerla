@@ -13,7 +13,7 @@ use crate::{
     result::{Errno, Result},
 };
 use alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
-use core::{cmp::min, convert::TryInto};
+use core::{cmp::min, convert::TryInto, fmt};
 use crossbeam::atomic::AtomicCell;
 use smoltcp::socket::{SocketRef, TcpSocketBuffer};
 use smoltcp::wire::{IpAddress, IpEndpoint, Ipv4Address};
@@ -293,5 +293,11 @@ impl FileLike for TcpSocket {
         }
 
         Ok(status)
+    }
+}
+
+impl fmt::Debug for TcpSocket {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("TcpSocket").finish()
     }
 }
