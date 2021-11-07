@@ -373,7 +373,7 @@ impl OpenedFileTable {
             }
             Some(entry @ None) => {
                 *entry = Some(LocalOpenedFile {
-                    opened_file: opened_file.clone(),
+                    opened_file,
                     close_on_exec: options.close_on_exec,
                 });
             }
@@ -383,7 +383,7 @@ impl OpenedFileTable {
             None => {
                 self.files.resize(fd.as_usize() + 1, None);
                 self.files[fd.as_usize()] = Some(LocalOpenedFile {
-                    opened_file: opened_file.clone(),
+                    opened_file,
                     close_on_exec: options.close_on_exec,
                 });
             }
