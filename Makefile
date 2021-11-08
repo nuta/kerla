@@ -3,7 +3,6 @@ export V         ?=
 export GUI       ?=
 export RELEASE   ?=
 export ARCH      ?= x64
-export VERSION   ?= v0.0.3
 
 # The default build target.
 .PHONY: default
