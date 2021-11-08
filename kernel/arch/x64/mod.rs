@@ -23,6 +23,7 @@ mod semihosting;
 mod serial;
 mod syscall;
 mod tss;
+mod vga;
 
 pub const KERNEL_STACK_SIZE: usize = PAGE_SIZE * 256;
 pub const USER_VALLOC_END: UserVAddr = unsafe { UserVAddr::new_unchecked(0x0000_0fff_0000_0000) };
