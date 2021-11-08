@@ -1,4 +1,4 @@
-use super::address::{VAddr, KERNEL_BASE_ADDR};
+use super::address::VAddr;
 
 const BACKTRACE_MAX: usize = 16;
 
@@ -25,7 +25,7 @@ impl Backtrace {
     {
         let mut frame = self.frame;
         for i in 0..BACKTRACE_MAX {
-            if frame.is_null() || (frame as u64) < KERNEL_BASE_ADDR {
+            if frame.is_null() || !VAddr::is_accessible_from_kernel(frame as usize) {
                 break;
             }
 

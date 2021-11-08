@@ -80,6 +80,11 @@ impl VAddr {
         PAddr::new((self.0 - KERNEL_BASE_ADDR) as usize)
     }
 
+    pub const fn is_accessible_from_kernel(addr: usize) -> bool {
+        (addr as u64) >= KERNEL_BASE_ADDR
+            && (addr as u64) < KERNEL_BASE_ADDR + KERNEL_STRAIGHT_MAP_PADDR_END
+    }
+
     pub const unsafe fn as_ptr<T>(self) -> *const T {
         debug_assert!(self.0 >= KERNEL_BASE_ADDR);
         self.0 as *const _
