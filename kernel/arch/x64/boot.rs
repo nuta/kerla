@@ -1,6 +1,6 @@
 use super::{
     address::{PAddr, VAddr},
-    apic, bootinfo, cpu_local, gdt, idt, ioapic, pit, printchar, serial, syscall, tss,
+    apic, bootinfo, cpu_local, gdt, idt, ioapic, pit, printchar, serial, syscall, tss, vga,
 };
 use crate::boot::{boot_kernel, init_logger};
 
@@ -72,6 +72,7 @@ unsafe extern "C" fn bsp_early_init(boot_magic: u32, boot_params: u64) -> ! {
 
     // Initialize the serial driver first to enable print macros.
     serial::early_init();
+    vga::init();
     init_logger();
     printchar('\n');
 

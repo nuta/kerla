@@ -2,7 +2,7 @@ use x86::io::{inb, outb};
 
 use crate::fs::devfs::SERIAL_TTY;
 
-use super::ioapic::enable_irq;
+use super::{ioapic::enable_irq, vga};
 
 pub const SERIAL_IRQ: u8 = 4;
 const IOPORT_SERIAL: u16 = 0x3f8;
@@ -26,6 +26,7 @@ pub fn printchar(ch: char) {
             serial_write('\r');
         }
         serial_write(ch);
+        vga::printchar(ch as u8);
     }
 }
 
