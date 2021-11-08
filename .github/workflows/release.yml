@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v2
@@ -21,10 +23,13 @@ jobs:
           rustup override set nightly
           rustup component add llvm-tools-preview rust-src clippy
 
+      - name: Install apt packages
+        run: sudo apt install -y grub-pc xorriso mtools
+
       - name: Install cargo crates
         run: cargo install cargo-binutils rustfilt
 
-      - name: Build a Kerla ISO image
+      - name: Build an ISO image
         run: make RELEASE=1 iso
 
       - name: Generate a changelog
@@ -43,7 +48,7 @@ jobs:
 
       - name: Create a release
         id: create_release
-        uses: actions/create-release@v1.0.0
+        uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
