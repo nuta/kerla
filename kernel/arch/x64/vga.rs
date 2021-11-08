@@ -1,4 +1,4 @@
-use core::{mem::size_of, ptr};
+use core::ptr;
 
 use kerla_utils::once::Once;
 use x86::io::outb;
@@ -78,6 +78,7 @@ impl Console {
     }
 
     unsafe fn mut_ptr_at(&self, x: usize, y: usize) -> *mut u16 {
+        #[allow(clippy::ptr_offset_with_cast)]
         self.base
             .as_mut_ptr::<u16>()
             .offset((x + y * COLUMNS) as isize)
@@ -97,18 +98,14 @@ impl Console {
                 ptr::copy_nonoverlapping(
                     self.mut_ptr_at(0, from),
                     self.mut_ptr_at(0, from - diff),
-                    COLUMNS * size_of::<u16>(),
+                    COLUMNS,
                 );
             }
         }
 
         // Clear the new lines.
         unsafe {
-            ptr::write_bytes(
-                self.mut_ptr_at(0, ROWS - diff),
-                0,
-                COLUMNS * size_of::<u16>(),
-            );
+            ptr::write_bytes(self.mut_ptr_at(0, ROWS - diff), 0, COLUMNS);
         }
 
         self.y = ROWS - 1;
@@ -152,13 +149,8 @@ impl vte::Perform for Console {
             self.scroll();
         }
 
-        match c {
-            _ => {
-                self.draw_char(self.x, self.y, c, self.fg, self.bg);
-                self.x += 1;
-            }
-        }
-
+        self.draw_char(self.x, self.y, c, self.fg, self.bg);
+        self.x += 1;
         self.move_cursor(self.x, self.y);
     }
 }
