@@ -1,0 +1,65 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  create_release:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+
+      - name: Set up Rust
+        run: |
+          rustup override set nightly
+          rustup component add llvm-tools-preview rust-src clippy
+
+      - name: Install cargo crates
+        run: cargo install cargo-binutils rustfilt
+
+      - name: Build a Kerla ISO image
+        run: make RELEASE=1 iso
+
+      - name: Generate a changelog
+        run: |
+          touch changelog.log
+          echo 'Run the following command to try Kerla on QEMU:' >> changelog.log
+          echo '```' >> changelog.log
+          echo 'qemu-system-x86_64 -m 512 -cpu Icelake-Server -serial mon:stdio \' >> changelog.log
+          echo '    -device isa-debug-exit,iobase=0x501,iosize=2                \' >> changelog.log
+          echo '    -netdev user,id=net0                                        \' >> changelog.log
+          echo '    -device virtio-net,netdev=net0,disable-legacy=on            \' >> changelog.log
+          echo '    -cdrom kerla.iso' >> changelog.log
+          echo '```' >> changelog.log
+          echo >> changelog.log
+          git shortlog $(git describe --tags --abbrev=0 @^)..@ >> changelog.log
+
+      - name: Create a release
+        id: create_release
+        uses: actions/create-release@v1.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        body_path: changelog.log
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+      - name: Upload the ISO image
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: kerla.iso
+          asset_name: kerla.iso
+          asset_content_type: application/x-iso9660-image
