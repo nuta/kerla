@@ -15,6 +15,7 @@ use crate::{
     net, pipe, poll,
     printk::PrintkLogger,
     process::{self, switch, Process},
+    profile::StopWatch,
 };
 use alloc::sync::Arc;
 use kerla_utils::once::Once;
@@ -62,11 +63,15 @@ pub static INITIAL_ROOT_FS: Once<Arc<SpinLock<RootFs>>> = Once::new();
 
 pub fn boot_kernel(bootinfo: &BootInfo) -> ! {
     info!("Booting Kerla...");
+    let mut profiler = StopWatch::start();
 
     // Initialize memory allocators first.
     page_allocator::init(&bootinfo.ram_areas);
+    profiler.lap_time("page allocator init");
     global_allocator::init();
+    profiler.lap_time("global allocator init");
     interrupt::init();
+    profiler.lap_time("global interrupt init");
 
     #[cfg(test)]
     {
@@ -76,22 +81,32 @@ pub fn boot_kernel(bootinfo: &BootInfo) -> ! {
 
     // Initialize kernel subsystems.
     arch::init();
+    profiler.lap_time("arch init");
     pipe::init();
+    profiler.lap_time("pipe init");
     poll::init();
+    profiler.lap_time("poll init");
     devfs::init();
+    profiler.lap_time("devfs init");
     tmpfs::init();
+    profiler.lap_time("tmpfs init");
     initramfs::init();
+    profiler.lap_time("initramfs init");
     drivers::init();
+    profiler.lap_time("drivers init");
 
     if bootinfo.pci_enabled {
         drivers::pci::init();
+        profiler.lap_time("pci init");
     }
 
     if !bootinfo.virtio_mmio_devices.is_empty() {
         drivers::virtio::init(&bootinfo.virtio_mmio_devices);
+        profiler.lap_time("virtio init");
     }
 
     net::init();
+    profiler.lap_time("net init");
 
     // Prepare the root file system.
     let mut root_fs = RootFs::new(INITRAM_FS.clone()).unwrap();
@@ -125,7 +140,11 @@ pub fn boot_kernel(bootinfo: &BootInfo) -> ! {
 
     // We cannot initialize the process subsystem until INITIAL_ROOT_FS is initialized.
     INITIAL_ROOT_FS.init(|| Arc::new(SpinLock::new(root_fs)));
+
+    profiler.lap_time("root fs init");
+
     process::init();
+    profiler.lap_time("process init");
 
     // Create the init process.
     if let Some(script) = option_env!("INIT_SCRIPT") {
@@ -143,6 +162,8 @@ pub fn boot_kernel(bootinfo: &BootInfo) -> ! {
         )
         .expect("failed to execute /sbin/init");
     }
+
+    profiler.lap_time("first process init");
 
     if bootinfo.omikuji {
         // "Chosen by fair dice roll. Guaranteed to be random."

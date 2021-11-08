@@ -38,6 +38,7 @@ mod pipe;
 mod poll;
 mod prelude;
 mod process;
+mod profile;
 mod random;
 mod syscalls;
 mod test_runner;

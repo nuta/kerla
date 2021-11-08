@@ -19,6 +19,7 @@ mod lock;
 mod page_table;
 mod pit;
 mod process;
+mod profile;
 mod semihosting;
 mod serial;
 mod syscall;
@@ -40,6 +41,7 @@ pub use ioapic::enable_irq;
 pub use lock::{SpinLock, SpinLockGuard};
 pub use page_table::{PageFaultReason, PageTable};
 pub use process::{switch_thread, Process};
+pub use profile::read_clock_counter;
 #[cfg(test)]
 pub use semihosting::{semihosting_halt, ExitStatus};
 pub use serial::{print_str, printchar};
