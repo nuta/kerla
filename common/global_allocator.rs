@@ -30,7 +30,7 @@ fn expand_kernel_heap(heap: &mut Heap<ORDER>, layout: &Layout) {
         align_up(KERNEL_HEAP_CHUNK_SIZE, PAGE_SIZE) / PAGE_SIZE,
         AllocPageFlags::KERNEL,
     )
-    .expect("failed to reserve memory pages for the global alllocator")
+    .expect("run out of memory: failed to expand the kernel heap")
     .as_vaddr()
     .value();
     let end = start + KERNEL_HEAP_CHUNK_SIZE;
