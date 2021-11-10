@@ -1,12 +1,43 @@
-// use core::sync::atomic::{AtomicBool, Ordering};
+use core::alloc::Layout;
+use core::sync::atomic::{AtomicBool, Ordering};
 
-use buddy_system_allocator::LockedHeap;
+use buddy_system_allocator::{Heap, LockedHeapWithRescue};
+use kerla_utils::alignment::align_up;
+
+use crate::arch::PAGE_SIZE;
+use crate::page_allocator::{alloc_pages, AllocPageFlags};
+
+const ORDER: usize = 32;
+const KERNEL_HEAP_CHUNK_SIZE: usize = 1024 * 1024;
 
 #[global_allocator]
-static ALLOCATOR: LockedHeap<32 /* order */> = LockedHeap::empty();
-// static KERNEL_HEAP_ENABLED: AtomicBool = AtomicBool::new(false);
+static ALLOCATOR: LockedHeapWithRescue<ORDER> = LockedHeapWithRescue::new(expand_kernel_heap);
+static KERNEL_HEAP_ENABLED: AtomicBool = AtomicBool::new(false);
 
 pub fn is_kernel_heap_enabled() -> bool {
-    todo!();
-    // KERNEL_HEAP_ENABLED.load(Ordering::Acquire)
+    KERNEL_HEAP_ENABLED.load(Ordering::Acquire)
+}
+
+fn expand_kernel_heap(heap: &mut Heap<ORDER>, layout: &Layout) {
+    if layout.size() > KERNEL_HEAP_CHUNK_SIZE {
+        panic!(
+            "tried to allocate too large object in the kernel heap (requested {} bytes)",
+            layout.size()
+        );
+    }
+
+    let start = alloc_pages(
+        align_up(KERNEL_HEAP_CHUNK_SIZE, PAGE_SIZE) / PAGE_SIZE,
+        AllocPageFlags::KERNEL,
+    )
+    .expect("failed to reserve memory pages for the global alllocator")
+    .as_vaddr()
+    .value();
+    let end = start + KERNEL_HEAP_CHUNK_SIZE;
+
+    unsafe {
+        heap.add_to_heap(start, end);
+    }
+
+    KERNEL_HEAP_ENABLED.store(true, Ordering::Release)
 }
