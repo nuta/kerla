@@ -7,9 +7,13 @@ extern crate alloc;
 #[macro_use]
 extern crate log;
 
+#[macro_use]
+pub mod printk;
+
 pub mod addr;
 pub mod arch;
 pub mod backtrace;
 pub mod bootinfo;
-pub mod printk;
+pub mod global_allocator;
 pub mod result;
+pub mod spinlock;

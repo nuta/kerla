@@ -1,4 +1,25 @@
 use crate::addr::VAddr;
+use x86::current::rflags::{self, RFlags};
+
+pub const PAGE_SIZE: usize = 4096;
+
+pub struct SavedInterruptStatus {
+    rflags: RFlags,
+}
+
+impl SavedInterruptStatus {
+    pub fn save() -> SavedInterruptStatus {
+        SavedInterruptStatus {
+            rflags: rflags::read(),
+        }
+    }
+}
+
+impl Drop for SavedInterruptStatus {
+    fn drop(&mut self) {
+        rflags::set(rflags::read() | (self.rflags & rflags::RFlags::FLAGS_IF));
+    }
+}
 
 const BACKTRACE_MAX: usize = 16;
 
