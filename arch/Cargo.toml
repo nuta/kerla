@@ -1,11 +1,11 @@
 [package]
-name = "kerla_common"
+name = "kerla_arch"
 version = "0.0.1"
 authors = ["Seiya Nuta <nuta@seiya.me>"]
 edition = "2018"
 
 [lib]
-name = "kerla_common"
+name = "kerla_arch"
 path = "lib.rs"
 
 [dependencies]
