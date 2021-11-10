@@ -26,13 +26,11 @@ fn expand_kernel_heap(heap: &mut Heap<ORDER>, layout: &Layout) {
         );
     }
 
-    let start = alloc_pages(
-        align_up(KERNEL_HEAP_CHUNK_SIZE, PAGE_SIZE) / PAGE_SIZE,
-        AllocPageFlags::KERNEL,
-    )
-    .expect("run out of memory: failed to expand the kernel heap")
-    .as_vaddr()
-    .value();
+    let num_pages = align_up(KERNEL_HEAP_CHUNK_SIZE, PAGE_SIZE) / PAGE_SIZE;
+    let start = alloc_pages(num_pages, AllocPageFlags::KERNEL)
+        .expect("run out of memory: failed to expand the kernel heap")
+        .as_vaddr()
+        .value();
     let end = start + KERNEL_HEAP_CHUNK_SIZE;
 
     unsafe {
