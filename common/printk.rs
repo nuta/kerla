@@ -1,22 +1,15 @@
 use core::{fmt, str};
 
-static mut PRINTER: &dyn Printer = &NopPrinter;
+use kerla_utils::static_cell::StaticCell;
 
-fn printer() -> &'static dyn Printer {
-    // TODO: set_printer() should ensure that PRINTER is always valid.
-    unsafe { PRINTER }
-}
+static PRINTER: StaticCell<&dyn Printer> = StaticCell::new(&NopPrinter);
 
 /// Sets the global log printer.
 pub fn set_printer(new_printer: &'static dyn Printer) {
-    // FIXME: Ensure PRINTER is always valid as log crate does (i.e. combine an
-    //        atomic flag).
-    unsafe {
-        PRINTER = new_printer;
-    }
+    PRINTER.store(new_printer);
 }
 
-pub trait Printer {
+pub trait Printer: Sync {
     fn print_str(&self, s: &str);
 }
 
@@ -34,7 +27,7 @@ pub struct PrinterWrapper;
 
 impl fmt::Write for PrinterWrapper {
     fn write_str(&mut self, s: &str) -> fmt::Result {
-        printer().print_str(s);
+        PRINTER.load().print_str(s);
         Ok(())
     }
 }
