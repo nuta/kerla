@@ -183,6 +183,7 @@ version = "0.0.1"
 dependencies = [
  "arrayvec 0.7.2",
  "atomic_refcell",
+ "bitflags",
  "buddy_system_allocator",
  "cfg-if",
  "kerla_utils",

@@ -65,7 +65,7 @@ impl<T: ?Sized> SpinLock<T> {
 
         SpinLockGuard {
             inner: ManuallyDrop::new(guard),
-            saved_intr_status,
+            saved_intr_status: ManuallyDrop::new(saved_intr_status),
             #[cfg(debug_assertions)]
             locked_by: &self.locked_by,
         }
@@ -83,7 +83,7 @@ pub struct SpinLockGuard<'a, T: ?Sized> {
     inner: ManuallyDrop<spin::mutex::SpinMutexGuard<'a, T>>,
     #[cfg(debug_assertions)]
     locked_by: &'a AtomicRefCell<Option<CapturedBacktrace>>,
-    saved_intr_status: SavedInterruptStatus,
+    saved_intr_status: ManuallyDrop<SavedInterruptStatus>,
 }
 
 impl<'a, T: ?Sized> Drop for SpinLockGuard<'a, T> {
@@ -96,6 +96,10 @@ impl<'a, T: ?Sized> Drop for SpinLockGuard<'a, T> {
             if #[cfg(debug_assertions)] {
                 *self.locked_by.borrow_mut() = None;
             }
+        }
+
+        unsafe {
+            ManuallyDrop::drop(&mut self.saved_intr_status);
         }
     }
 }
