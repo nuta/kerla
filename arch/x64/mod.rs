@@ -17,6 +17,7 @@ mod semihosting;
 mod serial;
 mod syscall;
 mod tss;
+mod vga;
 
 pub use backtrace::Backtrace;
 pub use idle::{halt, idle};

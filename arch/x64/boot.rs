@@ -1,4 +1,4 @@
-use super::{apic, bootinfo, cpu_local, gdt, idt, ioapic, pit, serial, syscall, tss};
+use super::{apic, bootinfo, cpu_local, gdt, idt, ioapic, pit, serial, syscall, tss, vga};
 use crate::addr::{PAddr, VAddr};
 use crate::bootinfo::BootInfo;
 use crate::page_allocator;
@@ -80,6 +80,7 @@ unsafe extern "C" fn bsp_early_init(boot_magic: u32, boot_params: u64) -> ! {
     page_allocator::init(&boot_info.ram_areas);
 
     serial::init();
+    vga::init();
     init_pic();
     common_setup(VAddr::new(&__bsp_cpu_local as *const _ as usize));
 

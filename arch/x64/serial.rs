@@ -5,7 +5,7 @@ use crate::{
     printk::{set_printer, Printer},
 };
 
-use super::ioapic::enable_irq;
+use super::{ioapic::enable_irq, vga};
 
 pub const SERIAL_IRQ: u8 = 4;
 const IOPORT_SERIAL: u16 = 0x3f8;
@@ -18,15 +18,15 @@ const LCR: u16 = 3;
 const LSR: u16 = 5;
 const TX_READY: u8 = 0x20;
 
-unsafe fn serial_write(ch: char) {
+unsafe fn serial_write(ch: u8) {
     while (inb(IOPORT_SERIAL + LSR) & TX_READY) == 0 {}
-    outb(IOPORT_SERIAL, ch as u8);
+    outb(IOPORT_SERIAL, ch);
 }
 
-pub fn printchar(ch: char) {
+pub fn printchar(ch: u8) {
     unsafe {
-        if ch == '\n' && option_env!("DISABLE_AUTO_CR_PRINT").is_none() {
-            serial_write('\r');
+        if ch == b'\n' && option_env!("DISABLE_AUTO_CR_PRINT").is_none() {
+            serial_write(b'\r');
         }
         serial_write(ch);
     }
@@ -34,7 +34,8 @@ pub fn printchar(ch: char) {
 
 pub fn print_str(s: &[u8]) {
     for ch in s {
-        printchar(*ch as char);
+        printchar(*ch);
+        vga::printchar(*ch);
     }
 }
 
