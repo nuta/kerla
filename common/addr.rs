@@ -1,3 +1,4 @@
+use crate::arch::{KERNEL_BASE_ADDR, KERNEL_STRAIGHT_MAP_PADDR_END};
 use crate::result::{Errno, Error, Result};
 
 use core::{
@@ -6,13 +7,6 @@ use core::{
     ptr, slice,
 };
 use kerla_utils::alignment::align_down;
-
-/// The base virtual address of straight mapping.
-pub const KERNEL_BASE_ADDR: u64 = 0xffff_8000_0000_0000;
-
-/// The end of straight mapping. Any physical address `P` is mapped into the
-/// kernel's virtual memory address `KERNEL_BASE_ADDR + P`.
-const KERNEL_STRAIGHT_MAP_PADDR_END: u64 = 0x1_0000_0000;
 
 /// Represents a physical memory address.
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
