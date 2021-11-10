@@ -1,6 +1,8 @@
 [workspace]
 members = [
+    "common",
     "kernel",
+    "arch/*",
     "libs/*",
 ]
 

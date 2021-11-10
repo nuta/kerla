@@ -165,6 +165,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "kerla_arch_x64"
+version = "0.0.1"
+dependencies = [
+ "bitflags",
+ "crossbeam",
+ "kerla_utils",
+ "log",
+ "memoffset",
+ "spin 0.9.2",
+ "x86",
+]
+
+[[package]]
+name = "kerla_common"
+version = "0.0.1"
+dependencies = [
+ "arrayvec 0.7.2",
+ "kerla_utils",
+ "log",
+ "x86",
+]
+
+[[package]]
 name = "kerla_utils"
 version = "0.0.1"
 dependencies = [
