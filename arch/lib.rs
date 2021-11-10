@@ -18,4 +18,5 @@ pub mod page_allocator;
 pub mod result;
 pub mod spinlock;
 
-mod arch;
+mod x64;
+use x64 as arch;
