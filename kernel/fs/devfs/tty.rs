@@ -2,7 +2,7 @@ use arrayvec::ArrayString;
 use core::fmt;
 
 use crate::{
-    arch::{print_str, SpinLock, UserVAddr},
+    arch::{print_bytes, SpinLock, UserVAddr},
     ctypes::*,
     fs::{
         inode::{FileLike, INodeNo},
@@ -38,7 +38,7 @@ impl Tty {
                 match ctrl {
                     LineControl::Backspace => {
                         // Remove the previous character by overwriting with a whitespace.
-                        print_str(b"\x08 \x08");
+                        print_bytes(b"\x08 \x08");
                     }
                     LineControl::Echo(ch) => {
                         self.write(0, [ch].as_slice().into(), &OpenOptions::readwrite())
@@ -113,16 +113,16 @@ impl FileLike for Tty {
     }
 
     fn write(&self, _offset: usize, buf: UserBuffer<'_>, _options: &OpenOptions) -> Result<usize> {
-        print_str(b"\x1b[1m");
+        print_bytes(b"\x1b[1m");
         let mut tmp = [0; 32];
         let mut total_len = 0;
         let mut reader = UserBufReader::from(buf);
         while reader.remaining_len() > 0 {
             let copied_len = reader.read_bytes(&mut tmp)?;
-            print_str(&tmp.as_slice()[..copied_len]);
+            print_bytes(&tmp.as_slice()[..copied_len]);
             total_len += copied_len;
         }
-        print_str(b"\x1b[0m");
+        print_bytes(b"\x1b[0m");
         Ok(total_len)
     }
 }

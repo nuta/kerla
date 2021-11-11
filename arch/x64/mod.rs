@@ -27,10 +27,11 @@ pub use profile::read_clock_counter;
 pub use semihosting::{semihosting_halt, ExitStatus};
 pub use syscall::SyscallFrame;
 
-// x64-specific objects.
-pub use cpu_local::cpu_local_head;
-pub use gdt::{USER_CS32, USER_CS64, USER_DS, USER_RPL};
-pub use tss::Tss;
+pub mod x64_specific {
+    pub use super::cpu_local::cpu_local_head;
+    pub use super::gdt::{USER_CS32, USER_CS64, USER_DS, USER_RPL};
+    pub use super::tss::TSS;
+}
 
 pub const PAGE_SIZE: usize = 4096;
 

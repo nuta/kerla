@@ -3,7 +3,7 @@ use core::{fmt, mem::size_of, slice, str};
 use alloc::boxed::Box;
 use arrayvec::ArrayVec;
 
-use crate::{addr::VAddr, arch::Backtrace};
+use crate::{Backtrace, VAddr};
 
 /// A symbol.
 #[repr(C, packed)]

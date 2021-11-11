@@ -3,6 +3,7 @@ use core::mem::MaybeUninit;
 use core::ptr;
 use x86::bits64::segmentation::{rdgsbase, wrgsbase};
 
+#[macro_export]
 macro_rules! __cpu_local_impl {
     ($V:vis, $N:ident, $T:ty, $E:expr) => {
         #[allow(non_camel_case_types)]
@@ -68,6 +69,7 @@ macro_rules! __cpu_local_impl {
 ///
 /// To get the memory address, use `.vaddr()`. **DO NOT USE `&` operator**  --
 /// it points to the initial value area instead!
+#[macro_export]
 macro_rules! cpu_local {
     (static ref $N:ident : $T:ty = $E:expr ;) => {
         __cpu_local_impl!(, $N, $T, $E);

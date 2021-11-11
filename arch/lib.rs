@@ -18,10 +18,13 @@ pub mod page_allocator;
 pub mod result;
 pub mod spinlock;
 
-pub mod x64;
-pub use x64 as arch;
+pub use addr::{PAddr, UserVAddr, VAddr};
+pub use printk::print_bytes;
+pub use spinlock::{SpinLock, SpinLockGuard};
 
-use addr::UserVAddr;
+pub mod x64;
+pub use x64::*;
+
 use kerla_utils::static_cell::StaticCell;
 
 pub trait Handler: Sync {
@@ -32,7 +35,7 @@ pub trait Handler: Sync {
         &self,
         unaligned_vaddr: Option<UserVAddr>,
         ip: usize,
-        _reason: arch::PageFaultReason,
+        _reason: PageFaultReason,
     );
     fn handle_syscall(
         &self,
@@ -43,7 +46,7 @@ pub trait Handler: Sync {
         a5: usize,
         a6: usize,
         n: usize,
-        frame: *mut arch::SyscallFrame,
+        frame: *mut SyscallFrame,
     ) -> isize;
 }
 
@@ -60,7 +63,7 @@ impl Handler for NopHandler {
         &self,
         _unaligned_vaddr: Option<UserVAddr>,
         _ip: usize,
-        _reason: arch::PageFaultReason,
+        _reason: PageFaultReason,
     ) {
     }
 

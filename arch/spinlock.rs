@@ -3,9 +3,9 @@ use cfg_if::cfg_if;
 use core::mem::ManuallyDrop;
 use core::ops::{Deref, DerefMut};
 
-use crate::arch::SavedInterruptStatus;
 use crate::backtrace::{backtrace, CapturedBacktrace};
 use crate::global_allocator::is_kernel_heap_enabled;
+use crate::SavedInterruptStatus;
 
 pub struct SpinLock<T: ?Sized> {
     #[cfg(debug_assertions)]

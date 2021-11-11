@@ -1,5 +1,5 @@
-use crate::arch::{KERNEL_BASE_ADDR, KERNEL_STRAIGHT_MAP_PADDR_END};
 use crate::result::{Errno, Error, Result};
+use crate::{KERNEL_BASE_ADDR, KERNEL_STRAIGHT_MAP_PADDR_END};
 
 use core::{
     fmt,

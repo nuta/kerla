@@ -3,7 +3,6 @@ use super::virtio::{IsrStatus, Virtio};
 use crate::net::{process_packets, receive_ethernet_frame};
 use crate::{
     arch::{SpinLock, VAddr, PAGE_SIZE},
-    boot::VirtioMmioDevice,
     drivers::{
         pci::PciDevice,
         virtio::{
@@ -13,7 +12,6 @@ use crate::{
         Driver, DriverBuilder, EthernetDriver, MacAddress,
     },
     interrupt::attach_irq,
-    mm::page_allocator::{alloc_pages, AllocPageFlags},
 };
 use crate::{
     drivers::register_ethernet_driver,
@@ -21,6 +19,10 @@ use crate::{
 };
 use alloc::sync::Arc;
 use core::mem::size_of;
+use kerla_arch::{
+    bootinfo::VirtioMmioDevice,
+    page_allocator::{alloc_pages, AllocPageFlags},
+};
 use kerla_utils::alignment::align_up;
 
 const VIRTIO_NET_F_MAC: u64 = 1 << 5;

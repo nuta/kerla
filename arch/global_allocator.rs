@@ -4,8 +4,8 @@ use core::sync::atomic::{AtomicBool, Ordering};
 use buddy_system_allocator::{Heap, LockedHeapWithRescue};
 use kerla_utils::alignment::align_up;
 
-use crate::arch::PAGE_SIZE;
 use crate::page_allocator::{alloc_pages, AllocPageFlags};
+use crate::PAGE_SIZE;
 
 const ORDER: usize = 32;
 const KERNEL_HEAP_CHUNK_SIZE: usize = 1024 * 1024; // 1MiB

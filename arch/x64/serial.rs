@@ -32,7 +32,7 @@ pub fn printchar(ch: u8) {
     }
 }
 
-pub fn print_str(s: &[u8]) {
+pub fn print_bytes(s: &[u8]) {
     for ch in s {
         printchar(*ch);
         vga::printchar(*ch);
@@ -42,8 +42,8 @@ pub fn print_str(s: &[u8]) {
 struct SerialPrinter;
 
 impl Printer for SerialPrinter {
-    fn print_str(&self, s: &str) {
-        print_str(s.as_bytes());
+    fn print_bytes(&self, s: &[u8]) {
+        print_bytes(s);
     }
 }
 

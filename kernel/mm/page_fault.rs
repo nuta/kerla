@@ -1,9 +1,6 @@
 use kerla_utils::alignment::align_down;
 
-use super::{
-    page_allocator::{alloc_pages, AllocPageFlags},
-    vm::VmAreaType,
-};
+use super::vm::VmAreaType;
 use crate::{
     arch::{PageFaultReason, UserVAddr, PAGE_SIZE},
     fs::opened_file::OpenOptions,
@@ -11,6 +8,7 @@ use crate::{
 };
 use core::cmp::min;
 use core::slice;
+use kerla_arch::page_allocator::{alloc_pages, AllocPageFlags};
 
 pub fn handle_page_fault(unaligned_vaddr: UserVAddr, ip: usize, _reason: PageFaultReason) {
     let current = current_process();

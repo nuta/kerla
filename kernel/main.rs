@@ -19,6 +19,9 @@ extern crate alloc;
 extern crate log;
 
 #[macro_use]
+extern crate kerla_arch;
+
+#[macro_use]
 mod printk;
 #[macro_use]
 mod result;

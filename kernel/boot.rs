@@ -1,7 +1,7 @@
 #![cfg_attr(test, allow(unreachable_code))]
 
 use crate::{
-    arch::{self, idle, PAddr, SpinLock},
+    arch::{idle, SpinLock},
     drivers,
     fs::tmpfs,
     fs::{
@@ -10,48 +10,17 @@ use crate::{
         mount::RootFs,
         path::Path,
     },
-    interrupt,
-    mm::{global_allocator, page_allocator},
-    net, pipe, poll,
-    printk::PrintkLogger,
+    interrupt, net, pipe, poll,
     process::{self, switch, Process},
     profile::StopWatch,
 };
 use alloc::sync::Arc;
+use kerla_arch::bootinfo::BootInfo;
 use kerla_utils::once::Once;
 use tmpfs::TMP_FS;
 
 #[cfg(test)]
 use crate::test_runner::end_tests;
-use arrayvec::ArrayVec;
-
-pub struct RamArea {
-    pub base: PAddr,
-    pub len: usize,
-}
-
-pub struct VirtioMmioDevice {
-    pub mmio_base: PAddr,
-    pub irq: u8,
-}
-
-pub struct BootInfo {
-    pub ram_areas: ArrayVec<RamArea, 8>,
-    pub virtio_mmio_devices: ArrayVec<VirtioMmioDevice, 4>,
-    pub pci_enabled: bool,
-    pub omikuji: bool,
-}
-
-static LOGGER: PrintkLogger = PrintkLogger;
-
-pub fn init_logger() {
-    log::set_logger(&LOGGER).unwrap();
-    log::set_max_level(if cfg!(debug_assertions) {
-        log::LevelFilter::Trace
-    } else {
-        log::LevelFilter::Info
-    });
-}
 
 fn idle_thread() -> ! {
     loop {
@@ -66,10 +35,6 @@ pub fn boot_kernel(bootinfo: &BootInfo) -> ! {
     let mut profiler = StopWatch::start();
 
     // Initialize memory allocators first.
-    page_allocator::init(&bootinfo.ram_areas);
-    profiler.lap_time("page allocator init");
-    global_allocator::init();
-    profiler.lap_time("global allocator init");
     interrupt::init();
     profiler.lap_time("global interrupt init");
 
@@ -80,8 +45,6 @@ pub fn boot_kernel(bootinfo: &BootInfo) -> ! {
     }
 
     // Initialize kernel subsystems.
-    arch::init();
-    profiler.lap_time("arch init");
     pipe::init();
     profiler.lap_time("pipe init");
     poll::init();
@@ -164,12 +127,6 @@ pub fn boot_kernel(bootinfo: &BootInfo) -> ! {
     }
 
     profiler.lap_time("first process init");
-
-    if bootinfo.omikuji {
-        // "Chosen by fair dice roll. Guaranteed to be random."
-        // https://xkcd.com/221/
-        info!("omikuji: 中吉");
-    }
 
     // We've done the kernel initialization. Switch into the init...
     switch();

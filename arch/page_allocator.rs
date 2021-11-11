@@ -1,9 +1,9 @@
 use crate::{
     addr::PAddr,
-    arch::PAGE_SIZE,
     bootinfo::RamArea,
     result::{Errno, Result},
     spinlock::SpinLock,
+    PAGE_SIZE,
 };
 use arrayvec::ArrayVec;
 use bitflags::bitflags;

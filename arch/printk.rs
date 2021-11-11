@@ -1,6 +1,7 @@
 use core::{fmt, str};
 
 use kerla_utils::static_cell::StaticCell;
+use log::logger;
 
 static PRINTER: StaticCell<&dyn Printer> = StaticCell::new(&NopPrinter);
 
@@ -10,13 +11,17 @@ pub fn set_printer(new_printer: &'static dyn Printer) {
 }
 
 pub trait Printer: Sync {
-    fn print_str(&self, s: &str);
+    fn print_str(&self, s: &str) {
+        self.print_bytes(s.as_bytes());
+    }
+
+    fn print_bytes(&self, s: &[u8]);
 }
 
 struct NopPrinter;
 
 impl Printer for NopPrinter {
-    fn print_str(&self, _s: &str) {
+    fn print_bytes(&self, _s: &[u8]) {
         // Because the panic handler cannot use the printer, we have no way
         // to print a message. Use a debugger to check whether CPU reached here.
     }
@@ -27,9 +32,13 @@ pub struct PrinterWrapper;
 
 impl fmt::Write for PrinterWrapper {
     fn write_str(&mut self, s: &str) -> fmt::Result {
-        PRINTER.load().print_str(s);
+        print_bytes(s.as_bytes());
         Ok(())
     }
+}
+
+pub fn print_bytes(s: &[u8]) {
+    PRINTER.load().print_bytes(s);
 }
 
 /// Prints a string.
@@ -140,4 +149,13 @@ impl log::Log for PrintkPrinter {
     }
 
     fn flush(&self) {}
+}
+
+pub(crate) fn init() {
+    log::set_logger(logger()).unwrap();
+    log::set_max_level(if cfg!(debug_assertions) {
+        log::LevelFilter::Trace
+    } else {
+        log::LevelFilter::Info
+    });
 }

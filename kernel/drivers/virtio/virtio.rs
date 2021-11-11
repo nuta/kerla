@@ -3,8 +3,8 @@ use crate::prelude::*;
 use crate::result::{Errno, Result};
 use crate::{
     arch::{PAddr, VAddr, PAGE_SIZE},
-    mm::page_allocator::{alloc_pages, AllocPageFlags},
 };
+use kerla_arch::page_allocator::{alloc_pages, AllocPageFlags};
 use bitflags::bitflags;
 use core::cmp::min;
 use core::convert::TryInto;

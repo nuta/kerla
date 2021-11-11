@@ -2,6 +2,7 @@ use super::{apic, bootinfo, cpu_local, gdt, idt, ioapic, pit, serial, syscall, t
 use crate::addr::{PAddr, VAddr};
 use crate::bootinfo::BootInfo;
 use crate::page_allocator;
+use crate::printk;
 
 use x86::{
     controlregs::{self, Cr4, Xcr0},
@@ -75,6 +76,7 @@ unsafe extern "C" fn bsp_early_init(boot_magic: u32, boot_params: u64) -> ! {
 
     // Initialize the serial driver first to enable print macros.
     serial::early_init();
+    printk::init();
 
     let boot_info = bootinfo::parse(boot_magic, PAddr::new(boot_params as usize));
     page_allocator::init(&boot_info.ram_areas);
