@@ -48,7 +48,7 @@ export RUSTFLAGS = -Z emit-stack-sizes
 CARGOFLAGS += -Z build-std=core,alloc -Z build-std-features=compiler-builtins-mem
 CARGOFLAGS += --target $(target_json)
 CARGOFLAGS += $(if $(RELEASE),--release,)
-TESTCARGOFLAGS += --package kerla -Z unstable-options
+TESTCARGOFLAGS += --package kerla_kernel -Z unstable-options
 TESTCARGOFLAGS += --config "target.$(ARCH).runner = './tools/run-unittests.sh'"
 WATCHFLAGS += --clear
 LDFLAGS += -flavor ld.lld --script=kernel/arch/x64/x64.ld -Map kerla.x64.map
