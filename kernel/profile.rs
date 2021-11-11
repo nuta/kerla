@@ -1,4 +1,4 @@
-use crate::arch::read_clock_counter;
+use kerla_runtime::arch::read_clock_counter;
 
 pub struct StopWatch {
     current: u64,

@@ -1,9 +1,10 @@
 #![cfg(test)]
 #![allow(clippy::print_with_newline)]
 
-use crate::arch::*;
 use core::panic::PanicInfo;
 use core::sync::atomic::Ordering;
+
+use kerla_runtime::arch::{semihosting_halt, SemihostingExitStatus};
 
 pub trait Testable {
     fn run(&self);

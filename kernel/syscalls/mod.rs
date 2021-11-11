@@ -14,7 +14,7 @@ use crate::{
     user_buffer::UserCStr,
 };
 use bitflags::bitflags;
-use kerla_runtime::{arch::SyscallFrame, UserVAddr};
+use kerla_runtime::{address::UserVAddr, arch::SyscallFrame};
 
 pub(self) mod accept;
 pub(self) mod arch_prctl;

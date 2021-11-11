@@ -2,7 +2,6 @@ use arrayvec::ArrayString;
 use core::fmt;
 
 use crate::{
-    arch::{SpinLock, UserVAddr},
     ctypes::*,
     fs::{
         inode::{FileLike, INodeNo},
@@ -16,7 +15,7 @@ use crate::{
     user_buffer::UserBuffer,
     user_buffer::{UserBufReader, UserBufferMut},
 };
-use kerla_runtime::print::print_bytes;
+use kerla_runtime::{address::UserVAddr, print::print_bytes, spinlock::SpinLock};
 
 pub struct Tty {
     name: ArrayString<8>,

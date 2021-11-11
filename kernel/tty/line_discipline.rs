@@ -1,12 +1,12 @@
 //! Line discipline.
 
 use crate::{
-    arch::SpinLock,
     prelude::*,
     process::{current_process, process_group::ProcessGroup, signal::SIGINT, WaitQueue},
     user_buffer::{UserBufReader, UserBufWriter, UserBuffer, UserBufferMut},
 };
 use bitflags::bitflags;
+use kerla_runtime::spinlock::SpinLock;
 use kerla_utils::ring_buffer::RingBuffer;
 
 bitflags! {

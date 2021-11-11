@@ -1,7 +1,5 @@
 use crate::{
-    arch::{
-        self, SpinLock, SpinLockGuard, SyscallFrame, KERNEL_STACK_SIZE, PAGE_SIZE, USER_STACK_TOP,
-    },
+    arch::{self, KERNEL_STACK_SIZE, USER_STACK_TOP},
     ctypes::*,
     fs::{
         devfs::SERIAL_TTY,
@@ -33,7 +31,11 @@ use core::mem::size_of;
 use core::sync::atomic::{AtomicI32, Ordering};
 use crossbeam::atomic::AtomicCell;
 use goblin::elf64::program_header::PT_LOAD;
-use kerla_runtime::page_allocator::{alloc_pages, AllocPageFlags};
+use kerla_runtime::{
+    arch::{SyscallFrame, PAGE_SIZE},
+    page_allocator::{alloc_pages, AllocPageFlags},
+    spinlock::{SpinLock, SpinLockGuard},
+};
 use kerla_utils::alignment::align_up;
 
 type ProcessTable = BTreeMap<PId, Arc<Process>>;

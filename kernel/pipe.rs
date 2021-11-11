@@ -1,10 +1,10 @@
 //! Unnamed pipe (`pipe(2)`).
 use core::fmt;
 
+use kerla_runtime::spinlock::SpinLock;
 use kerla_utils::{once::Once, ring_buffer::RingBuffer};
 
 use crate::{
-    arch::SpinLock,
     fs::{
         inode::{FileLike, PollStatus},
         opened_file::OpenOptions,

@@ -18,9 +18,6 @@ pub mod logger;
 pub mod page_allocator;
 pub mod spinlock;
 
-pub use address::{PAddr, UserVAddr, VAddr};
-pub use spinlock::{SpinLock, SpinLockGuard};
-
 mod x64;
 
 pub mod arch {
@@ -31,6 +28,7 @@ pub mod arch {
     };
 }
 
+use address::UserVAddr;
 use kerla_utils::static_cell::StaticCell;
 
 pub trait Handler: Sync {

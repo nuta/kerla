@@ -2,7 +2,10 @@
 use super::virtio::{IsrStatus, Virtio};
 use crate::net::{process_packets, receive_ethernet_frame};
 use crate::{
-    arch::{SpinLock, VAddr, PAGE_SIZE},
+    drivers::register_ethernet_driver,
+    result::{Errno, Result},
+};
+use crate::{
     drivers::{
         pci::PciDevice,
         virtio::{
@@ -13,13 +16,12 @@ use crate::{
     },
     interrupt::attach_irq,
 };
-use crate::{
-    drivers::register_ethernet_driver,
-    result::{Errno, Result},
-};
 use alloc::sync::Arc;
 use core::mem::size_of;
+use kerla_runtime::arch::PAGE_SIZE;
+use kerla_runtime::spinlock::SpinLock;
 use kerla_runtime::{
+    address::VAddr,
     bootinfo::VirtioMmioDevice,
     page_allocator::{alloc_pages, AllocPageFlags},
 };

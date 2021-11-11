@@ -3,15 +3,11 @@ use core::convert::TryInto;
 use memoffset::offset_of;
 
 use super::VirtioTransport;
-use crate::{
-    arch::VAddr,
-    drivers::{pci::PciCapability, virtio::virtio::IsrStatus},
-};
-use crate::{
-    arch::{PAddr, SpinLock},
-    drivers::pci::{Bar, PciDevice},
-};
+use crate::drivers::pci::{Bar, PciDevice};
+use crate::drivers::{pci::PciCapability, virtio::virtio::IsrStatus};
 use crate::{drivers::Driver, prelude::*};
+use kerla_runtime::address::{VAddr,PAddr};
+use kerla_runtime::spinlock::SpinLock;
 
 const VIRTIO_PCI_CAP_COMMON_CFG: u8 = 1;
 const VIRTIO_PCI_CAP_NOTIFY_CFG: u8 = 2;

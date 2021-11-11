@@ -47,7 +47,6 @@ mod timer;
 mod tty;
 
 use crate::{
-    arch::SpinLock,
     fs::{devfs::SERIAL_TTY, tmpfs},
     fs::{
         devfs::{self, DEV_FS},
@@ -63,6 +62,7 @@ use alloc::sync::Arc;
 use kerla_runtime::{
     arch::{idle, PageFaultReason, SyscallFrame},
     bootinfo::BootInfo,
+    spinlock::SpinLock,
 };
 use kerla_utils::once::Once;
 use tmpfs::TMP_FS;
@@ -87,7 +87,7 @@ impl kerla_runtime::Handler for Handler {
 
     fn handle_page_fault(
         &self,
-        unaligned_vaddr: Option<kerla_runtime::UserVAddr>,
+        unaligned_vaddr: Option<kerla_runtime::address::UserVAddr>,
         ip: usize,
         reason: PageFaultReason,
     ) {

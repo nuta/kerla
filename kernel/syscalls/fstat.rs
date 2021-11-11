@@ -1,6 +1,7 @@
 use crate::fs::opened_file::Fd;
-use crate::{arch::UserVAddr, result::Result};
+use crate::result::Result;
 use crate::{process::current_process, syscalls::SyscallHandler};
+use kerla_runtime::address::UserVAddr;
 
 impl<'a> SyscallHandler<'a> {
     pub fn sys_fstat(&mut self, fd: Fd, buf: UserVAddr) -> Result<isize> {

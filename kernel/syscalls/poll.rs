@@ -1,7 +1,8 @@
 use core::mem::size_of;
 
+use kerla_runtime::address::UserVAddr;
+
 use crate::{
-    arch::UserVAddr,
     ctypes::{c_int, c_nfds, c_short},
     fs::{inode::PollStatus, opened_file::Fd},
     poll::POLL_WAIT_QUEUE,

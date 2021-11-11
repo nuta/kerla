@@ -1,15 +1,14 @@
 //! A virtio device driver library.
 use crate::prelude::*;
 use crate::result::{Errno, Result};
-use crate::{
-    arch::{PAddr, VAddr, PAGE_SIZE},
-};
-use kerla_runtime::page_allocator::{alloc_pages, AllocPageFlags};
 use bitflags::bitflags;
 use core::cmp::min;
 use core::convert::TryInto;
 use core::mem::size_of;
 use core::sync::atomic::{self, Ordering};
+use kerla_runtime::address::{PAddr, VAddr};
+use kerla_runtime::arch::PAGE_SIZE;
+use kerla_runtime::page_allocator::{alloc_pages, AllocPageFlags};
 use kerla_utils::alignment::align_up;
 
 use super::transports::VirtioTransport;

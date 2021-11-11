@@ -1,8 +1,9 @@
 use crate::ctypes::*;
 use crate::prelude::*;
+use crate::process::current_process;
 use crate::process::signal::{SigAction, DEFAULT_ACTIONS, SIG_DFL, SIG_IGN};
 use crate::syscalls::SyscallHandler;
-use crate::{arch::UserVAddr, process::current_process};
+use kerla_runtime::address::UserVAddr;
 
 impl<'a> SyscallHandler<'a> {
     pub fn sys_rt_sigaction(

@@ -1,11 +1,12 @@
 use super::MAX_READ_WRITE_LEN;
-use crate::{arch::UserVAddr, fs::opened_file::Fd, result::Result};
+use crate::{fs::opened_file::Fd, result::Result};
 use crate::{
     net::{socket::*, SendToFlags},
     user_buffer::UserBuffer,
 };
 use crate::{process::current_process, syscalls::SyscallHandler};
 use core::cmp::min;
+use kerla_runtime::address::UserVAddr;
 
 impl<'a> SyscallHandler<'a> {
     pub fn sys_sendto(

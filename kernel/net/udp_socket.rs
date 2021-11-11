@@ -1,5 +1,4 @@
 use crate::{
-    arch::SpinLock,
     fs::{
         inode::{FileLike, PollStatus},
         opened_file::OpenOptions,
@@ -10,6 +9,7 @@ use crate::{
 };
 use alloc::{collections::BTreeSet, sync::Arc};
 use core::{convert::TryInto, fmt};
+use kerla_runtime::spinlock::SpinLock;
 use smoltcp::socket::{UdpPacketMetadata, UdpSocketBuffer};
 use smoltcp::wire::IpEndpoint;
 

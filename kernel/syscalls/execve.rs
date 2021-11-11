@@ -1,10 +1,10 @@
-use crate::arch::UserVAddr;
 use crate::fs::path::Path;
 use crate::prelude::*;
 use crate::process::Process;
 use crate::user_buffer::UserCStr;
 use crate::{process::current_process, syscalls::SyscallHandler};
 use core::mem::size_of;
+use kerla_runtime::address::UserVAddr;
 
 const ARG_MAX: usize = 512;
 const ARG_LEN_MAX: usize = 4096;

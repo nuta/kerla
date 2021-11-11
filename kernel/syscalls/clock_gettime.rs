@@ -1,8 +1,7 @@
+use kerla_runtime::address::UserVAddr;
+
+use crate::result::{Errno, Result};
 use crate::user_buffer::UserBufWriter;
-use crate::{
-    arch::UserVAddr,
-    result::{Errno, Result},
-};
 use crate::{
     ctypes::{c_clockid, c_long, c_time, CLOCK_MONOTONIC, CLOCK_REALTIME},
     timer::read_wall_clock,

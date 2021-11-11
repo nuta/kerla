@@ -1,4 +1,4 @@
-use crate::arch::{PAddr, VAddr};
+use kerla_runtime::address::{PAddr, VAddr};
 
 use super::VirtioTransport;
 use crate::drivers::virtio::virtio::IsrStatus;

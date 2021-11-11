@@ -1,5 +1,6 @@
+use crate::result::Result;
 use crate::syscalls::SyscallHandler;
-use crate::{arch::UserVAddr, result::Result};
+use kerla_runtime::address::UserVAddr;
 
 use crate::user_buffer::UserBufWriter;
 

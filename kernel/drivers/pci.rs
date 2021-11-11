@@ -1,9 +1,9 @@
-use crate::arch::PAddr;
 use crate::drivers::DRIVER_BUILDERS;
 use crate::prelude::*;
 use arrayvec::ArrayVec;
 use core::convert::TryInto;
 use core::{mem::size_of, mem::MaybeUninit};
+use kerla_runtime::address::PAddr;
 use kerla_utils::alignment::is_aligned;
 use x86::io::{inl, outl};
 

@@ -1,7 +1,7 @@
 //! User pointers.
-use crate::arch::UserVAddr;
 use crate::prelude::*;
 use core::{cmp::min, mem::size_of, slice};
+use kerla_runtime::address::UserVAddr;
 use kerla_utils::alignment::align_up;
 
 /// Parses a bitflags field given from the user. Returns `Result<T>`.
