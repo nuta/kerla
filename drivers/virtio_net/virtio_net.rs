@@ -1,31 +1,18 @@
 //! A virtio-net device driver.
-use super::virtio::{IsrStatus, Virtio};
-use crate::net::{process_packets, receive_ethernet_frame};
-use crate::{
-    drivers::register_ethernet_driver,
-    result::{Errno, Result},
-};
-use crate::{
-    drivers::{
-        pci::PciDevice,
-        virtio::{
-            transports::{virtio_mmio::VirtioMmio, virtio_pci::VirtioPci, VirtioTransport},
-            virtio::VirtqUsedChain,
-        },
-        Driver, DriverBuilder, EthernetDriver, MacAddress,
-    },
-    interrupt::attach_irq,
-};
 use alloc::sync::Arc;
 use core::mem::size_of;
-use kerla_runtime::arch::PAGE_SIZE;
-use kerla_runtime::spinlock::SpinLock;
-use kerla_runtime::{
-    address::VAddr,
-    bootinfo::VirtioMmioDevice,
-    page_allocator::{alloc_pages, AllocPageFlags},
-};
+
+use crate::transports::{virtio_mmio::VirtioMmio, virtio_pci::VirtioPci, VirtioTransport};
+use crate::virtio::{IsrStatus, Virtio, VirtqUsedChain};
+
+use kerla_api::address::VAddr;
+use kerla_api::arch::PAGE_SIZE;
+use kerla_api::driver::{pci::PciDevice, VirtioMmioDevice};
+use kerla_api::driver::{Driver, DriverBuilder, EthernetDriver, MacAddress};
+use kerla_api::mm::{alloc_pages, AllocPageFlags};
+use kerla_api::sync::SpinLock;
 use kerla_utils::alignment::align_up;
+use kerla_utils::offset_of;
 
 const VIRTIO_NET_F_MAC: u64 = 1 << 5;
 
@@ -72,8 +59,7 @@ impl VirtioNet {
         // Read the MAC address.
         let mut mac_addr = [0; 6];
         for (i, byte) in mac_addr.iter_mut().enumerate() {
-            *byte = virtio
-                .read_device_config8((memoffset::offset_of!(VirtioNetConfig, mac) + i) as u16);
+            *byte = virtio.read_device_config8((offset_of!(VirtioNetConfig, mac) + i) as u16);
         }
         info!(
             "virtio-net: MAC address is {:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}",
@@ -170,11 +156,11 @@ impl Driver for VirtioNet {
 }
 
 impl EthernetDriver for VirtioNet {
-    fn mac_addr(&self) -> Result<MacAddress> {
-        Ok(self.mac_addr)
+    fn mac_addr(&self) -> MacAddress {
+        self.mac_addr
     }
 
-    fn transmit(&mut self, frame: &[u8]) -> Result<()> {
+    fn transmit(&mut self, frame: &[u8]) {
         let i = self.tx_ring_index % self.tx_ring_len;
         let addr = self.tx_buffer.add(i * PACKET_LEN_MAX);
 
@@ -215,7 +201,6 @@ impl EthernetDriver for VirtioNet {
         tx_virtq.notify();
 
         self.tx_ring_index += 1;
-        Ok(())
     }
 }
 
@@ -227,12 +212,12 @@ impl VirtioNetBuilder {
 }
 
 impl DriverBuilder for VirtioNetBuilder {
-    fn attach_pci(&self, pci_device: &PciDevice) -> Result<()> {
+    fn attach_pci(&self, pci_device: &PciDevice) {
         // Check if the device is a network card ("4.1.2 PCI Device Discovery").
         if pci_device.config().vendor_id() == 0x1af4
             && pci_device.config().device_id() != 0x1040 + 1
         {
-            return Err(Errno::EINVAL.into());
+            return;
         }
 
         trace!("virtio-net: found the device (over PCI)");
@@ -247,24 +232,24 @@ impl DriverBuilder for VirtioNetBuilder {
         Ok(())
     }
 
-    fn attach_virtio_mmio(&self, mmio_device: &VirtioMmioDevice) -> Result<()> {
+    fn attach_virtio_mmio(&self, mmio_device: &VirtioMmioDevice) {
         let mmio = mmio_device.mmio_base.as_vaddr();
         let magic = unsafe { *mmio.as_ptr::<u32>() };
         let virtio_version = unsafe { *mmio.add(4).as_ptr::<u32>() };
         let device_id = unsafe { *mmio.add(8).as_ptr::<u32>() };
 
         if magic != 0x74726976 {
-            return Err(Errno::EINVAL.into());
+            return;
         }
 
         if virtio_version != 2 {
             warn!("unsupported virtio device version: {}", virtio_version);
-            return Err(Errno::EINVAL.into());
+            return;
         }
 
         // It looks like a virtio device. Check if the device is a network card.
         if device_id != 1 {
-            return Err(Errno::EINVAL.into());
+            return;
         }
 
         trace!("virtio-net: found the device (over MMIO)");

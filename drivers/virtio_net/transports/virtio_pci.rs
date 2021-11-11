@@ -1,13 +1,19 @@
+use crate::virtio::IsrStatus;
+
 use core::convert::TryInto;
 
-use memoffset::offset_of;
+use alloc::sync::Arc;
+use kerla_api::{
+    address::{PAddr, VAddr},
+    driver::{
+        pci::{Bar, PciCapability, PciDevice},
+        Driver,
+    },
+    sync::SpinLock,
+};
+use kerla_utils::offset_of;
 
 use super::VirtioTransport;
-use crate::drivers::pci::{Bar, PciDevice};
-use crate::drivers::{pci::PciCapability, virtio::virtio::IsrStatus};
-use crate::{drivers::Driver, prelude::*};
-use kerla_runtime::address::{VAddr,PAddr};
-use kerla_runtime::spinlock::SpinLock;
 
 const VIRTIO_PCI_CAP_COMMON_CFG: u8 = 1;
 const VIRTIO_PCI_CAP_NOTIFY_CFG: u8 = 2;
@@ -61,7 +67,7 @@ impl VirtioPci {
     {
         // TODO: Check device type
         if pci_device.config().vendor_id() != 0x1af4 {
-            return Err(Errno::EINVAL.into());
+            return;
         }
 
         let common_cfg = get_bar_for_cfg_type(pci_device, VIRTIO_PCI_CAP_COMMON_CFG)

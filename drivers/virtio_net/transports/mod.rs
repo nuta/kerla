@@ -1,6 +1,6 @@
-use kerla_runtime::address::PAddr;
+use crate::virtio::IsrStatus;
 
-use crate::drivers::virtio::virtio::IsrStatus;
+use kerla_api::address::PAddr;
 
 pub mod virtio_mmio;
 pub mod virtio_pci;

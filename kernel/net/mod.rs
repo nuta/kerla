@@ -1,14 +1,11 @@
 use crate::{
-    drivers::{get_ethernet_driver, EthernetDriver},
-    poll::POLL_WAIT_QUEUE,
-    process::WaitQueue,
-    timer::read_monotonic_clock,
-    timer::MonotonicClock,
+    poll::POLL_WAIT_QUEUE, process::WaitQueue, timer::read_monotonic_clock, timer::MonotonicClock,
 };
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use crossbeam::queue::ArrayQueue;
+use kerla_api::driver::{get_ethernet_driver, EthernetDriver};
 use kerla_runtime::spinlock::SpinLock;
 use kerla_utils::once::Once;
 use smoltcp::wire::{self, EthernetAddress, IpCidr};
@@ -41,7 +38,7 @@ static RX_PACKET_QUEUE: Once<SpinLock<ArrayQueue<Vec<u8>>>> = Once::new();
 static DRIVER: Once<Arc<SpinLock<dyn EthernetDriver>>> = Once::new();
 
 pub fn send_ethernet_frame(frame: &[u8]) {
-    DRIVER.lock().transmit(frame).unwrap();
+    DRIVER.lock().transmit(frame);
 }
 
 pub fn receive_ethernet_frame(frame: &[u8]) {
@@ -169,7 +166,7 @@ impl<'a> Device<'a> for OurDevice {
 pub fn init() {
     let neighbor_cache = NeighborCache::new(BTreeMap::new());
     let driver = get_ethernet_driver().expect("no ethernet drivers");
-    let mac_addr = driver.lock().mac_addr().unwrap();
+    let mac_addr = driver.lock().mac_addr();
     let ethernet_addr = EthernetAddress(mac_addr.as_array());
     let ip_addrs = [IpCidr::new(wire::Ipv4Address::UNSPECIFIED.into(), 0)];
     let routes = Routes::new(BTreeMap::new());

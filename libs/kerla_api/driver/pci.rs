@@ -1,5 +1,4 @@
-use crate::drivers::DRIVER_BUILDERS;
-use crate::prelude::*;
+use alloc::vec::Vec;
 use arrayvec::ArrayVec;
 use core::convert::TryInto;
 use core::{mem::size_of, mem::MaybeUninit};
@@ -242,8 +241,9 @@ pub fn init() {
             device.config().interrupt_line()
         );
 
-        for builder in DRIVER_BUILDERS.lock().iter() {
-            builder.attach_pci(&device).ok();
-        }
+        // TODO:
+        // for builder in DRIVER_BUILDERS.lock().iter() {
+        //     builder.attach_pci(&device).ok();
+        // }
     }
 }

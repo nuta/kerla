@@ -29,7 +29,6 @@ mod arch;
 #[macro_use]
 mod user_buffer;
 mod ctypes;
-mod drivers;
 mod fs;
 mod interrupt;
 mod lang_items;
@@ -153,16 +152,16 @@ pub fn boot_kernel(#[cfg_attr(debug_assertions, allow(unused))] bootinfo: &BootI
     profiler.lap_time("tmpfs init");
     initramfs::init();
     profiler.lap_time("initramfs init");
-    drivers::init();
-    profiler.lap_time("drivers init");
+    kerla_api::init();
+    profiler.lap_time("kernel extensions init");
 
     if bootinfo.pci_enabled {
-        drivers::pci::init();
+        kerla_api::init_pci_devices();
         profiler.lap_time("pci init");
     }
 
     if !bootinfo.virtio_mmio_devices.is_empty() {
-        drivers::virtio::init(&bootinfo.virtio_mmio_devices);
+        kerla_api::init_virtio_mmio_devices(&bootinfo.virtio_mmio_devices);
         profiler.lap_time("virtio init");
     }
 

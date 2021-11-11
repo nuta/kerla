@@ -1,4 +1,3 @@
-#![allow(unused)] // TODO: remove me
 use x86::io::{inb, inl, inw, outb, outl, outw};
 
 #[derive(Debug, Copy, Clone)]

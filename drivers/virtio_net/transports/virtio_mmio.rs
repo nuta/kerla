@@ -1,7 +1,8 @@
-use kerla_runtime::address::{PAddr, VAddr};
+use crate::virtio::IsrStatus;
+
+use kerla_api::address::{PAddr, VAddr};
 
 use super::VirtioTransport;
-use crate::drivers::virtio::virtio::IsrStatus;
 
 pub struct VirtioMmio {
     mmio_base: VAddr,

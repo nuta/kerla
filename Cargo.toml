@@ -3,6 +3,7 @@ members = [
     "runtime",
     "kernel",
     "libs/*",
+    "drivers/*",
 ]
 
 [profile.release]
