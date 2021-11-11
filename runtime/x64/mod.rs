@@ -43,8 +43,8 @@ pub const PAGE_SIZE: usize = 4096;
 pub const TICK_HZ: usize = 1000;
 
 /// The base virtual address of straight mapping.
-pub const KERNEL_BASE_ADDR: u64 = 0xffff_8000_0000_0000;
+pub const KERNEL_BASE_ADDR: usize = 0xffff_8000_0000_0000;
 
 /// The end of straight mapping. Any physical address `P` is mapped into the
 /// kernel's virtual memory address `KERNEL_BASE_ADDR + P`.
-pub const KERNEL_STRAIGHT_MAP_PADDR_END: u64 = 0x1_0000_0000;
+pub const KERNEL_STRAIGHT_MAP_PADDR_END: usize = 0x1_0000_0000;

@@ -39,7 +39,6 @@ mod pipe;
 mod poll;
 mod prelude;
 mod process;
-mod profile;
 mod random;
 mod syscalls;
 mod test_runner;
@@ -55,13 +54,13 @@ use crate::{
         path::Path,
     },
     process::{switch, Process},
-    profile::StopWatch,
     syscalls::SyscallHandler,
 };
 use alloc::sync::Arc;
 use kerla_runtime::{
     arch::{idle, PageFaultReason, SyscallFrame},
     bootinfo::BootInfo,
+    profile::StopWatch,
     spinlock::SpinLock,
 };
 use kerla_utils::once::Once;

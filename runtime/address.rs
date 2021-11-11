@@ -13,11 +13,11 @@ use kerla_utils::alignment::align_down;
 /// Represents a physical memory address.
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 #[repr(transparent)]
-pub struct PAddr(u64);
+pub struct PAddr(usize);
 
 impl PAddr {
     pub const fn new(addr: usize) -> PAddr {
-        PAddr(addr as u64)
+        PAddr(addr)
     }
 
     #[inline(always)]
@@ -27,7 +27,7 @@ impl PAddr {
 
     pub const fn as_vaddr(self) -> VAddr {
         debug_assert!(self.0 < KERNEL_STRAIGHT_MAP_PADDR_END);
-        VAddr::new((self.0 + KERNEL_BASE_ADDR) as usize)
+        VAddr::new(self.0 + KERNEL_BASE_ADDR)
     }
 
     pub const fn as_ptr<T>(self) -> *const T {
@@ -43,12 +43,12 @@ impl PAddr {
     #[inline(always)]
     #[must_use]
     pub const fn add(self, offset: usize) -> PAddr {
-        PAddr(self.0 + offset as u64)
+        PAddr(self.0 + offset)
     }
 
     #[inline(always)]
     pub const fn value(self) -> usize {
-        self.0 as usize
+        self.0
     }
 }
 
@@ -61,22 +61,21 @@ impl fmt::Display for PAddr {
 /// Represents a *kernel* virtual memory address.
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 #[repr(transparent)]
-pub struct VAddr(u64);
+pub struct VAddr(usize);
 
 impl VAddr {
     pub const fn new(addr: usize) -> VAddr {
-        debug_assert!(addr as u64 >= KERNEL_BASE_ADDR);
-        VAddr(addr as u64)
+        debug_assert!(addr >= KERNEL_BASE_ADDR);
+        VAddr(addr)
     }
 
     pub const fn as_paddr(self) -> PAddr {
         debug_assert!(self.0 >= KERNEL_BASE_ADDR);
-        PAddr::new((self.0 - KERNEL_BASE_ADDR) as usize)
+        PAddr::new(self.0 - KERNEL_BASE_ADDR)
     }
 
     pub const fn is_accessible_from_kernel(addr: usize) -> bool {
-        (addr as u64) >= KERNEL_BASE_ADDR
-            && (addr as u64) < KERNEL_BASE_ADDR + KERNEL_STRAIGHT_MAP_PADDR_END
+        (addr) >= KERNEL_BASE_ADDR && (addr) < KERNEL_BASE_ADDR + KERNEL_STRAIGHT_MAP_PADDR_END
     }
 
     pub const fn as_ptr<T>(self) -> *const T {
@@ -111,24 +110,24 @@ impl VAddr {
     #[inline(always)]
     #[must_use]
     pub const fn add(self, offset: usize) -> VAddr {
-        VAddr::new(self.0 as usize + offset)
+        VAddr::new(self.0 + offset)
     }
 
     #[inline(always)]
     #[must_use]
     pub const fn sub(self, offset: usize) -> VAddr {
-        VAddr::new(self.0 as usize - offset)
+        VAddr::new(self.0 - offset)
     }
 
     #[inline(always)]
     #[must_use]
     pub const fn align_down(self, alignment: usize) -> VAddr {
-        VAddr::new(align_down(self.0 as usize, alignment))
+        VAddr::new(align_down(self.0, alignment))
     }
 
     #[inline(always)]
     pub const fn value(self) -> usize {
-        self.0 as usize
+        self.0
     }
 }
 
@@ -165,14 +164,14 @@ pub struct NullUserPointerError;
 /// represent a nullable user pointer.
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 #[repr(transparent)]
-pub struct UserVAddr(u64);
+pub struct UserVAddr(usize);
 
 impl UserVAddr {
     pub const fn new(addr: usize) -> Option<UserVAddr> {
         if addr == 0 {
             None
         } else {
-            Some(UserVAddr(addr as u64))
+            Some(UserVAddr(addr))
         }
     }
 
@@ -187,7 +186,7 @@ impl UserVAddr {
     /// Make sure `addr` doesn't point to the kernel memory address or it can
     /// lead to a serious vulnerability!
     pub const unsafe fn new_unchecked(addr: usize) -> UserVAddr {
-        UserVAddr(addr as u64)
+        UserVAddr(addr)
     }
 
     #[inline(always)]
@@ -199,22 +198,22 @@ impl UserVAddr {
 
     #[inline(always)]
     pub const fn add(self, offset: usize) -> UserVAddr {
-        unsafe { UserVAddr::new_unchecked(self.0 as usize + offset) }
+        unsafe { UserVAddr::new_unchecked(self.0 + offset) }
     }
 
     #[inline(always)]
     pub const fn sub(self, offset: usize) -> UserVAddr {
-        unsafe { UserVAddr::new_unchecked(self.0 as usize - offset) }
+        unsafe { UserVAddr::new_unchecked(self.0 - offset) }
     }
 
     #[inline(always)]
     pub const fn value(self) -> usize {
-        self.0 as usize
+        self.0
     }
 
     pub fn access_ok(self, len: usize) -> Result<(), AccessError> {
         match self.value().checked_add(len) {
-            Some(end) if end <= KERNEL_BASE_ADDR as usize => Ok(()),
+            Some(end) if end <= KERNEL_BASE_ADDR => Ok(()),
             Some(_end) => Err(AccessError),
             // Overflow.
             None => Err(AccessError),
