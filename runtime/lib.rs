@@ -24,7 +24,7 @@ pub mod arch {
     pub use super::x64::{
         console_write, enable_irq, halt, idle, read_clock_counter, semihosting_halt, x64_specific,
         Backtrace, PageFaultReason, PageTable, SavedInterruptStatus, SemihostingExitStatus,
-        SyscallFrame, KERNEL_BASE_ADDR, KERNEL_STRAIGHT_MAP_PADDR_END, PAGE_SIZE,
+        SyscallFrame, KERNEL_BASE_ADDR, KERNEL_STRAIGHT_MAP_PADDR_END, PAGE_SIZE, TICK_HZ,
     };
 }
 

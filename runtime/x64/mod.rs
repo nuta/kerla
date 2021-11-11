@@ -40,6 +40,7 @@ pub mod x64_specific {
 }
 
 pub const PAGE_SIZE: usize = 4096;
+pub const TICK_HZ: usize = 1000;
 
 /// The base virtual address of straight mapping.
 pub const KERNEL_BASE_ADDR: u64 = 0xffff_8000_0000_0000;
