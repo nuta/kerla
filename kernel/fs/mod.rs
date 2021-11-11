@@ -1,4 +1,5 @@
 pub mod devfs;
+pub mod ext2;
 pub mod file_system;
 pub mod initramfs;
 pub mod inode;
