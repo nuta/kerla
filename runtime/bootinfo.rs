@@ -1,6 +1,6 @@
 use arrayvec::ArrayVec;
 
-use crate::addr::PAddr;
+use crate::address::PAddr;
 
 pub struct RamArea {
     pub base: PAddr,

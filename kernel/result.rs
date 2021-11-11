@@ -1,7 +1,7 @@
 use core::fmt;
 
 use kerla_runtime::{
-    addr::{AccessError, NullUserPointerError},
+    address::{AccessError, NullUserPointerError},
     page_allocator::PageAllocError,
 };
 

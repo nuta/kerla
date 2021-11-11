@@ -10,7 +10,7 @@ extern crate log;
 #[macro_use]
 pub mod printk;
 
-pub mod addr;
+pub mod address;
 pub mod backtrace;
 pub mod bootinfo;
 pub mod global_allocator;
@@ -18,7 +18,7 @@ pub mod logger;
 pub mod page_allocator;
 pub mod spinlock;
 
-pub use addr::{PAddr, UserVAddr, VAddr};
+pub use address::{PAddr, UserVAddr, VAddr};
 pub use printk::print_bytes;
 pub use spinlock::{SpinLock, SpinLockGuard};
 

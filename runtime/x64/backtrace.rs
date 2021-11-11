@@ -1,4 +1,4 @@
-use crate::addr::VAddr;
+use crate::address::VAddr;
 
 const BACKTRACE_MAX: usize = 16;
 

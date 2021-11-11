@@ -1,5 +1,5 @@
 use super::PAGE_SIZE;
-use crate::addr::{PAddr, UserVAddr};
+use crate::address::{PAddr, UserVAddr};
 use crate::page_allocator::{alloc_pages, AllocPageFlags, PageAllocError};
 use bitflags::bitflags;
 use core::{

@@ -1,5 +1,5 @@
 use super::{apic, bootinfo, cpu_local, gdt, idt, ioapic, pit, serial, syscall, tss, vga};
-use crate::addr::{PAddr, VAddr};
+use crate::address::{PAddr, VAddr};
 use crate::bootinfo::BootInfo;
 use crate::logger;
 use crate::page_allocator;

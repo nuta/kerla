@@ -1,4 +1,4 @@
-use crate::addr::{PAddr, VAddr};
+use crate::address::{PAddr, VAddr};
 use crate::bootinfo::{BootInfo, RamArea, VirtioMmioDevice};
 use arrayvec::ArrayVec;
 use core::cmp::max;

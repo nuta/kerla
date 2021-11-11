@@ -1,4 +1,4 @@
-use crate::{addr::UserVAddr, handler};
+use crate::{address::UserVAddr, handler};
 
 use super::{apic::ack_interrupt, ioapic::VECTOR_IRQ_BASE, serial::SERIAL_IRQ, PageFaultReason};
 use x86::{

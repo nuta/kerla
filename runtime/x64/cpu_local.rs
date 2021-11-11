@@ -1,4 +1,4 @@
-use crate::addr::VAddr;
+use crate::address::VAddr;
 use core::mem::MaybeUninit;
 use core::ptr;
 use x86::bits64::segmentation::{rdgsbase, wrgsbase};
@@ -31,7 +31,7 @@ macro_rules! __cpu_local_impl {
             }
 
             #[allow(unused)]
-            $V fn vaddr(&self) -> $crate::addr::VAddr {
+            $V fn vaddr(&self) -> $crate::address::VAddr {
                 extern "C" {
                     static __cpu_local: u8;
                 }
@@ -40,7 +40,7 @@ macro_rules! __cpu_local_impl {
                     let cpu_local_base = &__cpu_local as *const _ as usize;
                     let offset = (self as *const _ as usize) - cpu_local_base;
                     let gsbase = x86::bits64::segmentation::rdgsbase() as usize;
-                    $crate::addr::VAddr::new((gsbase + offset) as usize)
+                    $crate::address::VAddr::new((gsbase + offset) as usize)
                 }
             }
         }
