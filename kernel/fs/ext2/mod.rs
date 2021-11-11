@@ -42,7 +42,7 @@ mod tests {
     }
 
     impl PseudoDisk {
-        /// memory-based disk block with a size of 1MB
+        /// memory-based disk block with a size of 1KB
         const DEFAULT_DISK_SIZE: usize = 1024;
 
         pub fn new() -> PseudoDisk {
