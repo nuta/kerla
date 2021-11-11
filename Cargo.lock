@@ -150,8 +150,6 @@ dependencies = [
  "arrayvec 0.7.2",
  "atomic_refcell",
  "bitflags",
- "buddy_system_allocator",
- "cfg-if",
  "crossbeam",
  "goblin",
  "hashbrown",
@@ -161,7 +159,6 @@ dependencies = [
  "memoffset",
  "smoltcp",
  "spin 0.9.2",
- "vte",
  "x86",
 ]
 
