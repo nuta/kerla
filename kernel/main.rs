@@ -55,7 +55,7 @@ use crate::{
         mount::RootFs,
         path::Path,
     },
-    process::{signal, switch, Process},
+    process::{switch, Process},
     profile::StopWatch,
     syscalls::SyscallHandler,
 };
@@ -91,18 +91,7 @@ impl kerla_runtime::Handler for Handler {
         ip: usize,
         reason: PageFaultReason,
     ) {
-        match unaligned_vaddr {
-            Some(vaddr) => {
-                crate::mm::page_fault::handle_page_fault(vaddr, ip, reason);
-            }
-            None => {
-                // TODO: Print vaddr
-                debug_warn!(
-                    "user tried to access a kernel address, killing the current process...",
-                );
-                Process::exit_by_signal(signal::SIGSEGV);
-            }
-        }
+        crate::mm::page_fault::handle_page_fault(unaligned_vaddr, ip, reason);
     }
 
     fn handle_syscall(
