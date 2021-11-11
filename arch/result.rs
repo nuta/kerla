@@ -1,5 +1,6 @@
 use core::fmt;
 
+#[cfg(debug_assertions)]
 use crate::backtrace::CapturedBacktrace;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]

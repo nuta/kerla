@@ -39,6 +39,7 @@ PYTHON3    ?= python3
 CARGO      ?= cargo +nightly
 BOCHS      ?= bochs
 NM         ?= rust-nm
+LD         := rust-lld
 READELF    ?= readelf
 STRIP      ?= rust-strip
 DRAWIO     ?= /Applications/draw.io.app/Contents/MacOS/draw.io
@@ -50,6 +51,8 @@ CARGOFLAGS += $(if $(RELEASE),--release,)
 TESTCARGOFLAGS += --package kerla -Z unstable-options
 TESTCARGOFLAGS += --config "target.$(ARCH).runner = './tools/run-unittests.sh'"
 WATCHFLAGS += --clear
+LDFLAGS += -flavor ld.lld --script=kernel/arch/x64/x64.ld -Map kerla.x64.map
+
 export CARGO_FROM_MAKE=1
 export INITRAMFS_PATH
 export ARCH

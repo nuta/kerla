@@ -188,6 +188,7 @@ impl<'a> SyscallHandler<'a> {
         if !((n == 0 && a1 == 0)
             || (n == 1) && (a1 == 1)
             || (n == 1) && (a1 == 2)
+            || (n == 20) && (a1 == 1)
             || (n == 20) && (a1 == 2))
         {
             let current = current_process();

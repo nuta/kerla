@@ -237,7 +237,7 @@ setup_bsp:
     pop  rdi // multiboot magic
 
     // Clear the frame pointer to stop backtracing here.
-    xor ebx, ebx
+    xor rbp, rbp
 
     lea  rax, [rip + bsp_early_init]
     call rax

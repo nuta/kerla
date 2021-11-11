@@ -1,6 +1,9 @@
 use crate::result::{Errno, Error, Result};
 use crate::{KERNEL_BASE_ADDR, KERNEL_STRAIGHT_MAP_PADDR_END};
 
+#[cfg(debug_assertions)]
+use crate::handler;
+
 use core::{
     fmt,
     mem::{size_of, MaybeUninit},
@@ -139,12 +142,9 @@ extern "C" {
     fn memset_user(dst: *mut u8, value: u8, len: usize);
 }
 
-fn ensure_vm_lock_is_unheld() {
-    // We should not hold the vm lock since we'll try to acquire it in the
-    // page fault handler when copying caused a page fault.
-
-    todo!();
-    // debug_assert!(!current_process().vm().as_ref().unwrap().is_locked());
+fn call_usercopy_hook() {
+    #[cfg(debug_assertions)]
+    handler().usercopy_hook();
 }
 
 /// Represents a user virtual memory address.
@@ -241,7 +241,7 @@ impl UserVAddr {
     }
 
     pub fn read_bytes(self, buf: &mut [u8]) -> Result<()> {
-        ensure_vm_lock_is_unheld();
+        call_usercopy_hook();
         self.access_ok(buf.len())?;
         unsafe {
             copy_from_user(buf.as_mut_ptr(), self.value() as *const u8, buf.len());
@@ -254,7 +254,7 @@ impl UserVAddr {
     ///
     /// Unlike strcnpy, **`dst` is NOT terminated by NULL**.
     pub fn read_cstr(self, buf: &mut [u8]) -> Result<usize> {
-        ensure_vm_lock_is_unheld();
+        call_usercopy_hook();
         self.access_ok(buf.len())?;
         let read_len =
             unsafe { strncpy_from_user(buf.as_mut_ptr(), self.value() as *const u8, buf.len()) };
@@ -268,7 +268,7 @@ impl UserVAddr {
     }
 
     pub fn write_bytes(self, buf: &[u8]) -> Result<usize> {
-        ensure_vm_lock_is_unheld();
+        call_usercopy_hook();
         self.access_ok(buf.len())?;
         unsafe {
             copy_to_user(self.value() as *mut u8, buf.as_ptr(), buf.len());
@@ -277,7 +277,7 @@ impl UserVAddr {
     }
 
     pub fn fill(self, value: u8, len: usize) -> Result<usize> {
-        ensure_vm_lock_is_unheld();
+        call_usercopy_hook();
         self.access_ok(len)?;
         unsafe {
             memset_user(self.value() as *mut u8, value, len);

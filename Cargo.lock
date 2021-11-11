@@ -167,7 +167,7 @@ dependencies = [
 
 [[package]]
 name = "kerla_arch"
-version = "0.0.1"
+version = "0.0.4"
 dependencies = [
  "arrayvec 0.7.2",
  "atomic_refcell",

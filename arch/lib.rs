@@ -14,6 +14,7 @@ pub mod addr;
 pub mod backtrace;
 pub mod bootinfo;
 pub mod global_allocator;
+pub mod logger;
 pub mod page_allocator;
 pub mod result;
 pub mod spinlock;
@@ -48,6 +49,9 @@ pub trait Handler: Sync {
         n: usize,
         frame: *mut SyscallFrame,
     ) -> isize;
+
+    #[cfg(debug_assertions)]
+    fn usercopy_hook(&self) {}
 }
 
 static HANDLER: StaticCell<&dyn Handler> = StaticCell::new(&NopHandler);
@@ -84,4 +88,8 @@ impl Handler for NopHandler {
 
 fn handler() -> &'static dyn Handler {
     HANDLER.load()
+}
+
+pub fn set_handler(handler: &'static dyn Handler) {
+    HANDLER.store(handler);
 }

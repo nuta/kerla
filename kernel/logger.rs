@@ -1,7 +1,7 @@
-use kerla_arch::printk::Printer;
+use kerla_arch::console_write;
+use kerla_arch::printk::{set_printer, Printer};
 use kerla_utils::ring_buffer::RingBuffer;
 
-use crate::arch::print_bytes;
 use crate::lang_items::PANICKED;
 use core::sync::atomic::Ordering;
 
@@ -15,7 +15,7 @@ pub static KERNEL_LOG_BUF: spin::Mutex<RingBuffer<u8, KERNEL_LOG_BUF_SIZE>> =
 
 impl Printer for LoggedPrinter {
     fn print_bytes(&self, s: &[u8]) {
-        print_bytes(s);
+        console_write(s);
 
         // Don't write into the kernel log buffer as it may call a printk function
         // due to an assertion.
@@ -29,12 +29,14 @@ impl Printer for LoggedPrinter {
 #[macro_export]
 macro_rules! debug_warn {
     ($fmt:expr) => {
-        #[cfg(debug_assertions)]
-        ::kerla_arch::println!(concat!("\x1b[1;33mWARN: ", $fmt, "\x1b[0m"));
+        if cfg!(debug_assertions) {
+            ::kerla_arch::println!(concat!("\x1b[1;33mWARN: ", $fmt, "\x1b[0m"));
+        }
     };
     ($fmt:expr, $($arg:tt)*) => {
-        #[cfg(debug_assertions)]
-        ::kerla_arch::println!(concat!("\x1b[1;33mWARN: ", $fmt, "\x1b[0m"), $($arg)*);
+        if cfg!(debug_assertions) {
+            ::kerla_arch::println!(concat!("\x1b[1;33mWARN: ", $fmt, "\x1b[0m"), $($arg)*);
+        }
     };
 }
 
@@ -59,9 +61,14 @@ macro_rules! warn_once {
 #[macro_export]
 macro_rules! warn_if_err {
     ($result:expr) => {
-        #[cfg(debug_assertions)]
-        if let Err(err) = $result {
-            $crate::debug_warn!("{}:{}: error returned: {:?}", file!(), line!(), err);
+        if cfg!(debug_assertions) {
+            if let Err(err) = $result {
+                $crate::debug_warn!("{}:{}: error returned: {:?}", file!(), line!(), err);
+            }
         }
     };
+}
+
+pub fn init() {
+    set_printer(&LoggedPrinter);
 }

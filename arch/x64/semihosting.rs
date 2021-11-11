@@ -4,7 +4,6 @@ use x86::io::outw;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ExitStatus {
     Success = 0x10,
-    #[cfg(test)]
     Failure = 0x11,
 }
 

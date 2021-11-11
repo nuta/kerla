@@ -32,7 +32,7 @@ pub fn printchar(ch: u8) {
     }
 }
 
-pub fn print_bytes(s: &[u8]) {
+pub fn console_write(s: &[u8]) {
     for ch in s {
         printchar(*ch);
         vga::printchar(*ch);
@@ -43,7 +43,7 @@ struct SerialPrinter;
 
 impl Printer for SerialPrinter {
     fn print_bytes(&self, s: &[u8]) {
-        print_bytes(s);
+        console_write(s);
     }
 }
 
@@ -77,6 +77,7 @@ pub unsafe fn early_init() {
     outb(IOPORT_SERIAL + IER, 0x01); // Enable interrupts.
 
     set_printer(&SerialPrinter);
+    printchar(b'\n');
 }
 
 pub fn init() {

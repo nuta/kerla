@@ -1,7 +1,6 @@
 use core::{fmt, str};
 
 use kerla_utils::static_cell::StaticCell;
-use log::logger;
 
 static PRINTER: StaticCell<&dyn Printer> = StaticCell::new(&NopPrinter);
 
@@ -149,13 +148,4 @@ impl log::Log for PrintkPrinter {
     }
 
     fn flush(&self) {}
-}
-
-pub(crate) fn init() {
-    log::set_logger(logger()).unwrap();
-    log::set_max_level(if cfg!(debug_assertions) {
-        log::LevelFilter::Trace
-    } else {
-        log::LevelFilter::Info
-    });
 }

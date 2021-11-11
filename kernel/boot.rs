@@ -3,16 +3,17 @@
 use crate::{
     arch::{idle, SpinLock},
     drivers,
-    fs::tmpfs,
+    fs::{devfs::SERIAL_TTY, tmpfs},
     fs::{
         devfs::{self, DEV_FS},
         initramfs::{self, INITRAM_FS},
         mount::RootFs,
         path::Path,
     },
-    interrupt, net, pipe, poll,
-    process::{self, switch, Process},
+    interrupt, logger, net, pipe, poll,
+    process::{self, signal, switch, Process},
     profile::StopWatch,
+    syscalls::SyscallHandler,
 };
 use alloc::sync::Arc;
 use kerla_arch::bootinfo::BootInfo;
@@ -28,11 +29,78 @@ fn idle_thread() -> ! {
     }
 }
 
+struct Handler;
+
+impl kerla_arch::Handler for Handler {
+    fn handle_console_rx(&self, ch: u8) {
+        SERIAL_TTY.input_char(ch);
+    }
+
+    fn handle_irq(&self, irq: u8) {
+        crate::interrupt::handle_irq(irq);
+    }
+
+    fn handle_timer_irq(&self) {
+        crate::timer::handle_timer_irq();
+    }
+
+    fn handle_page_fault(
+        &self,
+        unaligned_vaddr: Option<kerla_arch::UserVAddr>,
+        ip: usize,
+        reason: kerla_arch::PageFaultReason,
+    ) {
+        match unaligned_vaddr {
+            Some(vaddr) => {
+                crate::mm::page_fault::handle_page_fault(vaddr, ip, reason);
+            }
+            None => {
+                // TODO: Print vaddr
+                debug_warn!(
+                    "user tried to access a kernel address, killing the current process...",
+                );
+                Process::exit_by_signal(signal::SIGSEGV);
+            }
+        }
+    }
+
+    fn handle_syscall(
+        &self,
+        a1: usize,
+        a2: usize,
+        a3: usize,
+        a4: usize,
+        a5: usize,
+        a6: usize,
+        n: usize,
+        frame: *mut kerla_arch::SyscallFrame,
+    ) -> isize {
+        let mut handler = SyscallHandler::new(unsafe { &mut *frame });
+        handler
+            .dispatch(a1, a2, a3, a4, a5, a6, n)
+            .unwrap_or_else(|err| -(err.errno() as isize))
+    }
+
+    #[cfg(debug_assertions)]
+    fn usercopy_hook(&self) {
+        use crate::process::current_process;
+
+        // We should not hold the vm lock since we'll try to acquire it in the
+        // page fault handler when copying caused a page fault.
+        debug_assert!(!current_process().vm().as_ref().unwrap().is_locked());
+    }
+}
+
 pub static INITIAL_ROOT_FS: Once<Arc<SpinLock<RootFs>>> = Once::new();
 
-pub fn boot_kernel(bootinfo: &BootInfo) -> ! {
+#[no_mangle]
+pub fn boot_kernel(#[cfg_attr(debug_assertions, allow(unused))] bootinfo: &BootInfo) -> ! {
+    logger::init();
+
     info!("Booting Kerla...");
     let mut profiler = StopWatch::start();
+
+    kerla_arch::set_handler(&Handler);
 
     // Initialize memory allocators first.
     interrupt::init();

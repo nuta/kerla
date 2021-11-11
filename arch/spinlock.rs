@@ -1,11 +1,16 @@
-use atomic_refcell::AtomicRefCell;
 use cfg_if::cfg_if;
 use core::mem::ManuallyDrop;
 use core::ops::{Deref, DerefMut};
 
-use crate::backtrace::{backtrace, CapturedBacktrace};
-use crate::global_allocator::is_kernel_heap_enabled;
+use crate::backtrace::backtrace;
 use crate::SavedInterruptStatus;
+
+#[cfg(debug_assertions)]
+use crate::backtrace::CapturedBacktrace;
+#[cfg(debug_assertions)]
+use crate::global_allocator::is_kernel_heap_enabled;
+#[cfg(debug_assertions)]
+use atomic_refcell::AtomicRefCell;
 
 pub struct SpinLock<T: ?Sized> {
     #[cfg(debug_assertions)]

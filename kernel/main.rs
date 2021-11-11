@@ -22,7 +22,7 @@ extern crate log;
 extern crate kerla_arch;
 
 #[macro_use]
-mod printk;
+mod logger;
 #[macro_use]
 mod result;
 #[macro_use]

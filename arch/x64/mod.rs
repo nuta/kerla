@@ -1,3 +1,7 @@
+global_asm!(include_str!("boot.S"));
+global_asm!(include_str!("trap.S"));
+global_asm!(include_str!("usercopy.S"));
+
 #[macro_use]
 mod cpu_local;
 
@@ -22,9 +26,11 @@ mod vga;
 pub use backtrace::Backtrace;
 pub use idle::{halt, idle};
 pub use interrupt::SavedInterruptStatus;
+pub use ioapic::enable_irq;
 pub use paging::{PageFaultReason, PageTable};
 pub use profile::read_clock_counter;
 pub use semihosting::{semihosting_halt, ExitStatus};
+pub use serial::console_write;
 pub use syscall::SyscallFrame;
 
 pub mod x64_specific {

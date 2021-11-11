@@ -1,6 +1,6 @@
 use crate::{
     ctypes::c_int,
-    printk::{KERNEL_LOG_BUF, KERNEL_LOG_BUF_SIZE},
+    logger::{KERNEL_LOG_BUF, KERNEL_LOG_BUF_SIZE},
     result::Errno,
     syscalls::SyscallHandler,
     user_buffer::UserBufWriter,
