@@ -1,6 +1,6 @@
 #![cfg_attr(not(test), no_std)]
 
-use crate::result::{Error, Result};
+use crate::result::Result;
 use core::ops::{Deref, DerefMut};
 
 pub trait Disk {
@@ -35,7 +35,6 @@ impl<D: Disk> DerefMut for Ext2Fs<D> {
 #[cfg(test)]
 mod tests {
     use crate::fs::ext2::{Disk, Ext2Fs};
-    use crate::result::{Error, Result};
     use alloc::vec::Vec;
 
     struct PseudoDisk {
@@ -44,7 +43,7 @@ mod tests {
 
     impl PseudoDisk {
         /// memory-based disk block with a size of 1MB
-        const DEFAULT_DISK_SIZE: usize = 1024 * 1024;
+        const DEFAULT_DISK_SIZE: usize = 1024;
 
         pub fn new() -> PseudoDisk {
             PseudoDisk {
@@ -66,7 +65,7 @@ mod tests {
         }
 
         fn write_block(&mut self, lba: usize, buf: &[u8]) -> crate::prelude::Result<usize> {
-            let mut disk_data = &self.mem_disk;
+            let disk_data = &self.mem_disk;
             let write_data = Vec::from(buf);
 
             let mut write_len = buf.len();
@@ -78,6 +77,7 @@ mod tests {
         }
     }
 
+    #[derive(PartialEq)]
     struct Test {
         data: Vec<u8>,
         lba: usize,
@@ -86,8 +86,8 @@ mod tests {
         read_result: Vec<u8>,
     }
 
-    #[test]
-    fn test() -> Result<()> {
+    #[test_case]
+    fn test() {
         let tests = vec![
             Test {
                 data: vec![1u8, 2, 3, 4, 5],
@@ -98,33 +98,43 @@ mod tests {
             },
             Test {
                 data: vec![2u8, 12, 32, 32, 32],
-                lba: 1024 * 1024 - 3,
+                lba: 1024 - 3,
                 write_len: 3,
                 read_len: 3,
                 read_result: vec![2u8, 12, 32],
             },
         ];
-        let mut pseudo_disk = PseudoDisk::new();
+        let pseudo_disk = PseudoDisk::new();
         let mut ext2 = Ext2Fs::new(pseudo_disk);
 
         for test in tests {
             let lba = test.lba;
             let data = test.data;
-
             // check write
-            let write_len = ext2.write_block(lba.clone(), data.as_slice())?;
-            assert_eq!(write_len, test.write_len);
+            let write_len = ext2.write_block(lba.clone(), data.as_slice());
+            match write_len {
+                Ok(len) => {
+                    assert_eq!(len, test.write_len);
+                }
+                Err(_) => {
+                    assert!(false)
+                }
+            }
 
             // check read
             let mut read_data = vec![0u8; test.read_result.len()];
-            let mut read_vec = read_data.as_slice();
-            let read_len = ext2.read_block(test.lba, &mut read_vec)?;
-            assert_eq!(read_len, test.read_len);
+            let read_len = ext2.read_block(test.lba, &mut read_data);
+            match read_len {
+                Ok(len) => {
+                    assert_eq!(len, test.read_len);
+                }
+                Err(_) => {
+                    assert!(false)
+                }
+            }
 
             // check result
-            assert_eq!(read_vec, test.read_result)
+            assert_eq!(read_data, test.read_result)
         }
-
-        Ok(())
     }
 }
