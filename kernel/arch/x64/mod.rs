@@ -1,5 +1,7 @@
 use kerla_runtime::{address::UserVAddr, arch::PAGE_SIZE};
 
+global_asm!(include_str!("usermode.S"));
+
 mod arch_prctl;
 mod process;
 
