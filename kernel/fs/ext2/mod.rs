@@ -1,5 +1,5 @@
 #![cfg_attr(not(test), no_std)]
-
+#![allow(unused)]
 use crate::result::Result;
 use core::ops::{Deref, DerefMut};
 
