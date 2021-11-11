@@ -49,7 +49,7 @@ fn traverse(
     attrs: PageAttrs,
 ) -> Option<NonNull<PageTableEntry>> {
     debug_assert!(is_aligned(vaddr.value(), PAGE_SIZE));
-    let mut table = unsafe { pml4.as_mut_ptr::<PageTableEntry>() };
+    let mut table = pml4.as_mut_ptr::<PageTableEntry>();
     for level in (2..=4).rev() {
         let index = nth_level_table_index(vaddr, level);
         let entry = unsafe { table.offset(index) };
@@ -71,7 +71,7 @@ fn traverse(
         }
 
         unsafe { *entry = table_paddr.value() as u64 | attrs.bits() };
-        table = unsafe { table_paddr.as_mut_ptr::<PageTableEntry>() };
+        table = table_paddr.as_mut_ptr::<PageTableEntry>();
     }
 
     unsafe {
@@ -86,9 +86,9 @@ fn traverse(
 ///
 /// fork(2) uses this funciton to duplicate the memory space.
 fn duplicate_table(original_table_paddr: PAddr, level: usize) -> Result<PAddr> {
-    let orig_table = unsafe { original_table_paddr.as_ptr::<PageTableEntry>() };
+    let orig_table = original_table_paddr.as_ptr::<PageTableEntry>();
     let new_table_paddr = alloc_pages(1, AllocPageFlags::KERNEL)?;
-    let new_table = unsafe { new_table_paddr.as_mut_ptr::<PageTableEntry>() };
+    let new_table = new_table_paddr.as_mut_ptr::<PageTableEntry>();
 
     debug_assert!(level > 0);
     for i in 0..ENTRIES_PER_TABLE {

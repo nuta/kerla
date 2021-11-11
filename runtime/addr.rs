@@ -31,12 +31,12 @@ impl PAddr {
         VAddr::new((self.0 + KERNEL_BASE_ADDR) as usize)
     }
 
-    pub const unsafe fn as_ptr<T>(self) -> *const T {
+    pub const fn as_ptr<T>(self) -> *const T {
         debug_assert!(self.0 < KERNEL_STRAIGHT_MAP_PADDR_END);
         (self.0 + KERNEL_BASE_ADDR) as *const _
     }
 
-    pub const unsafe fn as_mut_ptr<T>(self) -> *mut T {
+    pub const fn as_mut_ptr<T>(self) -> *mut T {
         debug_assert!(self.0 < KERNEL_STRAIGHT_MAP_PADDR_END);
         (self.0 + KERNEL_BASE_ADDR) as *mut _
     }
@@ -80,20 +80,24 @@ impl VAddr {
             && (addr as u64) < KERNEL_BASE_ADDR + KERNEL_STRAIGHT_MAP_PADDR_END
     }
 
-    pub const unsafe fn as_ptr<T>(self) -> *const T {
+    pub const fn as_ptr<T>(self) -> *const T {
         debug_assert!(self.0 >= KERNEL_BASE_ADDR);
         self.0 as *const _
     }
 
-    pub const unsafe fn as_mut_ptr<T>(self) -> *mut T {
+    pub const fn as_mut_ptr<T>(self) -> *mut T {
         debug_assert!(self.0 >= KERNEL_BASE_ADDR);
         self.0 as *mut _
     }
 
+    /// # Safety
+    /// See <https://doc.rust-lang.org/std/ptr/fn.read_volatile.html>.
     pub unsafe fn read_volatile<T: Copy>(self) -> T {
         ptr::read_volatile(self.as_ptr::<T>())
     }
 
+    /// # Safety
+    /// See <https://doc.rust-lang.org/std/ptr/fn.write_volatile.html>.
     pub unsafe fn write_volatile<T: Copy>(self, value: T) {
         ptr::write_volatile(self.as_mut_ptr(), value);
     }
@@ -192,6 +196,9 @@ impl UserVAddr {
         Ok(UserVAddr(addr as u64))
     }
 
+    /// # Safety
+    /// Make sure `addr` doesn't point to the kernel memory address or it can
+    /// lead to a serious vulnerability!
     pub const unsafe fn new_unchecked(addr: usize) -> UserVAddr {
         UserVAddr(addr as u64)
     }

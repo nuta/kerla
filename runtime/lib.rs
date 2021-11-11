@@ -38,6 +38,8 @@ pub trait Handler: Sync {
         ip: usize,
         _reason: PageFaultReason,
     );
+
+    #[allow(clippy::too_many_arguments)]
     fn handle_syscall(
         &self,
         a1: usize,

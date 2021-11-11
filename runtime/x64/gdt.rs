@@ -1,4 +1,4 @@
-use super::tss::{Tss, TSS};
+use super::tss::TSS;
 use core::convert::TryInto;
 use core::mem::size_of;
 use x86::dtables::{lgdt, DescriptorTablePointer};
@@ -28,7 +28,7 @@ pub unsafe fn init() {
     let tss_addr = TSS.vaddr().value() as u64;
     let gdt = GDT.as_mut();
     gdt[(TSS_SEG as usize) / 8] = 0x0000890000000000
-        | (size_of::<Tss>() as u64)
+        | (size_of::<GDT>() as u64)
         | ((tss_addr & 0xffff) << 16)
         | (((tss_addr >> 16) & 0xff) << 32)
         | (((tss_addr >> 24) & 0xff) << 56);

@@ -69,7 +69,7 @@ pub fn init(areas: &[RamArea]) {
         );
 
         zones.push(Allocator::new(
-            unsafe { area.base.as_mut_ptr() },
+            area.base.as_mut_ptr(),
             area.base.value(),
             area.len,
         ));
