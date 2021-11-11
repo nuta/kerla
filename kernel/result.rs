@@ -11,6 +11,7 @@ use kerla_runtime::backtrace::CapturedBacktrace;
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 #[repr(i32)]
 #[allow(unused)]
+#[allow(clippy::upper_case_acronyms)]
 pub enum Errno {
     EPERM = 1,
     ENOENT = 2,

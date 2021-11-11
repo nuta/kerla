@@ -20,7 +20,7 @@ impl<'a> SyscallHandler<'a> {
                     None => return Err(Errno::EINVAL.into()),
                 },
                 _ => SigAction::Handler {
-                    handler: UserVAddr::new(handler).ok_or(Error::new(Errno::EFAULT))?,
+                    handler: UserVAddr::new(handler).ok_or_else(|| Error::new(Errno::EFAULT))?,
                 },
             };
 
