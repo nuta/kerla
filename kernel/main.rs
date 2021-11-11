@@ -19,7 +19,7 @@ extern crate alloc;
 extern crate log;
 
 #[macro_use]
-extern crate kerla_arch;
+extern crate kerla_runtime;
 
 #[macro_use]
 mod logger;

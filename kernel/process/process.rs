@@ -33,7 +33,7 @@ use core::mem::size_of;
 use core::sync::atomic::{AtomicI32, Ordering};
 use crossbeam::atomic::AtomicCell;
 use goblin::elf64::program_header::PT_LOAD;
-use kerla_arch::page_allocator::{alloc_pages, AllocPageFlags};
+use kerla_runtime::page_allocator::{alloc_pages, AllocPageFlags};
 use kerla_utils::alignment::align_up;
 
 type ProcessTable = BTreeMap<PId, Arc<Process>>;

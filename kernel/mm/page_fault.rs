@@ -8,7 +8,7 @@ use crate::{
 };
 use core::cmp::min;
 use core::slice;
-use kerla_arch::page_allocator::{alloc_pages, AllocPageFlags};
+use kerla_runtime::page_allocator::{alloc_pages, AllocPageFlags};
 
 pub fn handle_page_fault(unaligned_vaddr: UserVAddr, ip: usize, _reason: PageFaultReason) {
     let current = current_process();

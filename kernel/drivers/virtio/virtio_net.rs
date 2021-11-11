@@ -19,7 +19,7 @@ use crate::{
 };
 use alloc::sync::Arc;
 use core::mem::size_of;
-use kerla_arch::{
+use kerla_runtime::{
     bootinfo::VirtioMmioDevice,
     page_allocator::{alloc_pages, AllocPageFlags},
 };

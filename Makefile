@@ -65,7 +65,7 @@ export NM
 .PHONY: build
 build:
 	$(MAKE) build-crate
-	cp target/$(ARCH)/$(build_mode)/kerla $(kernel_elf)
+	cp target/$(ARCH)/$(build_mode)/kerla_kernel $(kernel_elf)
 
 	$(PROGRESS) "NM" $(kernel_symbols)
 	$(NM) $(kernel_elf) | rustfilt | awk '{ $$2=""; print $$0 }' > $(kernel_symbols)

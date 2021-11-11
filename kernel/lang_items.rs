@@ -20,6 +20,6 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
 
     PANICKED.store(true, Ordering::SeqCst);
     error!("{}", info);
-    kerla_arch::backtrace::backtrace();
+    kerla_runtime::backtrace::backtrace();
     crate::arch::halt();
 }

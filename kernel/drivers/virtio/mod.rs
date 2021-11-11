@@ -1,4 +1,4 @@
-use kerla_arch::bootinfo::VirtioMmioDevice;
+use kerla_runtime::bootinfo::VirtioMmioDevice;
 
 use super::DRIVER_BUILDERS;
 

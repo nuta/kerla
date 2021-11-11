@@ -2,7 +2,7 @@
 
 use alloc::boxed::Box;
 use core::mem::MaybeUninit;
-use kerla_arch::{enable_irq, SpinLock};
+use kerla_runtime::{enable_irq, SpinLock};
 use kerla_utils::bitmap::BitMap;
 
 fn empty_irq_handler() {}

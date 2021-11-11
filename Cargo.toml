@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "arch",
+    "runtime",
     "kernel",
     "libs/*",
 ]

@@ -1,6 +1,6 @@
 use super::pci::PciDevice;
 use crate::result::Result;
-use kerla_arch::bootinfo::VirtioMmioDevice;
+use kerla_runtime::bootinfo::VirtioMmioDevice;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct MacAddress([u8; 6]);

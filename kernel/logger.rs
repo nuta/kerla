@@ -1,5 +1,5 @@
-use kerla_arch::console_write;
-use kerla_arch::printk::{set_printer, Printer};
+use kerla_runtime::console_write;
+use kerla_runtime::printk::{set_printer, Printer};
 use kerla_utils::ring_buffer::RingBuffer;
 
 use crate::lang_items::PANICKED;
@@ -30,12 +30,12 @@ impl Printer for LoggedPrinter {
 macro_rules! debug_warn {
     ($fmt:expr) => {
         if cfg!(debug_assertions) {
-            ::kerla_arch::println!(concat!("\x1b[1;33mWARN: ", $fmt, "\x1b[0m"));
+            ::kerla_runtime::println!(concat!("\x1b[1;33mWARN: ", $fmt, "\x1b[0m"));
         }
     };
     ($fmt:expr, $($arg:tt)*) => {
         if cfg!(debug_assertions) {
-            ::kerla_arch::println!(concat!("\x1b[1;33mWARN: ", $fmt, "\x1b[0m"), $($arg)*);
+            ::kerla_runtime::println!(concat!("\x1b[1;33mWARN: ", $fmt, "\x1b[0m"), $($arg)*);
         }
     };
 }
@@ -46,13 +46,13 @@ macro_rules! warn_once {
     ($fmt:expr) => {{
         static ONCE: ::spin::Once<()> = ::spin::Once::new();
         ONCE.call_once(|| {
-            ::kerla_arch::println!(concat!("\x1b[1;33mWARN: ", $fmt, "\x1b[0m"));
+            ::kerla_runtime::println!(concat!("\x1b[1;33mWARN: ", $fmt, "\x1b[0m"));
         });
     }};
     ($fmt:expr, $($arg:tt)*) => {{
         static ONCE: ::spin::Once<()> = ::spin::Once::new();
         ONCE.call_once(|| {
-            ::kerla_arch::println!(concat!("\x1b[1;33mWARN: ", $fmt, "\x1b[0m"), $($arg)*);
+            ::kerla_runtime::println!(concat!("\x1b[1;33mWARN: ", $fmt, "\x1b[0m"), $($arg)*);
         });
     }};
 }

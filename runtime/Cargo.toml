@@ -1,11 +1,11 @@
 [package]
-name = "kerla_arch"
+name = "kerla_runtime"
 version = "0.0.4"
 authors = ["Seiya Nuta <nuta@seiya.me>"]
 edition = "2018"
 
 [lib]
-name = "kerla_arch"
+name = "kerla_runtime"
 path = "lib.rs"
 
 [dependencies]

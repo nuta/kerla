@@ -16,7 +16,7 @@ use crate::{
     syscalls::SyscallHandler,
 };
 use alloc::sync::Arc;
-use kerla_arch::bootinfo::BootInfo;
+use kerla_runtime::bootinfo::BootInfo;
 use kerla_utils::once::Once;
 use tmpfs::TMP_FS;
 
@@ -31,7 +31,7 @@ fn idle_thread() -> ! {
 
 struct Handler;
 
-impl kerla_arch::Handler for Handler {
+impl kerla_runtime::Handler for Handler {
     fn handle_console_rx(&self, ch: u8) {
         SERIAL_TTY.input_char(ch);
     }
@@ -46,9 +46,9 @@ impl kerla_arch::Handler for Handler {
 
     fn handle_page_fault(
         &self,
-        unaligned_vaddr: Option<kerla_arch::UserVAddr>,
+        unaligned_vaddr: Option<kerla_runtime::UserVAddr>,
         ip: usize,
-        reason: kerla_arch::PageFaultReason,
+        reason: kerla_runtime::PageFaultReason,
     ) {
         match unaligned_vaddr {
             Some(vaddr) => {
@@ -73,7 +73,7 @@ impl kerla_arch::Handler for Handler {
         a5: usize,
         a6: usize,
         n: usize,
-        frame: *mut kerla_arch::SyscallFrame,
+        frame: *mut kerla_runtime::SyscallFrame,
     ) -> isize {
         let mut handler = SyscallHandler::new(unsafe { &mut *frame });
         handler
@@ -100,7 +100,7 @@ pub fn boot_kernel(#[cfg_attr(debug_assertions, allow(unused))] bootinfo: &BootI
     info!("Booting Kerla...");
     let mut profiler = StopWatch::start();
 
-    kerla_arch::set_handler(&Handler);
+    kerla_runtime::set_handler(&Handler);
 
     // Initialize memory allocators first.
     interrupt::init();

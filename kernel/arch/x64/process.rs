@@ -3,7 +3,7 @@ use core::cell::UnsafeCell;
 use crate::result::Result;
 use crate::{arch::KERNEL_STACK_SIZE, process::signal::Signal};
 use crossbeam::atomic::AtomicCell;
-use kerla_arch::{
+use kerla_runtime::{
     page_allocator::{alloc_pages, AllocPageFlags},
     x64_specific::{cpu_local_head, TSS, USER_CS64, USER_DS, USER_RPL},
     SyscallFrame, UserVAddr, VAddr, PAGE_SIZE,

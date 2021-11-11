@@ -144,7 +144,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "kerla"
+name = "kerla_kernel"
 version = "0.0.4"
 dependencies = [
  "arrayvec 0.7.2",
@@ -155,7 +155,7 @@ dependencies = [
  "crossbeam",
  "goblin",
  "hashbrown",
- "kerla_arch",
+ "kerla_runtime",
  "kerla_utils",
  "log",
  "memoffset",
@@ -166,7 +166,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "kerla_arch"
+name = "kerla_runtime"
 version = "0.0.4"
 dependencies = [
  "arrayvec 0.7.2",
