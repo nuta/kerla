@@ -2,7 +2,6 @@ use crate::{
     arch::{
         self, SpinLock, SpinLockGuard, SyscallFrame, KERNEL_STACK_SIZE, PAGE_SIZE, USER_STACK_TOP,
     },
-    boot::INITIAL_ROOT_FS,
     ctypes::*,
     fs::{
         devfs::SERIAL_TTY,
@@ -22,6 +21,7 @@ use crate::{
         switch, UserVAddr, JOIN_WAIT_QUEUE, SCHEDULER,
     },
     random::read_secure_random,
+    INITIAL_ROOT_FS,
 };
 
 use alloc::collections::BTreeMap;

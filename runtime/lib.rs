@@ -23,7 +23,15 @@ pub use printk::print_bytes;
 pub use spinlock::{SpinLock, SpinLockGuard};
 
 pub mod x64;
-pub use x64::*;
+
+pub use x64::{
+    console_write, enable_irq, halt, idle, read_clock_counter, x64_specific, Backtrace,
+    PageFaultReason, PageTable, SavedInterruptStatus, SyscallFrame, PAGE_SIZE,
+};
+
+mod arch {
+    pub use super::x64::{KERNEL_BASE_ADDR, KERNEL_STRAIGHT_MAP_PADDR_END};
+}
 
 use kerla_utils::static_cell::StaticCell;
 

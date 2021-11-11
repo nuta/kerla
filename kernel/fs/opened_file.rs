@@ -468,3 +468,9 @@ impl OpenedFileTable {
         Err(Error::new(Errno::ENFILE))
     }
 }
+
+impl Default for OpenedFileTable {
+    fn default() -> OpenedFileTable {
+        OpenedFileTable::new()
+    }
+}

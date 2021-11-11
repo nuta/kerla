@@ -1,4 +1,4 @@
-use crate::{KERNEL_BASE_ADDR, KERNEL_STRAIGHT_MAP_PADDR_END};
+use crate::arch::{KERNEL_BASE_ADDR, KERNEL_STRAIGHT_MAP_PADDR_END};
 
 #[cfg(debug_assertions)]
 use crate::handler;
