@@ -1,6 +1,9 @@
 use x86::io::{inb, outb};
 
-use crate::fs::devfs::SERIAL_TTY;
+use crate::{
+    handler,
+    print::{set_printer, Printer},
+};
 
 use super::{ioapic::enable_irq, vga};
 
@@ -15,24 +18,32 @@ const LCR: u16 = 3;
 const LSR: u16 = 5;
 const TX_READY: u8 = 0x20;
 
-unsafe fn serial_write(ch: char) {
+unsafe fn serial_write(ch: u8) {
     while (inb(IOPORT_SERIAL + LSR) & TX_READY) == 0 {}
-    outb(IOPORT_SERIAL, ch as u8);
+    outb(IOPORT_SERIAL, ch);
 }
 
-pub fn printchar(ch: char) {
+pub fn printchar(ch: u8) {
     unsafe {
-        if ch == '\n' && option_env!("DISABLE_AUTO_CR_PRINT").is_none() {
-            serial_write('\r');
+        if ch == b'\n' && option_env!("DISABLE_AUTO_CR_PRINT").is_none() {
+            serial_write(b'\r');
         }
         serial_write(ch);
-        vga::printchar(ch as u8);
     }
 }
 
-pub fn print_str(s: &[u8]) {
+pub fn console_write(s: &[u8]) {
     for ch in s {
-        printchar(*ch as char);
+        printchar(*ch);
+        vga::printchar(*ch);
+    }
+}
+
+struct SerialPrinter;
+
+impl Printer for SerialPrinter {
+    fn print_bytes(&self, s: &[u8]) {
+        console_write(s);
     }
 }
 
@@ -49,9 +60,9 @@ fn read_char() -> Option<u8> {
 pub fn irq_handler() {
     while let Some(ch) = read_char() {
         if ch == b'\r' {
-            SERIAL_TTY.input_char(b'\n');
+            handler().handle_console_rx(b'\n');
         } else {
-            SERIAL_TTY.input_char(ch);
+            handler().handle_console_rx(ch);
         }
     }
 }
@@ -64,6 +75,9 @@ pub unsafe fn early_init() {
     outb(IOPORT_SERIAL + LCR, 0x03); // 8n1.
     outb(IOPORT_SERIAL + FCR, 0x01); // Enable FIFO.
     outb(IOPORT_SERIAL + IER, 0x01); // Enable interrupts.
+
+    set_printer(&SerialPrinter);
+    printchar(b'\n');
 }
 
 pub fn init() {

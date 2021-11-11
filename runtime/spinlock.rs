@@ -1,11 +1,16 @@
-use atomic_refcell::AtomicRefCell;
 use cfg_if::cfg_if;
 use core::mem::ManuallyDrop;
 use core::ops::{Deref, DerefMut};
-use x86::current::rflags::{self, RFlags};
 
-use crate::mm::global_allocator::is_kernel_heap_enabled;
-use crate::printk::{backtrace, capture_backtrace, CapturedBacktrace};
+use crate::arch::SavedInterruptStatus;
+use crate::backtrace::backtrace;
+
+#[cfg(debug_assertions)]
+use crate::backtrace::CapturedBacktrace;
+#[cfg(debug_assertions)]
+use crate::global_allocator::is_kernel_heap_enabled;
+#[cfg(debug_assertions)]
+use atomic_refcell::AtomicRefCell;
 
 pub struct SpinLock<T: ?Sized> {
     #[cfg(debug_assertions)]
@@ -51,7 +56,7 @@ impl<T: ?Sized> SpinLock<T> {
             backtrace();
         }
 
-        let rflags = rflags::read();
+        let saved_intr_status = SavedInterruptStatus::save();
         unsafe {
             asm!("cli");
         }
@@ -60,12 +65,12 @@ impl<T: ?Sized> SpinLock<T> {
 
         #[cfg(debug_assertions)]
         if is_kernel_heap_enabled() {
-            *self.locked_by.borrow_mut() = Some(capture_backtrace());
+            *self.locked_by.borrow_mut() = Some(CapturedBacktrace::capture());
         }
 
         SpinLockGuard {
             inner: ManuallyDrop::new(guard),
-            rflags,
+            saved_intr_status: ManuallyDrop::new(saved_intr_status),
             #[cfg(debug_assertions)]
             locked_by: &self.locked_by,
         }
@@ -83,20 +88,23 @@ pub struct SpinLockGuard<'a, T: ?Sized> {
     inner: ManuallyDrop<spin::mutex::SpinMutexGuard<'a, T>>,
     #[cfg(debug_assertions)]
     locked_by: &'a AtomicRefCell<Option<CapturedBacktrace>>,
-    rflags: RFlags,
+    saved_intr_status: ManuallyDrop<SavedInterruptStatus>,
 }
 
 impl<'a, T: ?Sized> Drop for SpinLockGuard<'a, T> {
     fn drop(&mut self) {
         unsafe {
             ManuallyDrop::drop(&mut self.inner);
-            rflags::set(rflags::read() | (self.rflags & rflags::RFlags::FLAGS_IF));
         }
 
         cfg_if! {
             if #[cfg(debug_assertions)] {
                 *self.locked_by.borrow_mut() = None;
             }
+        }
+
+        unsafe {
+            ManuallyDrop::drop(&mut self.saved_intr_status);
         }
     }
 }

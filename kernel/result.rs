@@ -1,10 +1,17 @@
 use core::fmt;
 
-use crate::printk::{capture_backtrace, CapturedBacktrace};
+use kerla_runtime::{
+    address::{AccessError, NullUserPointerError},
+    page_allocator::PageAllocError,
+};
+
+#[cfg(debug_assertions)]
+use kerla_runtime::backtrace::CapturedBacktrace;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 #[repr(i32)]
 #[allow(unused)]
+#[allow(clippy::upper_case_acronyms)]
 pub enum Errno {
     EPERM = 1,
     ENOENT = 2,
@@ -75,7 +82,7 @@ impl Error {
             errno,
             message: None,
             #[cfg(debug_assertions)]
-            backtrace: Some(capture_backtrace()),
+            backtrace: Some(CapturedBacktrace::capture()),
         }
     }
 
@@ -84,7 +91,7 @@ impl Error {
             errno,
             message: Some(ErrorMessage::StaticStr(message)),
             #[cfg(debug_assertions)]
-            backtrace: Some(capture_backtrace()),
+            backtrace: Some(CapturedBacktrace::capture()),
         }
     }
 
@@ -150,9 +157,26 @@ impl From<Errno> for Error {
     }
 }
 
+impl From<AccessError> for Error {
+    fn from(_error: AccessError) -> Error {
+        Error::new(Errno::EFAULT)
+    }
+}
+
+impl From<PageAllocError> for Error {
+    fn from(_error: PageAllocError) -> Error {
+        Error::new(Errno::ENOMEM)
+    }
+}
+
+impl From<NullUserPointerError> for Error {
+    fn from(_error: NullUserPointerError) -> Error {
+        Error::new(Errno::EFAULT)
+    }
+}
+
 impl From<smoltcp::Error> for Error {
     fn from(error: smoltcp::Error) -> Error {
-        debug_warn!("smoltcp: {}", error);
         match error {
             smoltcp::Error::Exhausted => Error::with_message(Errno::EINVAL, "smoltcp(Exhausted)"),
             smoltcp::Error::Illegal => Error::with_message(Errno::EINVAL, "smoltcp(Illegal)"),

@@ -1,5 +1,4 @@
 use crate::{
-    arch::UserVAddr,
     ctypes::*,
     prelude::*,
     process::{current_process, PId, ProcessState, JOIN_WAIT_QUEUE},
@@ -7,6 +6,7 @@ use crate::{
 };
 
 use bitflags::bitflags;
+use kerla_runtime::address::UserVAddr;
 
 bitflags! {
     pub struct WaitOptions: c_int {

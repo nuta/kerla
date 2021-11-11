@@ -1,9 +1,9 @@
+use crate::address::{PAddr, VAddr};
+
 use core::ptr;
 
 use kerla_utils::once::Once;
 use x86::io::outb;
-
-use super::{PAddr, VAddr};
 
 #[repr(u8)]
 #[derive(Copy, Clone)]

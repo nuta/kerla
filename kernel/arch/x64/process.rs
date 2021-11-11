@@ -1,19 +1,15 @@
 use core::cell::UnsafeCell;
 
-use super::{
-    address::VAddr,
-    gdt::{USER_CS64, USER_DS},
-    syscall::SyscallFrame,
-    tss::TSS,
-    UserVAddr, KERNEL_STACK_SIZE, PAGE_SIZE,
-};
-use super::{cpu_local::cpu_local_head, gdt::USER_RPL};
 use crate::result::Result;
-use crate::{
-    mm::page_allocator::{alloc_pages, AllocPageFlags},
-    process::signal::Signal,
-};
+use crate::{arch::KERNEL_STACK_SIZE, process::signal::Signal};
 use crossbeam::atomic::AtomicCell;
+use kerla_runtime::address::{UserVAddr, VAddr};
+use kerla_runtime::{
+    arch::x64_specific::{cpu_local_head, TSS, USER_CS64, USER_DS, USER_RPL},
+    arch::SyscallFrame,
+    arch::PAGE_SIZE,
+    page_allocator::{alloc_pages, AllocPageFlags},
+};
 use x86::current::segmentation::wrfsbase;
 
 #[repr(C, packed)]

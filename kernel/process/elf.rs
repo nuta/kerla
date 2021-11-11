@@ -1,8 +1,8 @@
-use crate::arch::UserVAddr;
 use crate::prelude::*;
 use core::{mem::size_of, slice::from_raw_parts};
 use goblin::elf64::header::{Header, ELFMAG, EM_X86_64, ET_EXEC};
 pub use goblin::elf64::program_header::ProgramHeader;
+use kerla_runtime::address::UserVAddr;
 
 /// A parsed ELF object.
 pub struct Elf<'a> {
@@ -49,7 +49,7 @@ impl<'a> Elf<'a> {
 
     /// The entry point of the ELF file.
     pub fn entry(&self) -> Result<UserVAddr> {
-        UserVAddr::new_nonnull(self.header.e_entry as usize)
+        UserVAddr::new_nonnull(self.header.e_entry as usize).map_err(Into::into)
     }
 
     /// The ELF header.

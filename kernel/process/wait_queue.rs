@@ -1,8 +1,9 @@
 use super::{current_process, switch, Process, ProcessState};
+use crate::result::Errno;
 use crate::result::Result;
-use crate::{arch::SpinLock, result::Errno};
 
 use alloc::{collections::VecDeque, sync::Arc};
+use kerla_runtime::spinlock::SpinLock;
 
 pub struct WaitQueue {
     queue: SpinLock<VecDeque<Arc<Process>>>,

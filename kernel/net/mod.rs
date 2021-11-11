@@ -1,5 +1,4 @@
 use crate::{
-    arch::SpinLock,
     drivers::{get_ethernet_driver, EthernetDriver},
     poll::POLL_WAIT_QUEUE,
     process::WaitQueue,
@@ -10,6 +9,7 @@ use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use crossbeam::queue::ArrayQueue;
+use kerla_runtime::spinlock::SpinLock;
 use kerla_utils::once::Once;
 use smoltcp::wire::{self, EthernetAddress, IpCidr};
 use smoltcp::{

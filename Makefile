@@ -47,9 +47,10 @@ export RUSTFLAGS = -Z emit-stack-sizes
 CARGOFLAGS += -Z build-std=core,alloc -Z build-std-features=compiler-builtins-mem
 CARGOFLAGS += --target $(target_json)
 CARGOFLAGS += $(if $(RELEASE),--release,)
-TESTCARGOFLAGS += --package kerla -Z unstable-options
+TESTCARGOFLAGS += --package kerla_kernel -Z unstable-options
 TESTCARGOFLAGS += --config "target.$(ARCH).runner = './tools/run-unittests.sh'"
 WATCHFLAGS += --clear
+
 export CARGO_FROM_MAKE=1
 export INITRAMFS_PATH
 export ARCH
@@ -62,7 +63,7 @@ export NM
 .PHONY: build
 build:
 	$(MAKE) build-crate
-	cp target/$(ARCH)/$(build_mode)/kerla $(kernel_elf)
+	cp target/$(ARCH)/$(build_mode)/kerla_kernel $(kernel_elf)
 
 	$(PROGRESS) "NM" $(kernel_symbols)
 	$(NM) $(kernel_elf) | rustfilt | awk '{ $$2=""; print $$0 }' > $(kernel_symbols)

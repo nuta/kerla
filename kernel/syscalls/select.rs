@@ -1,7 +1,7 @@
+use kerla_runtime::address::UserVAddr;
 use kerla_utils::alignment::align_up;
 
 use crate::{
-    arch::UserVAddr,
     ctypes::c_int,
     fs::{inode::PollStatus, opened_file::Fd},
     poll::POLL_WAIT_QUEUE,

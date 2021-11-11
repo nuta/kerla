@@ -1,4 +1,4 @@
-use crate::boot::VirtioMmioDevice;
+use kerla_runtime::bootinfo::VirtioMmioDevice;
 
 use super::DRIVER_BUILDERS;
 

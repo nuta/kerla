@@ -1,14 +1,11 @@
-use super::{
-    apic::ack_interrupt, ioapic::VECTOR_IRQ_BASE, serial::SERIAL_IRQ, PageFaultReason, UserVAddr,
-};
-use crate::{
-    interrupt::handle_irq,
-    mm::page_fault::handle_page_fault,
-    process::{signal::SIGSEGV, Process},
-    timer::handle_timer_irq,
-};
+use crate::{address::UserVAddr, handler};
 
-use x86::{controlregs::cr2, irq::*};
+use super::{apic::ack_interrupt, ioapic::VECTOR_IRQ_BASE, serial::SERIAL_IRQ, PageFaultReason};
+use x86::{
+    controlregs::cr2,
+    current::rflags::{self, RFlags},
+    irq::*,
+};
 
 /// The interrupt stack frame.
 #[derive(Debug, Copy, Clone)]
@@ -44,6 +41,7 @@ extern "C" {
 }
 
 #[no_mangle]
+#[allow(unaligned_references)]
 unsafe extern "C" fn x64_handle_interrupt(vec: u8, frame: *const InterruptFrame) {
     let frame = &*frame;
 
@@ -72,13 +70,13 @@ unsafe extern "C" fn x64_handle_interrupt(vec: u8, frame: *const InterruptFrame)
             let irq = vec - VECTOR_IRQ_BASE;
             match irq {
                 TIMER_IRQ | TIMER_IRQ2 => {
-                    handle_timer_irq();
+                    handler().handle_timer_irq();
                 }
                 SERIAL_IRQ => {
                     super::serial::irq_handler();
                 }
                 _ => {
-                    handle_irq(irq);
+                    handler().handle_irq(irq);
                 }
             }
         }
@@ -156,19 +154,8 @@ unsafe extern "C" fn x64_handle_interrupt(vec: u8, frame: *const InterruptFrame)
             }
 
             // Abort if the virtual address points to out of the user's address space.
-            let unaligned_vaddr = match UserVAddr::new(cr2() as usize) {
-                Ok(Some(uvaddr)) => uvaddr,
-                Ok(None) | Err(_) => {
-                    debug_warn!(
-                        "user tried to access a kernel address {:x} (rip={:x}), killing the current process...",
-                        cr2(),
-                        frame.rip,
-                    );
-                    Process::exit_by_signal(SIGSEGV);
-                }
-            };
-
-            handle_page_fault(unaligned_vaddr, frame.rip as usize, reason);
+            let unaligned_vaddr = UserVAddr::new(cr2() as usize);
+            handler().handle_page_fault(unaligned_vaddr, frame.rip as usize, reason);
         }
         X87_FPU_VECTOR => {
             // TODO:
@@ -193,5 +180,23 @@ unsafe extern "C" fn x64_handle_interrupt(vec: u8, frame: *const InterruptFrame)
         _ => {
             panic!("unexpected interrupt: vec={}", vec);
         }
+    }
+}
+
+pub struct SavedInterruptStatus {
+    rflags: RFlags,
+}
+
+impl SavedInterruptStatus {
+    pub fn save() -> SavedInterruptStatus {
+        SavedInterruptStatus {
+            rflags: rflags::read(),
+        }
+    }
+}
+
+impl Drop for SavedInterruptStatus {
+    fn drop(&mut self) {
+        rflags::set(rflags::read() | (self.rflags & rflags::RFlags::FLAGS_IF));
     }
 }

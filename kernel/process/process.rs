@@ -1,8 +1,5 @@
 use crate::{
-    arch::{
-        self, SpinLock, SpinLockGuard, SyscallFrame, KERNEL_STACK_SIZE, PAGE_SIZE, USER_STACK_TOP,
-    },
-    boot::INITIAL_ROOT_FS,
+    arch::{self, KERNEL_STACK_SIZE, USER_STACK_TOP},
     ctypes::*,
     fs::{
         devfs::SERIAL_TTY,
@@ -10,10 +7,7 @@ use crate::{
         opened_file::{Fd, OpenFlags, OpenOptions, OpenedFile, OpenedFileTable, PathComponent},
         path::Path,
     },
-    mm::{
-        page_allocator::{alloc_pages, AllocPageFlags},
-        vm::{Vm, VmAreaType},
-    },
+    mm::vm::{Vm, VmAreaType},
     prelude::*,
     process::{
         cmdline::Cmdline,
@@ -25,6 +19,7 @@ use crate::{
         switch, UserVAddr, JOIN_WAIT_QUEUE, SCHEDULER,
     },
     random::read_secure_random,
+    INITIAL_ROOT_FS,
 };
 
 use alloc::collections::BTreeMap;
@@ -36,6 +31,11 @@ use core::mem::size_of;
 use core::sync::atomic::{AtomicI32, Ordering};
 use crossbeam::atomic::AtomicCell;
 use goblin::elf64::program_header::PT_LOAD;
+use kerla_runtime::{
+    arch::{SyscallFrame, PAGE_SIZE},
+    page_allocator::{alloc_pages, AllocPageFlags},
+    spinlock::{SpinLock, SpinLockGuard},
+};
 use kerla_utils::alignment::align_up;
 
 type ProcessTable = BTreeMap<PId, Arc<Process>>;
@@ -563,8 +563,8 @@ fn do_setup_userspace(
     )?;
 
     let mut vm = Vm::new(
-        UserVAddr::new_nonnull(user_stack_bottom).unwrap(),
-        UserVAddr::new_nonnull(user_heap_bottom).unwrap(),
+        UserVAddr::new(user_stack_bottom).unwrap(),
+        UserVAddr::new(user_heap_bottom).unwrap(),
     )?;
     for i in 0..(file_header_len / PAGE_SIZE) {
         vm.page_table_mut().map_user_page(

@@ -1,6 +1,6 @@
-use crate::arch::SpinLock;
 use crate::prelude::*;
 use alloc::{collections::BTreeMap, vec::Vec};
+use kerla_runtime::spinlock::SpinLock;
 
 use super::{signal::Signal, Process};
 

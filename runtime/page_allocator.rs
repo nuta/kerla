@@ -1,8 +1,4 @@
-use crate::{
-    arch::{PAddr, SpinLock, PAGE_SIZE},
-    boot::RamArea,
-    result::{Errno, Result},
-};
+use crate::{address::PAddr, arch::PAGE_SIZE, bootinfo::RamArea, spinlock::SpinLock};
 use arrayvec::ArrayVec;
 use bitflags::bitflags;
 use kerla_utils::bump_allocator::BumpAllocator as Allocator;
@@ -38,7 +34,10 @@ bitflags! {
     }
 }
 
-pub fn alloc_pages(num_pages: usize, flags: AllocPageFlags) -> Result<PAddr> {
+#[derive(Debug)]
+pub struct PageAllocError;
+
+pub fn alloc_pages(num_pages: usize, flags: AllocPageFlags) -> Result<PAddr, PageAllocError> {
     let order = num_pages_to_order(num_pages);
     let mut zones = ZONES.lock();
     for i in 0..zones.len() {
@@ -54,7 +53,7 @@ pub fn alloc_pages(num_pages: usize, flags: AllocPageFlags) -> Result<PAddr> {
         }
     }
 
-    Err(Errno::ENOMEM.into())
+    Err(PageAllocError)
 }
 
 pub fn init(areas: &[RamArea]) {
@@ -67,7 +66,7 @@ pub fn init(areas: &[RamArea]) {
         );
 
         zones.push(Allocator::new(
-            unsafe { area.base.as_mut_ptr() },
+            area.base.as_mut_ptr(),
             area.base.value(),
             area.len,
         ));

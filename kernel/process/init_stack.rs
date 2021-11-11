@@ -1,10 +1,7 @@
-use crate::{
-    arch::{self, VAddr},
-    result::{Errno, Error, Result},
-};
+use crate::result::{Errno, Error, Result};
 
 use alloc::vec::Vec;
-use arch::UserVAddr;
+use kerla_runtime::address::{UserVAddr, VAddr};
 
 use core::mem::size_of;
 

@@ -1,5 +1,4 @@
 use crate::{
-    arch::{SyscallFrame, UserVAddr},
     ctypes::*,
     fs::path::PathBuf,
     fs::{
@@ -15,6 +14,7 @@ use crate::{
     user_buffer::UserCStr,
 };
 use bitflags::bitflags;
+use kerla_runtime::{address::UserVAddr, arch::SyscallFrame};
 
 pub(self) mod accept;
 pub(self) mod arch_prctl;
@@ -188,6 +188,7 @@ impl<'a> SyscallHandler<'a> {
         if !((n == 0 && a1 == 0)
             || (n == 1) && (a1 == 1)
             || (n == 1) && (a1 == 2)
+            || (n == 20) && (a1 == 1)
             || (n == 20) && (a1 == 2))
         {
             let current = current_process();
@@ -239,7 +240,7 @@ impl<'a> SyscallHandler<'a> {
             SYS_WRITE => self.sys_write(Fd::new(a1 as i32), UserVAddr::new_nonnull(a2)?, a3),
             SYS_WRITEV => self.sys_writev(Fd::new(a1 as i32), UserVAddr::new_nonnull(a2)?, a3),
             SYS_MMAP => self.sys_mmap(
-                UserVAddr::new(a1)?,
+                UserVAddr::new(a1),
                 a2 as c_size,
                 bitflags_from_user!(MMapProt, a3 as c_int)?,
                 bitflags_from_user!(MMapFlags, a4 as c_int)?,
@@ -264,17 +265,17 @@ impl<'a> SyscallHandler<'a> {
             SYS_CHMOD => self.sys_chmod(&resolve_path(a1)?, FileMode::new(a2 as u32)),
             SYS_CHOWN => Ok(0), // TODO:
             SYS_FSYNC => self.sys_fsync(Fd::new(a1 as i32)),
-            SYS_UTIMES => self.sys_utimes(&resolve_path(a1)?, UserVAddr::new(a2)?),
+            SYS_UTIMES => self.sys_utimes(&resolve_path(a1)?, UserVAddr::new(a2)),
             SYS_GETDENTS64 => {
                 self.sys_getdents64(Fd::new(a1 as i32), UserVAddr::new_nonnull(a2)?, a3)
             }
             SYS_POLL => self.sys_poll(UserVAddr::new_nonnull(a1)?, a2 as c_ulong, a3 as c_int),
             SYS_SELECT => self.sys_select(
                 a1 as c_int,
-                UserVAddr::new(a2)?,
-                UserVAddr::new(a3)?,
-                UserVAddr::new(a4)?,
-                UserVAddr::new(a5)?
+                UserVAddr::new(a2),
+                UserVAddr::new(a3),
+                UserVAddr::new(a4),
+                UserVAddr::new(a5)
                     .map(|uaddr| uaddr.read::<Timeval>())
                     .transpose()?,
             ),
@@ -283,7 +284,7 @@ impl<'a> SyscallHandler<'a> {
             SYS_CHDIR => self.sys_chdir(&resolve_path(a1)?),
             SYS_MKDIR => self.sys_mkdir(&resolve_path(a1)?, FileMode::new(a2 as u32)),
             SYS_ARCH_PRCTL => self.sys_arch_prctl(a1 as i32, UserVAddr::new_nonnull(a2)?),
-            SYS_BRK => self.sys_brk(UserVAddr::new(a1)?),
+            SYS_BRK => self.sys_brk(UserVAddr::new(a1)),
             SYS_IOCTL => self.sys_ioctl(Fd::new(a1 as i32), a2, a3),
             SYS_GETPID => self.sys_getpid(),
             SYS_GETPGID => self.sys_getpgid(PId::new(a1 as i32)),
@@ -296,7 +297,7 @@ impl<'a> SyscallHandler<'a> {
             SYS_GETPPID => self.sys_getppid(),
             SYS_SET_TID_ADDRESS => self.sys_set_tid_address(UserVAddr::new_nonnull(a1)?),
             SYS_PIPE => self.sys_pipe(UserVAddr::new_nonnull(a1)?),
-            SYS_RT_SIGACTION => self.sys_rt_sigaction(a1 as c_int, a2, UserVAddr::new(a3)?),
+            SYS_RT_SIGACTION => self.sys_rt_sigaction(a1 as c_int, a2, UserVAddr::new(a3)),
             SYS_RT_SIGRETURN => self.sys_rt_sigreturn(),
             SYS_EXECVE => self.sys_execve(
                 &resolve_path(a1)?,
@@ -306,9 +307,9 @@ impl<'a> SyscallHandler<'a> {
             SYS_FORK => self.sys_fork(),
             SYS_WAIT4 => self.sys_wait4(
                 PId::new(a1 as i32),
-                UserVAddr::new(a2)?,
+                UserVAddr::new(a2),
                 bitflags_from_user!(WaitOptions, a3 as c_int)?,
-                UserVAddr::new(a4)?,
+                UserVAddr::new(a4),
             ),
             SYS_EXIT => self.sys_exit(a1 as i32),
             SYS_SOCKET => self.sys_socket(a1 as i32, a2 as i32, a3 as i32),
@@ -331,18 +332,18 @@ impl<'a> SyscallHandler<'a> {
                 Fd::new(a1 as i32),
                 a2 as c_int,
                 a3 as c_int,
-                UserVAddr::new(a4)?,
-                UserVAddr::new(a5)?,
+                UserVAddr::new(a4),
+                UserVAddr::new(a5),
             ),
             SYS_ACCEPT => {
-                self.sys_accept(Fd::new(a1 as i32), UserVAddr::new(a2)?, UserVAddr::new(a3)?)
+                self.sys_accept(Fd::new(a1 as i32), UserVAddr::new(a2), UserVAddr::new(a3))
             }
             SYS_SENDTO => self.sys_sendto(
                 Fd::new(a1 as i32),
                 UserVAddr::new_nonnull(a2)?,
                 a3 as usize,
                 bitflags_from_user!(SendToFlags, a4 as i32)?,
-                UserVAddr::new(a5)?,
+                UserVAddr::new(a5),
                 a6,
             ),
             SYS_RECVFROM => self.sys_recvfrom(
@@ -350,8 +351,8 @@ impl<'a> SyscallHandler<'a> {
                 UserVAddr::new_nonnull(a2)?,
                 a3 as usize,
                 bitflags_from_user!(RecvFromFlags, a4 as i32)?,
-                UserVAddr::new(a5)?,
-                UserVAddr::new(a6)?,
+                UserVAddr::new(a5),
+                UserVAddr::new(a6),
             ),
             SYS_UNAME => self.sys_uname(UserVAddr::new_nonnull(a1)?),
             SYS_CLOCK_GETTIME => {
@@ -362,7 +363,7 @@ impl<'a> SyscallHandler<'a> {
                 a2,
                 bitflags_from_user!(GetRandomFlags, a3 as c_uint)?,
             ),
-            SYS_SYSLOG => self.sys_syslog(a1 as c_int, UserVAddr::new(a2)?, a3 as c_int),
+            SYS_SYSLOG => self.sys_syslog(a1 as c_int, UserVAddr::new(a2), a3 as c_int),
             SYS_REBOOT => self.sys_reboot(a1 as c_int, a2 as c_int, a3),
             _ => {
                 debug_warn!(

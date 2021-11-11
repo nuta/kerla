@@ -1,5 +1,5 @@
-use super::address::PAddr;
-use super::lock::SpinLock;
+use crate::address::PAddr;
+use crate::spinlock::SpinLock;
 use core::ptr::{read_volatile, write_volatile};
 use x86::io::outb;
 

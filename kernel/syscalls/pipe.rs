@@ -1,9 +1,9 @@
 use core::mem::size_of;
 
 use alloc::sync::Arc;
+use kerla_runtime::address::UserVAddr;
 
 use crate::{
-    arch::UserVAddr,
     ctypes::*,
     fs::{
         inode::{FileLike, INode},

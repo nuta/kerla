@@ -1,8 +1,8 @@
-use super::{
-    address::{PAddr, VAddr},
-    apic, bootinfo, cpu_local, gdt, idt, ioapic, pit, printchar, serial, syscall, tss, vga,
-};
-use crate::boot::{boot_kernel, init_logger};
+use super::{apic, bootinfo, cpu_local, gdt, idt, ioapic, pit, serial, syscall, tss, vga};
+use crate::address::{PAddr, VAddr};
+use crate::bootinfo::BootInfo;
+use crate::logger;
+use crate::page_allocator;
 
 use x86::{
     controlregs::{self, Cr4, Xcr0},
@@ -62,6 +62,10 @@ unsafe fn init_pic() {
     outb(0x21, 0xff);
 }
 
+extern "Rust" {
+    fn boot_kernel(bootinfo: &BootInfo) -> !;
+}
+
 /// Initializes the CPU. This function is called exactly once in the Bootstrap
 /// Processor (BSP).
 #[no_mangle]
@@ -73,17 +77,14 @@ unsafe extern "C" fn bsp_early_init(boot_magic: u32, boot_params: u64) -> ! {
     // Initialize the serial driver first to enable print macros.
     serial::early_init();
     vga::init();
-    init_logger();
-    printchar('\n');
+    logger::init();
 
     let boot_info = bootinfo::parse(boot_magic, PAddr::new(boot_params as usize));
+    page_allocator::init(&boot_info.ram_areas);
 
+    serial::init();
     init_pic();
     common_setup(VAddr::new(&__bsp_cpu_local as *const _ as usize));
-    boot_kernel(&boot_info);
-}
 
-/// Called after the memory allocator is initialized.
-pub fn init() {
-    serial::init();
+    boot_kernel(&boot_info);
 }

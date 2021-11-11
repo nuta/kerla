@@ -1,7 +1,6 @@
-use crate::{
-    arch::{arch_prctl, UserVAddr},
-    result::Result,
-};
+use kerla_runtime::address::UserVAddr;
+
+use crate::{arch::arch_prctl, result::Result};
 use crate::{process::current_process, syscalls::SyscallHandler};
 
 impl<'a> SyscallHandler<'a> {

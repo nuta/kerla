@@ -14,12 +14,12 @@ use super::{
     stat::{FileMode, Stat, S_IFDIR, S_IFREG},
 };
 use crate::{
-    arch::SpinLock,
     result::{Errno, Error, Result},
     user_buffer::UserBuffer,
     user_buffer::UserBufferMut,
 };
 use hashbrown::HashMap;
+use kerla_runtime::spinlock::SpinLock;
 use kerla_utils::{downcast::downcast, once::Once};
 
 pub static TMP_FS: Once<Arc<TmpFs>> = Once::new();

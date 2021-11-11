@@ -1,4 +1,5 @@
-use crate::{arch::UserVAddr, ctypes::c_int, fs::opened_file::Fd, prelude::*};
+use crate::{ctypes::c_int, fs::opened_file::Fd, prelude::*};
+use kerla_runtime::address::UserVAddr;
 
 use super::SyscallHandler;
 

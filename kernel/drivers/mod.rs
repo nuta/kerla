@@ -1,4 +1,3 @@
-use crate::arch::SpinLock;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 
@@ -10,6 +9,7 @@ pub mod virtio;
 pub use driver::*;
 
 use alloc::boxed::Box;
+use kerla_runtime::spinlock::SpinLock;
 
 use self::virtio::virtio_net::VirtioNetBuilder;
 

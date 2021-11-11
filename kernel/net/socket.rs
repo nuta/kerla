@@ -1,7 +1,8 @@
-use crate::{arch::UserVAddr, result::*};
+use crate::result::*;
 use bitflags::bitflags;
 use core::convert::TryFrom;
 use core::mem::size_of;
+use kerla_runtime::address::UserVAddr;
 use smoltcp::wire::{IpAddress, IpEndpoint, Ipv4Address};
 
 bitflags! {

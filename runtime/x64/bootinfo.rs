@@ -1,5 +1,5 @@
-use super::address::{PAddr, VAddr};
-use crate::boot::{BootInfo, RamArea, VirtioMmioDevice};
+use crate::address::{PAddr, VAddr};
+use crate::bootinfo::{BootInfo, RamArea, VirtioMmioDevice};
 use arrayvec::ArrayVec;
 use core::cmp::max;
 use core::mem::size_of;
@@ -125,7 +125,6 @@ extern "C" {
 
 struct Cmdline {
     pub pci_enabled: bool,
-    pub omikuji: bool,
     pub virtio_mmio_devices: ArrayVec<VirtioMmioDevice, 4>,
 }
 
@@ -135,7 +134,6 @@ impl Cmdline {
         info!("cmdline: {}", if s.is_empty() { "(empty)" } else { s });
 
         let mut pci_enabled = true;
-        let mut omikuji = false;
         let mut virtio_mmio_devices = ArrayVec::new();
         if !s.is_empty() {
             for config in s.split(' ') {
@@ -144,9 +142,6 @@ impl Cmdline {
                     (Some("pci"), Some("off")) => {
                         warn!("bootinfo: PCI disabled");
                         pci_enabled = false;
-                    }
-                    (Some("omikuji"), Some("on")) => {
-                        omikuji = true;
                     }
                     (Some("virtio_mmio.device"), Some(value)) => {
                         let mut size_and_rest = value.splitn(2, "@0x");
@@ -176,7 +171,6 @@ impl Cmdline {
         Cmdline {
             pci_enabled,
             virtio_mmio_devices,
-            omikuji,
         }
     }
 }
@@ -253,7 +247,6 @@ unsafe fn parse_multiboot2_info(header: &Multiboot2InfoHeader) -> BootInfo {
         ram_areas,
         pci_enabled: cmdline.pci_enabled,
         virtio_mmio_devices: cmdline.virtio_mmio_devices,
-        omikuji: cmdline.omikuji,
     }
 }
 
@@ -277,7 +270,6 @@ unsafe fn parse_multiboot_legacy_info(info: &MultibootLegacyInfo) -> BootInfo {
         ram_areas,
         pci_enabled: cmdline.pci_enabled,
         virtio_mmio_devices: cmdline.virtio_mmio_devices,
-        omikuji: cmdline.omikuji,
     }
 }
 
@@ -307,7 +299,6 @@ unsafe fn parse_linux_boot_params(boot_params: PAddr) -> BootInfo {
         ram_areas,
         pci_enabled: cmdline.pci_enabled,
         virtio_mmio_devices: cmdline.virtio_mmio_devices,
-        omikuji: cmdline.omikuji,
     }
 }
 

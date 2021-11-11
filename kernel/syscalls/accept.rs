@@ -1,5 +1,6 @@
+use kerla_runtime::address::UserVAddr;
+
 use crate::{
-    arch::UserVAddr,
     fs::opened_file::{Fd, OpenOptions, PathComponent},
     net::socket::write_sockaddr,
     prelude::*,

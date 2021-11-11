@@ -1,7 +1,8 @@
 use crate::fs::opened_file::Fd;
-use crate::{arch::UserVAddr, result::Result};
+use crate::result::Result;
 use crate::{process::current_process, syscalls::SyscallHandler};
 use core::mem::size_of;
+use kerla_runtime::address::UserVAddr;
 use kerla_utils::alignment::align_up;
 
 use crate::user_buffer::UserBufWriter;
