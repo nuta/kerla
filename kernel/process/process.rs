@@ -207,6 +207,11 @@ impl Process {
         self.pid
     }
 
+    /// The thread ID
+    pub fn tid(&self) -> PId {
+        self.pid
+    }
+
     /// The arch-specific information.
     pub fn arch(&self) -> &arch::Process {
         &self.arch
