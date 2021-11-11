@@ -29,7 +29,7 @@ pub use interrupt::SavedInterruptStatus;
 pub use ioapic::enable_irq;
 pub use paging::{PageFaultReason, PageTable};
 pub use profile::read_clock_counter;
-pub use semihosting::{semihosting_halt, ExitStatus};
+pub use semihosting::{semihosting_halt, SemihostingExitStatus};
 pub use serial::console_write;
 pub use syscall::SyscallFrame;
 

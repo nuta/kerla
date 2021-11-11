@@ -47,7 +47,7 @@ mod timer;
 mod tty;
 
 use crate::{
-    arch::{idle, SpinLock},
+    arch::SpinLock,
     fs::{devfs::SERIAL_TTY, tmpfs},
     fs::{
         devfs::{self, DEV_FS},
@@ -60,7 +60,10 @@ use crate::{
     syscalls::SyscallHandler,
 };
 use alloc::sync::Arc;
-use kerla_runtime::bootinfo::BootInfo;
+use kerla_runtime::{
+    arch::{idle, PageFaultReason, SyscallFrame},
+    bootinfo::BootInfo,
+};
 use kerla_utils::once::Once;
 use tmpfs::TMP_FS;
 
@@ -86,7 +89,7 @@ impl kerla_runtime::Handler for Handler {
         &self,
         unaligned_vaddr: Option<kerla_runtime::UserVAddr>,
         ip: usize,
-        reason: kerla_runtime::PageFaultReason,
+        reason: PageFaultReason,
     ) {
         match unaligned_vaddr {
             Some(vaddr) => {
@@ -111,7 +114,7 @@ impl kerla_runtime::Handler for Handler {
         a5: usize,
         a6: usize,
         n: usize,
-        frame: *mut kerla_runtime::SyscallFrame,
+        frame: *mut SyscallFrame,
     ) -> isize {
         let mut handler = SyscallHandler::new(unsafe { &mut *frame });
         handler

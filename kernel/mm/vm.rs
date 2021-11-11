@@ -1,6 +1,6 @@
 use crate::{
-    arch::PageTable, arch::UserVAddr, arch::PAGE_SIZE, arch::USER_VALLOC_BASE,
-    arch::USER_VALLOC_END, fs::inode::FileLike,
+    arch::UserVAddr, arch::PAGE_SIZE, arch::USER_VALLOC_BASE, arch::USER_VALLOC_END,
+    fs::inode::FileLike,
 };
 use crate::{
     arch::USER_STACK_TOP,
@@ -8,6 +8,7 @@ use crate::{
 };
 use alloc::sync::Arc;
 use alloc::vec::Vec;
+use kerla_runtime::arch::PageTable;
 use kerla_utils::alignment::{align_up, is_aligned};
 
 #[derive(Clone)]

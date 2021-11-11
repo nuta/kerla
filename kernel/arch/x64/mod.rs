@@ -11,4 +11,5 @@ pub const TICK_HZ: usize = 1000;
 pub use arch_prctl::arch_prctl;
 pub use process::{switch_thread, Process};
 
+pub use kerla_runtime::arch::*;
 pub use kerla_runtime::*;

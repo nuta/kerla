@@ -8,7 +8,7 @@ extern crate alloc;
 extern crate log;
 
 #[macro_use]
-pub mod printk;
+pub mod print;
 
 pub mod address;
 pub mod backtrace;
@@ -19,18 +19,16 @@ pub mod page_allocator;
 pub mod spinlock;
 
 pub use address::{PAddr, UserVAddr, VAddr};
-pub use printk::print_bytes;
 pub use spinlock::{SpinLock, SpinLockGuard};
 
-pub mod x64;
+mod x64;
 
-pub use x64::{
-    console_write, enable_irq, halt, idle, read_clock_counter, x64_specific, Backtrace,
-    PageFaultReason, PageTable, SavedInterruptStatus, SyscallFrame, PAGE_SIZE,
-};
-
-mod arch {
-    pub use super::x64::{KERNEL_BASE_ADDR, KERNEL_STRAIGHT_MAP_PADDR_END};
+pub mod arch {
+    pub use super::x64::{
+        console_write, enable_irq, halt, idle, read_clock_counter, semihosting_halt, x64_specific,
+        Backtrace, PageFaultReason, PageTable, SavedInterruptStatus, SemihostingExitStatus,
+        SyscallFrame, KERNEL_BASE_ADDR, KERNEL_STRAIGHT_MAP_PADDR_END, PAGE_SIZE,
+    };
 }
 
 use kerla_utils::static_cell::StaticCell;
@@ -43,7 +41,7 @@ pub trait Handler: Sync {
         &self,
         unaligned_vaddr: Option<UserVAddr>,
         ip: usize,
-        _reason: PageFaultReason,
+        _reason: arch::PageFaultReason,
     );
 
     #[allow(clippy::too_many_arguments)]
@@ -56,7 +54,7 @@ pub trait Handler: Sync {
         a5: usize,
         a6: usize,
         n: usize,
-        frame: *mut SyscallFrame,
+        frame: *mut arch::SyscallFrame,
     ) -> isize;
 
     #[cfg(debug_assertions)]
@@ -76,7 +74,7 @@ impl Handler for NopHandler {
         &self,
         _unaligned_vaddr: Option<UserVAddr>,
         _ip: usize,
-        _reason: PageFaultReason,
+        _reason: arch::PageFaultReason,
     ) {
     }
 

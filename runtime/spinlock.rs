@@ -2,8 +2,8 @@ use cfg_if::cfg_if;
 use core::mem::ManuallyDrop;
 use core::ops::{Deref, DerefMut};
 
+use crate::arch::SavedInterruptStatus;
 use crate::backtrace::backtrace;
-use crate::SavedInterruptStatus;
 
 #[cfg(debug_assertions)]
 use crate::backtrace::CapturedBacktrace;

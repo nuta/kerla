@@ -1,4 +1,4 @@
-use crate::{address::PAddr, bootinfo::RamArea, spinlock::SpinLock, PAGE_SIZE};
+use crate::{address::PAddr, arch::PAGE_SIZE, bootinfo::RamArea, spinlock::SpinLock};
 use arrayvec::ArrayVec;
 use bitflags::bitflags;
 use kerla_utils::bump_allocator::BumpAllocator as Allocator;

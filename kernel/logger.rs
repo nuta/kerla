@@ -1,5 +1,5 @@
-use kerla_runtime::console_write;
-use kerla_runtime::printk::{set_printer, Printer};
+use kerla_runtime::arch::console_write;
+use kerla_runtime::print::{set_printer, Printer};
 use kerla_utils::ring_buffer::RingBuffer;
 
 use crate::lang_items::PANICKED;

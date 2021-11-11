@@ -2,7 +2,7 @@ use x86::io::{inb, outb};
 
 use crate::{
     handler,
-    printk::{set_printer, Printer},
+    print::{set_printer, Printer},
 };
 
 use super::{ioapic::enable_irq, vga};

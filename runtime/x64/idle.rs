@@ -1,4 +1,4 @@
-use super::semihosting::{semihosting_halt, ExitStatus};
+use super::semihosting::{semihosting_halt, SemihostingExitStatus};
 
 pub fn idle() {
     unsafe {
@@ -8,7 +8,7 @@ pub fn idle() {
 
 #[cfg_attr(test, allow(unused))]
 pub fn halt() -> ! {
-    semihosting_halt(ExitStatus::Success);
+    semihosting_halt(SemihostingExitStatus::Success);
 
     loop {
         unsafe {

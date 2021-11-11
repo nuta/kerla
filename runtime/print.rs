@@ -46,7 +46,7 @@ macro_rules! print {
     ($($arg:tt)*) => {{
         #![allow(unused_imports)]
         use core::fmt::Write;
-        write!($crate::printk::PrinterWrapper, "{}", format_args!($($arg)*)).ok();
+        write!($crate::print::PrinterWrapper, "{}", format_args!($($arg)*)).ok();
     }};
 }
 
