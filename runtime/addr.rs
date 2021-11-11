@@ -1,4 +1,3 @@
-use crate::result::{Errno, Error, Result};
 use crate::{KERNEL_BASE_ADDR, KERNEL_STRAIGHT_MAP_PADDR_END};
 
 #[cfg(debug_assertions)]
@@ -151,6 +150,12 @@ fn call_usercopy_hook() {
     handler().usercopy_hook();
 }
 
+#[derive(Debug)]
+pub struct AccessError;
+
+#[derive(Debug)]
+pub struct NullUserPointerError;
+
 /// Represents a user virtual memory address.
 ///
 /// It is guaranteed that `UserVaddr` contains a valid address, in other words,
@@ -163,37 +168,19 @@ fn call_usercopy_hook() {
 pub struct UserVAddr(u64);
 
 impl UserVAddr {
-    pub const fn new(addr: usize) -> Result<Option<UserVAddr>> {
-        if (addr as u64) >= KERNEL_BASE_ADDR {
-            return Err(Error::with_message_const(
-                Errno::EFAULT,
-                "invalid user pointer",
-            ));
-        }
-
+    pub const fn new(addr: usize) -> Option<UserVAddr> {
         if addr == 0 {
-            Ok(None)
+            None
         } else {
-            Ok(Some(UserVAddr(addr as u64)))
+            Some(UserVAddr(addr as u64))
         }
     }
 
-    pub const fn new_nonnull(addr: usize) -> Result<UserVAddr> {
-        if (addr as u64) >= KERNEL_BASE_ADDR {
-            return Err(Error::with_message_const(
-                Errno::EFAULT,
-                "invalid user pointer",
-            ));
+    pub const fn new_nonnull(addr: usize) -> Result<UserVAddr, NullUserPointerError> {
+        match UserVAddr::new(addr) {
+            Some(uaddr) => Ok(uaddr),
+            None => Err(NullUserPointerError),
         }
-
-        if addr == 0 {
-            return Err(Error::with_message_const(
-                Errno::EFAULT,
-                "null user pointer",
-            ));
-        }
-
-        Ok(UserVAddr(addr as u64))
     }
 
     /// # Safety
@@ -225,21 +212,16 @@ impl UserVAddr {
         self.0 as usize
     }
 
-    pub fn access_ok(self, len: usize) -> Result<()> {
+    pub fn access_ok(self, len: usize) -> Result<(), AccessError> {
         match self.value().checked_add(len) {
             Some(end) if end <= KERNEL_BASE_ADDR as usize => Ok(()),
-            Some(_end) => Err(Error::with_message_const(
-                Errno::EFAULT,
-                "invalid user pointer",
-            )),
-            None => Err(Error::with_message_const(
-                Errno::EFAULT,
-                "overflow in access_ok",
-            )),
+            Some(_end) => Err(AccessError),
+            // Overflow.
+            None => Err(AccessError),
         }
     }
 
-    pub fn read<T>(self) -> Result<T> {
+    pub fn read<T>(self) -> Result<T, AccessError> {
         let mut buf: MaybeUninit<T> = MaybeUninit::uninit();
         self.read_bytes(unsafe {
             slice::from_raw_parts_mut(buf.as_mut_ptr() as *mut u8, size_of::<T>())
@@ -247,7 +229,7 @@ impl UserVAddr {
         Ok(unsafe { buf.assume_init() })
     }
 
-    pub fn read_bytes(self, buf: &mut [u8]) -> Result<()> {
+    pub fn read_bytes(self, buf: &mut [u8]) -> Result<(), AccessError> {
         call_usercopy_hook();
         self.access_ok(buf.len())?;
         unsafe {
@@ -260,7 +242,7 @@ impl UserVAddr {
     /// excluding the NUL character.
     ///
     /// Unlike strcnpy, **`dst` is NOT terminated by NULL**.
-    pub fn read_cstr(self, buf: &mut [u8]) -> Result<usize> {
+    pub fn read_cstr(self, buf: &mut [u8]) -> Result<usize, AccessError> {
         call_usercopy_hook();
         self.access_ok(buf.len())?;
         let read_len =
@@ -268,13 +250,13 @@ impl UserVAddr {
         Ok(read_len)
     }
 
-    pub fn write<T>(self, buf: &T) -> Result<usize> {
+    pub fn write<T>(self, buf: &T) -> Result<usize, AccessError> {
         let len = size_of::<T>();
         self.write_bytes(unsafe { slice::from_raw_parts(buf as *const T as *const u8, len) })?;
         Ok(len)
     }
 
-    pub fn write_bytes(self, buf: &[u8]) -> Result<usize> {
+    pub fn write_bytes(self, buf: &[u8]) -> Result<usize, AccessError> {
         call_usercopy_hook();
         self.access_ok(buf.len())?;
         unsafe {
@@ -283,7 +265,7 @@ impl UserVAddr {
         Ok(buf.len())
     }
 
-    pub fn fill(self, value: u8, len: usize) -> Result<usize> {
+    pub fn fill(self, value: u8, len: usize) -> Result<usize, AccessError> {
         call_usercopy_hook();
         self.access_ok(len)?;
         unsafe {

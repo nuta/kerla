@@ -49,7 +49,7 @@ impl<'a> Elf<'a> {
 
     /// The entry point of the ELF file.
     pub fn entry(&self) -> Result<UserVAddr> {
-        UserVAddr::new_nonnull(self.header.e_entry as usize)
+        UserVAddr::new_nonnull(self.header.e_entry as usize).map_err(Into::into)
     }
 
     /// The ELF header.

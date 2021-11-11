@@ -154,18 +154,7 @@ unsafe extern "C" fn x64_handle_interrupt(vec: u8, frame: *const InterruptFrame)
             }
 
             // Abort if the virtual address points to out of the user's address space.
-            let unaligned_vaddr = match UserVAddr::new(cr2() as usize) {
-                Ok(Some(uvaddr)) => Some(uvaddr),
-                Ok(None) | Err(_) => {
-                    debug_warn!(
-                        "user tried to access a kernel address {:x} (rip={:x}), killing the current process...",
-                        cr2(),
-                        frame.rip,
-                    );
-                    None
-                }
-            };
-
+            let unaligned_vaddr = UserVAddr::new(cr2() as usize);
             handler().handle_page_fault(unaligned_vaddr, frame.rip as usize, reason);
         }
         X87_FPU_VECTOR => {

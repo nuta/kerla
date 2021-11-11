@@ -11,7 +11,7 @@ impl<'a> SyscallHandler<'a> {
         act: usize,
         _oldact: Option<UserVAddr>,
     ) -> Result<isize> {
-        if let Some(act) = UserVAddr::new(act)? {
+        if let Some(act) = UserVAddr::new(act) {
             let handler = act.read::<usize>()?;
             let new_action = match handler {
                 SIG_IGN => SigAction::Ignore,
@@ -20,7 +20,7 @@ impl<'a> SyscallHandler<'a> {
                     None => return Err(Errno::EINVAL.into()),
                 },
                 _ => SigAction::Handler {
-                    handler: UserVAddr::new_nonnull(handler)?,
+                    handler: UserVAddr::new(handler).ok_or(Error::new(Errno::EFAULT))?,
                 },
             };
 

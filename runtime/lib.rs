@@ -16,7 +16,6 @@ pub mod bootinfo;
 pub mod global_allocator;
 pub mod logger;
 pub mod page_allocator;
-pub mod result;
 pub mod spinlock;
 
 pub use addr::{PAddr, UserVAddr, VAddr};

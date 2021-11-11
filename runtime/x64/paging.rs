@@ -1,7 +1,6 @@
 use super::PAGE_SIZE;
 use crate::addr::{PAddr, UserVAddr};
-use crate::page_allocator::{alloc_pages, AllocPageFlags};
-use crate::result::Result;
+use crate::page_allocator::{alloc_pages, AllocPageFlags, PageAllocError};
 use bitflags::bitflags;
 use core::{
     debug_assert,
@@ -85,7 +84,7 @@ fn traverse(
 /// nth-level page table. Returns the newly created copy of the page table.
 ///
 /// fork(2) uses this funciton to duplicate the memory space.
-fn duplicate_table(original_table_paddr: PAddr, level: usize) -> Result<PAddr> {
+fn duplicate_table(original_table_paddr: PAddr, level: usize) -> Result<PAddr, PageAllocError> {
     let orig_table = original_table_paddr.as_ptr::<PageTableEntry>();
     let new_table_paddr = alloc_pages(1, AllocPageFlags::KERNEL)?;
     let new_table = new_table_paddr.as_mut_ptr::<PageTableEntry>();
@@ -128,7 +127,7 @@ fn duplicate_table(original_table_paddr: PAddr, level: usize) -> Result<PAddr> {
     Ok(new_table_paddr)
 }
 
-fn allocate_pml4() -> Result<PAddr> {
+fn allocate_pml4() -> Result<PAddr, PageAllocError> {
     extern "C" {
         static __kernel_pml4: u8;
     }
@@ -159,12 +158,12 @@ pub struct PageTable {
 }
 
 impl PageTable {
-    pub fn new() -> Result<PageTable> {
+    pub fn new() -> Result<PageTable, PageAllocError> {
         let pml4 = allocate_pml4()?;
         Ok(PageTable { pml4 })
     }
 
-    pub fn duplicate_from(original: &PageTable) -> Result<PageTable> {
+    pub fn duplicate_from(original: &PageTable) -> Result<PageTable, PageAllocError> {
         // TODO: Implement copy-on-write.
         Ok(PageTable {
             pml4: duplicate_table(original.pml4, 4)?,

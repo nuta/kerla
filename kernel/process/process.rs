@@ -561,8 +561,8 @@ fn do_setup_userspace(
     )?;
 
     let mut vm = Vm::new(
-        UserVAddr::new_nonnull(user_stack_bottom).unwrap(),
-        UserVAddr::new_nonnull(user_heap_bottom).unwrap(),
+        UserVAddr::new(user_stack_bottom).unwrap(),
+        UserVAddr::new(user_heap_bottom).unwrap(),
     )?;
     for i in 0..(file_header_len / PAGE_SIZE) {
         vm.page_table_mut().map_user_page(
