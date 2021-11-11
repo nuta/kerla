@@ -2,7 +2,7 @@
 name = "kerla_kernel"
 version = "0.0.4"
 authors = ["Seiya Nuta <nuta@seiya.me>"]
-edition = "2018"
+edition = "2021"
 
 [[bin]]
 name = "kerla_kernel"
