@@ -3,6 +3,7 @@ export V         ?=
 export GUI       ?=
 export RELEASE   ?=
 export ARCH      ?= x64
+export KEXTS     ?= $(patsubst exts/%/Cargo.toml,%,$(wildcard exts/*/Cargo.toml))
 
 # The default build target.
 .PHONY: default
@@ -86,6 +87,10 @@ build:
 .PHONY: build-crate
 build-crate:
 	$(MAKE) initramfs
+
+	$(PROGRESS) "GEN" "kexts-loader ($(KEXTS))"
+	$(PYTHON3) tools/generate-kexts-loader.py --out-dir build/kexts_loader $(KEXTS)
+
 	$(PROGRESS) "CARGO" "kernel"
 	$(CARGO) build $(CARGOFLAGS) --manifest-path kernel/Cargo.toml
 
