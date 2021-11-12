@@ -1,0 +1,13 @@
+[package]
+name = "ext2"
+version = "0.1.0"
+edition = "2018"
+
+[lib]
+name = "ext2"
+path = "lib.rs"
+
+[features]
+no_std = []
+
+[dependencies]
