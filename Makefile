@@ -27,6 +27,15 @@ INITRAMFS_PATH := build/$(IMAGE_FILENAME).initramfs
 export INIT_SCRIPT := $(shell tools/inspect-init-in-docker-image.py $(IMAGE))
 endif
 
+# Set the platform name for docker image cross compiling.
+ifeq ($(ARCH),x64)
+docker_platform = linux/amd64
+endif
+
+ifeq ($(docker_platform),)
+$(error "docker_platform is not set for $(ARCH)!")
+endif
+
 topdir      := $(PWD)
 build_mode  := $(if $(RELEASE),release,debug)
 target_json := kernel/arch/$(ARCH)/$(ARCH).json
@@ -171,7 +180,7 @@ clean:
 #
 build/kerla.initramfs: $(wildcard initramfs/*) $(wildcard initramfs/*/*) Makefile
 	$(PROGRESS) "BUILD" initramfs
-	cd initramfs && docker buildx build -t kerla-initramfs .
+	cd initramfs && docker buildx build --platform $(docker_platform) -t kerla-initramfs .
 	$(PROGRESS) "EXPORT" initramfs
 	mkdir -p build
 	$(PYTHON3) tools/docker2initramfs.py $@ kerla-initramfs
