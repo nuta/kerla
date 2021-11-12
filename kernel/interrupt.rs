@@ -36,10 +36,17 @@ pub fn attach_irq(irq: u8, f: Box<dyn FnMut() + Send + Sync + 'static>) {
 }
 
 pub fn handle_irq(irq: u8) {
-    let handler = &mut IRQ_HANDLERS.lock()[irq as usize];
-    unsafe {
-        (*handler.assume_init_mut())();
+    {
+        let handler = &mut IRQ_HANDLERS.lock()[irq as usize];
+        unsafe {
+            (*handler.assume_init_mut())();
+        }
+
+        // `handler` is dropped here to release IRQ_HANDLERS's lock since
+        // we re-enable interrupts just before running deferred jobs.
     }
+
+    // TODO: Re-enable interrupts to make deferred jobs preemptive.
 
     // So-called "bottom half" in Linux kernel. Execute time-consuming but
     // non-critical work like processing packets.
