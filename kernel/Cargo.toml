@@ -30,4 +30,4 @@ kerla_api = { path = "../libs/kerla_api" }
 kerla_utils = { path = "../libs/kerla_utils", features = ["no_std"] }
 
 # Kernel extensions.
-virtio_net = { path = "../drivers/virtio_net" }
+virtio_net = { path = "../exts/virtio_net" }
