@@ -207,7 +207,7 @@ impl Process {
         self.pid
     }
 
-    /// The thread ID
+    /// The thread ID.
     pub fn tid(&self) -> PId {
         self.pid
     }
