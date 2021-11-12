@@ -42,7 +42,7 @@ pub fn handle_irq(irq: u8) {
             (*handler.assume_init_mut())();
         }
 
-        // `handler` is dropped here to release IRQ_HANDLERS's lock here since
+        // `handler` is dropped here to release IRQ_HANDLERS's lock since
         // we re-enable interrupts just before running deferred jobs.
     }
 
