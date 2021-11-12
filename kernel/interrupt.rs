@@ -5,7 +5,7 @@ use core::mem::MaybeUninit;
 use kerla_runtime::{arch::enable_irq, spinlock::SpinLock};
 use kerla_utils::bitmap::BitMap;
 
-use crate::net::process_packets;
+use crate::deferred_job::run_deferred_jobs;
 
 fn empty_irq_handler() {}
 
@@ -39,8 +39,9 @@ pub fn handle_irq(irq: u8) {
     let handler = &mut IRQ_HANDLERS.lock()[irq as usize];
     unsafe {
         (*handler.assume_init_mut())();
-        // FIXME: Temporarily moved to here to avoid dead locking in receive_ethernet_frame.
-        //        To be replaced soon with a new mechanism like softirq.
-        process_packets();
     }
+
+    // So-called "bottom half" in Linux kernel. Execute time-consuming but
+    // non-critical work like processing packets.
+    run_deferred_jobs();
 }

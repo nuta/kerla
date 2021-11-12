@@ -41,6 +41,7 @@ pub(self) mod getppid;
 pub(self) mod getrandom;
 pub(self) mod getsockname;
 pub(self) mod getsockopt;
+pub(self) mod gettid;
 pub(self) mod ioctl;
 pub(self) mod link;
 pub(self) mod linkat;
@@ -153,6 +154,7 @@ const SYS_GETPGID: usize = 121;
 const SYS_SETGROUPS: usize = 116;
 const SYS_ARCH_PRCTL: usize = 158;
 const SYS_REBOOT: usize = 169;
+const SYS_GETTID: usize = 186;
 const SYS_GETDENTS64: usize = 217;
 const SYS_SET_TID_ADDRESS: usize = 218;
 const SYS_CLOCK_GETTIME: usize = 228;
@@ -365,6 +367,7 @@ impl<'a> SyscallHandler<'a> {
             ),
             SYS_SYSLOG => self.sys_syslog(a1 as c_int, UserVAddr::new(a2), a3 as c_int),
             SYS_REBOOT => self.sys_reboot(a1 as c_int, a2 as c_int, a3),
+            SYS_GETTID => self.sys_gettid(),
             _ => {
                 debug_warn!(
                     "unimplemented system call: {} (n={})",
