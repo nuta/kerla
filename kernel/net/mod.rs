@@ -1,3 +1,4 @@
+use crate::deferred_job::DeferredJob;
 use crate::{
     poll::POLL_WAIT_QUEUE, process::WaitQueue, timer::read_monotonic_clock, timer::MonotonicClock,
 };
@@ -35,6 +36,7 @@ pub use tcp_socket::*;
 pub use udp_socket::*;
 pub use unix_socket::*;
 
+static PACKET_PROCESS_JOB: DeferredJob = DeferredJob::new("net_packet_process");
 static RX_PACKET_QUEUE: Once<SpinLock<ArrayQueue<Vec<u8>>>> = Once::new();
 
 pub fn receive_ethernet_frame(frame: &[u8]) {
@@ -42,6 +44,10 @@ pub fn receive_ethernet_frame(frame: &[u8]) {
         // TODO: Introduce warn_once! macro
         warn!("the rx packet queue is full; dropping an incoming packet");
     }
+
+    PACKET_PROCESS_JOB.run_later(|| {
+        process_packets();
+    });
 }
 
 impl From<MonotonicClock> for Instant {
