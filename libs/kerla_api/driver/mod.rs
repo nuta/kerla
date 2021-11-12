@@ -16,6 +16,10 @@ use self::pci::PciDevice;
 
 static DEVICE_PROBERS: SpinLock<Vec<Box<dyn DeviceProber>>> = SpinLock::new(Vec::new());
 
+pub trait Driver: Send + Sync {
+    fn name(&self) -> &str;
+}
+
 pub trait DeviceProber: Send + Sync {
     fn probe_pci(&self, pci_device: &PciDevice);
     fn probe_virtio_mmio(&self, mmio_device: &VirtioMmioDevice);
