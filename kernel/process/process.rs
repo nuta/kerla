@@ -207,6 +207,13 @@ impl Process {
         self.pid
     }
 
+    /// The thread ID.
+    pub fn tid(&self) -> PId {
+        // In a single-threaded process, the thread ID is equal to the process ID (PID).
+        // https://man7.org/linux/man-pages/man2/gettid.2.html
+        self.pid
+    }
+
     /// The arch-specific information.
     pub fn arch(&self) -> &arch::Process {
         &self.arch

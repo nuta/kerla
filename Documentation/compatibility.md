@@ -206,7 +206,7 @@ Not supported.
 | 183 | afs_syscall            | Unimplemented         |          |                                            |
 | 184 | tuxcall                | Unimplemented         |          |                                            |
 | 185 | security               | Unimplemented         |          |                                            |
-| 186 | gettid                 | Unimplemented         |          |                                            |
+| 186 | gettid                 | Partialy              |          | Single thread implementation               |
 | 187 | readahead              | Unimplemented         |          |                                            |
 | 188 | setxattr               | Unimplemented         |          |                                            |
 | 189 | lsetxattr              | Unimplemented         |          |                                            |
