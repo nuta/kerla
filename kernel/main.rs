@@ -10,6 +10,7 @@
 #![reexport_test_harness_main = "test_main"]
 // FIXME:
 #![allow(unaligned_references)]
+#![feature(trait_alias)]
 
 #[macro_use]
 extern crate alloc;
@@ -29,6 +30,7 @@ mod arch;
 #[macro_use]
 mod user_buffer;
 mod ctypes;
+mod deferred_job;
 mod fs;
 mod interrupt;
 mod lang_items;
