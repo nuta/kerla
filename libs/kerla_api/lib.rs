@@ -1,6 +1,5 @@
+//! Kerla API for kernel extensions.
 #![no_std]
-
-use kerla_runtime::bootinfo::VirtioMmioDevice;
 
 extern crate alloc;
 
@@ -8,6 +7,8 @@ extern crate alloc;
 extern crate log;
 
 pub mod driver;
+pub mod kernel_ops;
+pub mod net;
 
 pub use kerla_runtime::{debug_warn, warn_if_err, warn_once};
 pub use log::{debug, error, info, trace, warn};
@@ -27,7 +28,3 @@ pub mod sync {
 pub mod arch {
     pub use kerla_runtime::arch::PAGE_SIZE;
 }
-
-pub fn init() {}
-pub fn init_pci_devices() {}
-pub fn init_virtio_mmio_devices(devices: &[VirtioMmioDevice]) {}

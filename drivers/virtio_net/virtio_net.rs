@@ -1,18 +1,26 @@
 //! A virtio-net device driver.
+use alloc::boxed::Box;
 use alloc::sync::Arc;
 use core::mem::size_of;
+use kerla_api::driver::register_driver_builder;
+use kerla_api::net::receive_ethernet_frame;
+use memoffset::offset_of;
 
+use crate::transports::virtio_pci::VirtioAttachError;
 use crate::transports::{virtio_mmio::VirtioMmio, virtio_pci::VirtioPci, VirtioTransport};
 use crate::virtio::{IsrStatus, Virtio, VirtqUsedChain};
 
 use kerla_api::address::VAddr;
 use kerla_api::arch::PAGE_SIZE;
+use kerla_api::driver::{
+    attach_irq,
+    net::{register_ethernet_driver, Driver, EthernetDriver, MacAddress},
+    DriverBuilder,
+};
 use kerla_api::driver::{pci::PciDevice, VirtioMmioDevice};
-use kerla_api::driver::{Driver, DriverBuilder, EthernetDriver, MacAddress};
 use kerla_api::mm::{alloc_pages, AllocPageFlags};
 use kerla_api::sync::SpinLock;
 use kerla_utils::alignment::align_up;
-use kerla_utils::offset_of;
 
 const VIRTIO_NET_F_MAC: u64 = 1 << 5;
 
@@ -52,7 +60,7 @@ pub struct VirtioNet {
 }
 
 impl VirtioNet {
-    pub fn new(transport: Arc<dyn VirtioTransport>) -> Result<VirtioNet> {
+    pub fn new(transport: Arc<dyn VirtioTransport>) -> Result<VirtioNet, VirtioAttachError> {
         let mut virtio = Virtio::new(transport);
         virtio.initialize(VIRTIO_NET_F_MAC, 2 /* RX and TX queues. */)?;
 
@@ -83,12 +91,10 @@ impl VirtioNet {
 
         let rx_virtq = virtio.virtq_mut(VIRTIO_NET_QUEUE_RX);
         for i in 0..rx_ring_len {
-            rx_virtq
-                .enqueue(&[super::virtio::VirtqDescBuffer::WritableFromDevice {
-                    addr: rx_buffer.add(i * PACKET_LEN_MAX).as_paddr(),
-                    len: PACKET_LEN_MAX,
-                }])
-                .unwrap();
+            rx_virtq.enqueue(&[super::virtio::VirtqDescBuffer::WritableFromDevice {
+                addr: rx_buffer.add(i * PACKET_LEN_MAX).as_paddr(),
+                len: PACKET_LEN_MAX,
+            }])
         }
 
         Ok(VirtioNet {
@@ -139,23 +145,13 @@ impl VirtioNet {
             };
             receive_ethernet_frame(buffer);
 
-            warn_if_err!(
-                rx_virtq.enqueue(&[super::virtio::VirtqDescBuffer::WritableFromDevice {
-                    addr,
-                    len: PACKET_LEN_MAX,
-                }])
-            );
+            rx_virtq.enqueue(&[super::virtio::VirtqDescBuffer::WritableFromDevice {
+                addr,
+                len: PACKET_LEN_MAX,
+            }])
         }
     }
-}
 
-impl Driver for VirtioNet {
-    fn name(&self) -> &str {
-        "virtio-net"
-    }
-}
-
-impl EthernetDriver for VirtioNet {
     fn mac_addr(&self) -> MacAddress {
         self.mac_addr
     }
@@ -197,10 +193,36 @@ impl EthernetDriver for VirtioNet {
 
         // Enqueue the transmission request and kick the device.
         let tx_virtq = self.virtio.virtq_mut(VIRTIO_NET_QUEUE_TX);
-        tx_virtq.enqueue(chain)?;
+        tx_virtq.enqueue(chain);
         tx_virtq.notify();
 
         self.tx_ring_index += 1;
+    }
+}
+
+struct VirtioNetDriver {
+    device: Arc<SpinLock<VirtioNet>>,
+}
+
+impl VirtioNetDriver {
+    fn new(device: Arc<SpinLock<VirtioNet>>) -> VirtioNetDriver {
+        VirtioNetDriver { device }
+    }
+}
+
+impl Driver for VirtioNetDriver {
+    fn name(&self) -> &str {
+        "virtio-net"
+    }
+}
+
+impl EthernetDriver for VirtioNetDriver {
+    fn mac_addr(&self) -> MacAddress {
+        self.device.lock().mac_addr()
+    }
+
+    fn transmit(&self, frame: &[u8]) {
+        self.device.lock().transmit(frame);
     }
 }
 
@@ -221,15 +243,22 @@ impl DriverBuilder for VirtioNetBuilder {
         }
 
         trace!("virtio-net: found the device (over PCI)");
-        let driver = VirtioPci::attach_pci(pci_device, VirtioNet::new)?;
+        let device = match VirtioPci::attach_pci(pci_device, VirtioNet::new) {
+            Ok(device) => Arc::new(SpinLock::new(device)),
+            Err(VirtioAttachError::InvalidVendorId) => {
+                // Not a virtio-net device.
+                return;
+            }
+            Err(err) => {
+                warn!("failed to attach a virtio-net: {:?}", err);
+                return;
+            }
+        };
 
-        register_ethernet_driver(driver.clone());
+        register_ethernet_driver(Box::new(VirtioNetDriver::new(device.clone())));
         attach_irq(pci_device.config().interrupt_line(), move || {
-            driver.lock().handle_irq();
-            process_packets();
+            device.lock().handle_irq();
         });
-
-        Ok(())
     }
 
     fn attach_virtio_mmio(&self, mmio_device: &VirtioMmioDevice) {
@@ -255,14 +284,25 @@ impl DriverBuilder for VirtioNetBuilder {
         trace!("virtio-net: found the device (over MMIO)");
 
         let transport = Arc::new(VirtioMmio::new(mmio_device.mmio_base));
-        let driver = Arc::new(SpinLock::new(VirtioNet::new(transport)?));
-        register_ethernet_driver(driver.clone());
+        let device = match VirtioNet::new(transport) {
+            Ok(device) => Arc::new(SpinLock::new(device)),
+            Err(VirtioAttachError::InvalidVendorId) => {
+                // Not a virtio-net device.
+                return;
+            }
+            Err(err) => {
+                warn!("failed to attach a virtio-net: {:?}", err);
+                return;
+            }
+        };
 
+        register_ethernet_driver(Box::new(VirtioNetDriver::new(device.clone())));
         attach_irq(mmio_device.irq, move || {
-            driver.lock().handle_irq();
-            process_packets();
+            device.lock().handle_irq();
         });
-
-        Ok(())
     }
+}
+
+pub fn init() {
+    register_driver_builder(Box::new(VirtioNetBuilder::new()));
 }

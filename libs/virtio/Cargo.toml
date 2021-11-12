@@ -1,11 +1,11 @@
 [package]
-name = "virtio_net"
+name = "virtio"
 version = "0.0.1"
 authors = ["Seiya Nuta <nuta@seiya.me>"]
 edition = "2021"
 
 [lib]
-name = "virtio_net"
+name = "virtio"
 path = "lib.rs"
 
 [dependencies]
@@ -14,4 +14,3 @@ memoffset = "0.6.4"
 
 kerla_api = { path = "../../libs/kerla_api" }
 kerla_utils = { path = "../../libs/kerla_utils" }
-virtio = { path = "../../libs/virtio" }

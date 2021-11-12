@@ -20,7 +20,6 @@ pub mod bytes_parser;
 pub mod downcast;
 pub mod id_table;
 pub mod lazy;
-pub mod offsetof;
 pub mod once;
 pub mod ring_buffer;
 pub mod static_cell;

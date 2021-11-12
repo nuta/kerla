@@ -1,4 +1,4 @@
-use crate::virtio::IsrStatus;
+use crate::device::IsrStatus;
 
 use core::convert::TryInto;
 

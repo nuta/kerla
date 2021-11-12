@@ -334,12 +334,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5fecdca9a5291cc2b8dcf7dc02453fee791a280f3743cb0905f8822ae463b3fe"
 
 [[package]]
+name = "virtio"
+version = "0.0.1"
+dependencies = [
+ "bitflags",
+ "kerla_api",
+ "kerla_utils",
+ "memoffset",
+]
+
+[[package]]
 name = "virtio_net"
 version = "0.0.1"
 dependencies = [
  "bitflags",
  "kerla_api",
  "kerla_utils",
+ "memoffset",
+ "virtio",
 ]
 
 [[package]]

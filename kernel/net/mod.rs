@@ -1,11 +1,12 @@
 use crate::{
     poll::POLL_WAIT_QUEUE, process::WaitQueue, timer::read_monotonic_clock, timer::MonotonicClock,
 };
+use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
-use alloc::sync::Arc;
 use alloc::vec::Vec;
+use atomic_refcell::AtomicRefCell;
 use crossbeam::queue::ArrayQueue;
-use kerla_api::driver::{get_ethernet_driver, EthernetDriver};
+use kerla_api::driver::net::EthernetDriver;
 use kerla_runtime::spinlock::SpinLock;
 use kerla_utils::once::Once;
 use smoltcp::wire::{self, EthernetAddress, IpCidr};
@@ -35,11 +36,6 @@ pub use udp_socket::*;
 pub use unix_socket::*;
 
 static RX_PACKET_QUEUE: Once<SpinLock<ArrayQueue<Vec<u8>>>> = Once::new();
-static DRIVER: Once<Arc<SpinLock<dyn EthernetDriver>>> = Once::new();
-
-pub fn send_ethernet_frame(frame: &[u8]) {
-    DRIVER.lock().transmit(frame);
-}
 
 pub fn receive_ethernet_frame(frame: &[u8]) {
     if RX_PACKET_QUEUE.lock().push(frame.to_vec()).is_err() {
@@ -132,7 +128,7 @@ impl TxToken for OurTxToken {
         let mut buffer = vec![0; len];
         let return_value = f(&mut buffer)?;
         if EthernetFrame::new_checked(&mut buffer).is_ok() {
-            send_ethernet_frame(&buffer);
+            use_ethernet_driver(|driver| driver.transmit(&buffer));
         }
 
         Ok(return_value)
@@ -163,10 +159,24 @@ impl<'a> Device<'a> for OurDevice {
     }
 }
 
-pub fn init() {
+static ETHERNET_DRIVER: AtomicRefCell<Option<Box<dyn EthernetDriver>>> = AtomicRefCell::new(None);
+
+pub fn register_ethernet_driver(driver: Box<dyn EthernetDriver>) {
+    assert!(
+        ETHERNET_DRIVER.borrow().is_none(),
+        "multiple net drivers are not supported"
+    );
+    *ETHERNET_DRIVER.borrow_mut() = Some(driver);
+}
+
+pub fn use_ethernet_driver<F: FnOnce(&Box<dyn EthernetDriver>) -> R, R>(f: F) -> R {
+    let driver = ETHERNET_DRIVER.borrow();
+    f(driver.as_ref().expect("no ethernet drivers"))
+}
+
+pub fn init_and_start_dhcp_discover() {
     let neighbor_cache = NeighborCache::new(BTreeMap::new());
-    let driver = get_ethernet_driver().expect("no ethernet drivers");
-    let mac_addr = driver.lock().mac_addr();
+    let mac_addr = use_ethernet_driver(|driver| driver.mac_addr());
     let ethernet_addr = EthernetAddress(mac_addr.as_array());
     let ip_addrs = [IpCidr::new(wire::Ipv4Address::UNSPECIFIED.into(), 0)];
     let routes = Routes::new(BTreeMap::new());
@@ -192,7 +202,6 @@ pub fn init() {
     INTERFACE.init(|| SpinLock::new(iface));
     SOCKETS.init(|| SpinLock::new(sockets));
     DHCP_CLIENT.init(|| SpinLock::new(dhcp));
-    DRIVER.init(|| driver);
 
     process_packets();
 }
