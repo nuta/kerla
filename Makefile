@@ -179,11 +179,11 @@ clean:
 #  Build Rules
 #
 build/kerla.initramfs: $(wildcard initramfs/*) $(wildcard initramfs/*/*) Makefile
-	$(PROGRESS) "BUILD" initramfs
-	cd initramfs && docker buildx build --platform $(docker_platform) -t kerla-initramfs .
-	$(PROGRESS) "EXPORT" initramfs
+	$(PROGRESS) "BUILD" testing
+	cd testing && docker buildx build --platform $(docker_platform) -t kerla-testing .
+	$(PROGRESS) "EXPORT" testing
 	mkdir -p build
-	$(PYTHON3) tools/docker2initramfs.py $@ kerla-initramfs
+	$(PYTHON3) tools/docker2initramfs.py $@ kerla-testing
 
 build/$(IMAGE_FILENAME).initramfs: tools/docker2initramfs.py Makefile
 	$(PROGRESS) "EXPORT" $(IMAGE)
