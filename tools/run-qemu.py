@@ -70,7 +70,7 @@ def main():
     p = subprocess.run(argv, preexec_fn=os.setsid)
     if p.returncode != 33:
         sys.exit(
-            f"\nrun-qemu.py: qemu exited with failue status (status={p.returncode})")
+            f"\nrun-qemu.py: qemu exited with failure status (status={p.returncode})")
 
 
 if __name__ == "__main__":
