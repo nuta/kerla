@@ -3,6 +3,7 @@ members = [
     "runtime",
     "kernel",
     "libs/*",
+    "exts/*",
 ]
 
 [profile.release]

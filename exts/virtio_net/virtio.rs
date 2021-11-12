@@ -1,15 +1,17 @@
 //! A virtio device driver library.
-use crate::prelude::*;
-use crate::result::{Errno, Result};
+use alloc::sync::Arc;
+use alloc::vec::Vec;
 use bitflags::bitflags;
 use core::cmp::min;
 use core::convert::TryInto;
 use core::mem::size_of;
 use core::sync::atomic::{self, Ordering};
-use kerla_runtime::address::{PAddr, VAddr};
-use kerla_runtime::arch::PAGE_SIZE;
-use kerla_runtime::page_allocator::{alloc_pages, AllocPageFlags};
+use kerla_api::address::{PAddr, VAddr};
+use kerla_api::arch::PAGE_SIZE;
+use kerla_api::mm::{alloc_pages, AllocPageFlags};
 use kerla_utils::alignment::align_up;
+
+use crate::transports::virtio_pci::VirtioAttachError;
 
 use super::transports::VirtioTransport;
 
@@ -140,7 +142,7 @@ impl VirtQueue {
     ///
     /// Once you've enqueued all requests, you need to notify the device through
     /// the `notify` method.
-    pub fn enqueue(&mut self, chain: &[VirtqDescBuffer]) -> Result<()> {
+    pub fn enqueue(&mut self, chain: &[VirtqDescBuffer]) {
         debug_assert!(!chain.is_empty());
 
         // Try freeing used descriptors.
@@ -172,7 +174,7 @@ impl VirtQueue {
 
         // Check if we have the enough number of free descriptors.
         if (self.num_free_descs as usize) < chain.len() {
-            return Err(Errno::ENOMEM.into());
+            return;
         }
 
         let head_index = self.free_head;
@@ -204,8 +206,6 @@ impl VirtQueue {
         let avail_elem_index = self.avail().index;
         *self.avail_elem_mut(avail_elem_index) = head_index;
         self.avail_mut().index = self.avail_mut().index.wrapping_add(1);
-
-        Ok(())
     }
 
     /// Notifies the device to start processing descriptors.
@@ -337,7 +337,11 @@ impl Virtio {
 
     /// Initialize the virtio device. It aborts if any of the features is not
     /// supported.
-    pub fn initialize(&mut self, mut features: u64, num_virtqueues: u16) -> Result<()> {
+    pub fn initialize(
+        &mut self,
+        mut features: u64,
+        num_virtqueues: u16,
+    ) -> Result<(), VirtioAttachError> {
         features |= VIRTIO_F_VERSION_1;
 
         // "3.1.1 Driver Requirements: Device Initialization"
@@ -355,7 +359,7 @@ impl Virtio {
                 device_features,
                 features & !device_features
             );
-            return Err(Errno::EINVAL.into());
+            return Err(VirtioAttachError::MissingFeatures);
         }
 
         self.transport.write_driver_features(features);
@@ -363,7 +367,7 @@ impl Virtio {
             .write_device_status(self.transport.read_device_status() | VIRTIO_STATUS_FEAT_OK);
 
         if (self.transport.read_device_status() & VIRTIO_STATUS_FEAT_OK) == 0 {
-            return Err(Errno::EINVAL.into());
+            return Err(VirtioAttachError::FeatureNegotiationFailure);
         }
 
         // Initialize virtqueues.

@@ -1,5 +1,4 @@
-use crate::drivers::DRIVER_BUILDERS;
-use crate::prelude::*;
+use alloc::vec::Vec;
 use arrayvec::ArrayVec;
 use core::convert::TryInto;
 use core::{mem::size_of, mem::MaybeUninit};
@@ -228,22 +227,5 @@ impl Iterator for PciScanner {
             }
         }
         None
-    }
-}
-
-pub fn init() {
-    // Scan PCI devices.
-    for device in enumerate_pci_devices() {
-        trace!(
-            "pci: found a device: id={:04x}:{:04x}, bar0={:016x?}, irq={}",
-            device.config().vendor_id(),
-            device.config().device_id(),
-            device.config().bar(0),
-            device.config().interrupt_line()
-        );
-
-        for builder in DRIVER_BUILDERS.lock().iter() {
-            builder.attach_pci(&device).ok();
-        }
     }
 }

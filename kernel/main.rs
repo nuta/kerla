@@ -29,7 +29,6 @@ mod arch;
 #[macro_use]
 mod user_buffer;
 mod ctypes;
-mod drivers;
 mod fs;
 mod interrupt;
 mod lang_items;
@@ -56,7 +55,9 @@ use crate::{
     process::{switch, Process},
     syscalls::SyscallHandler,
 };
-use alloc::sync::Arc;
+use alloc::{boxed::Box, sync::Arc};
+use interrupt::attach_irq;
+use kerla_api::kernel_ops::KernelOps;
 use kerla_runtime::{
     arch::{idle, PageFaultReason, SyscallFrame},
     bootinfo::BootInfo,
@@ -64,6 +65,7 @@ use kerla_runtime::{
     spinlock::SpinLock,
 };
 use kerla_utils::once::Once;
+use net::register_ethernet_driver;
 use tmpfs::TMP_FS;
 
 #[cfg(test)]
@@ -120,6 +122,22 @@ impl kerla_runtime::Handler for Handler {
     }
 }
 
+struct ApiOps;
+
+impl KernelOps for ApiOps {
+    fn attach_irq(&self, irq: u8, f: alloc::boxed::Box<dyn FnMut() + Send + Sync + 'static>) {
+        attach_irq(irq, f);
+    }
+
+    fn register_ethernet_driver(&self, driver: Box<dyn kerla_api::driver::net::EthernetDriver>) {
+        register_ethernet_driver(driver)
+    }
+
+    fn receive_etherframe_packet(&self, pkt: &[u8]) {
+        net::receive_ethernet_frame(pkt);
+    }
+}
+
 pub static INITIAL_ROOT_FS: Once<Arc<SpinLock<RootFs>>> = Once::new();
 
 #[no_mangle]
@@ -153,20 +171,20 @@ pub fn boot_kernel(#[cfg_attr(debug_assertions, allow(unused))] bootinfo: &BootI
     profiler.lap_time("tmpfs init");
     initramfs::init();
     profiler.lap_time("initramfs init");
-    drivers::init();
+    kerla_api::kernel_ops::init(&ApiOps);
+    profiler.lap_time("kerla_api init");
+
+    // Load kernel extensions.
+    info!("Initializing virtio_net...");
+    virtio_net::init();
+    profiler.lap_time("kernel extensions init");
+
+    // Initialize device drivers.
+    kerla_api::kernel_ops::init_drivers(bootinfo.pci_enabled, &bootinfo.virtio_mmio_devices);
     profiler.lap_time("drivers init");
 
-    if bootinfo.pci_enabled {
-        drivers::pci::init();
-        profiler.lap_time("pci init");
-    }
-
-    if !bootinfo.virtio_mmio_devices.is_empty() {
-        drivers::virtio::init(&bootinfo.virtio_mmio_devices);
-        profiler.lap_time("virtio init");
-    }
-
-    net::init();
+    // Connect to the network.
+    net::init_and_start_dhcp_discover();
     profiler.lap_time("net init");
 
     // Prepare the root file system.

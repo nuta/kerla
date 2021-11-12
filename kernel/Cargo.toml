@@ -9,7 +9,6 @@ name = "kerla_kernel"
 path = "main.rs"
 
 [dependencies]
-memoffset = "0.6.4"
 log = "0.4"
 spin = "0.9.2"
 goblin = { version = "0.4", default-features = false, features = ["elf64"] }
@@ -27,4 +26,8 @@ x86 = "0.43.0"
 
 # Local dependencies.
 kerla_runtime = { path = "../runtime" }
+kerla_api = { path = "../libs/kerla_api" }
 kerla_utils = { path = "../libs/kerla_utils", features = ["no_std"] }
+
+# Kernel extensions.
+virtio_net = { path = "../exts/virtio_net" }

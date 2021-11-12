@@ -1,13 +1,15 @@
+use crate::device::IsrStatus;
+
 use core::convert::TryInto;
 
+use alloc::sync::Arc;
+use kerla_api::{
+    address::{PAddr, VAddr},
+    driver::pci::{Bar, PciCapability, PciDevice},
+};
 use memoffset::offset_of;
 
 use super::VirtioTransport;
-use crate::drivers::pci::{Bar, PciDevice};
-use crate::drivers::{pci::PciCapability, virtio::virtio::IsrStatus};
-use crate::{drivers::Driver, prelude::*};
-use kerla_runtime::address::{VAddr,PAddr};
-use kerla_runtime::spinlock::SpinLock;
 
 const VIRTIO_PCI_CAP_COMMON_CFG: u8 = 1;
 const VIRTIO_PCI_CAP_NOTIFY_CFG: u8 = 2;
@@ -45,6 +47,13 @@ fn get_bar_for_cfg_type(pci_device: &PciDevice, cfg_type: u8) -> Option<(&PciCap
     }
 }
 
+#[derive(Debug)]
+pub enum VirtioAttachError {
+    InvalidVendorId,
+    MissingFeatures,
+    FeatureNegotiationFailure,
+}
+
 pub struct VirtioPci {
     common_cfg: VAddr,
     device_cfg: VAddr,
@@ -54,14 +63,13 @@ pub struct VirtioPci {
 }
 
 impl VirtioPci {
-    pub fn attach_pci<F, T>(pci_device: &PciDevice, ctor: F) -> Result<Arc<SpinLock<T>>>
+    pub fn probe_pci<F, T>(pci_device: &PciDevice, ctor: F) -> Result<T, VirtioAttachError>
     where
-        F: FnOnce(Arc<dyn VirtioTransport>) -> Result<T>,
-        T: Driver,
+        F: FnOnce(Arc<dyn VirtioTransport>) -> Result<T, VirtioAttachError>,
     {
         // TODO: Check device type
         if pci_device.config().vendor_id() != 0x1af4 {
-            return Err(Errno::EINVAL.into());
+            return Err(VirtioAttachError::InvalidVendorId);
         }
 
         let common_cfg = get_bar_for_cfg_type(pci_device, VIRTIO_PCI_CAP_COMMON_CFG)
@@ -96,9 +104,8 @@ impl VirtioPci {
             notify_off_multiplier,
             isr,
         });
-        let driver = Arc::new(SpinLock::new(ctor(transport)?));
 
-        Ok(driver)
+        ctor(transport)
     }
 }
 
