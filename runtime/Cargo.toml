@@ -2,7 +2,7 @@
 name = "kerla_runtime"
 description = "An OS-agnostic bootstrap and runtime support library for kernels."
 version = "0.0.4"
-authors = ["Seiya Nuta <nuta@seiya.me>"]
+authors = ["The Kerla Authors"]
 edition = "2021"
 
 [lib]

@@ -2,7 +2,7 @@
 #  mdBook (https://github.com/rust-lang/mdBook)
 #
 [book]
-authors = ["Seiya Nuta"]
+authors = ["The Kerla Authors"]
 language = "en"
 multilingual = false
 src = "."
