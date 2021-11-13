@@ -14,7 +14,7 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
     use core::sync::atomic::Ordering;
 
     if PANICKED.load(Ordering::SeqCst) {
-        kerla_runtime::print::print_bytes(b"double panic!\n");
+        kerla_runtime::print::get_debug_printer().print_bytes(b"\ndouble panic!\n");
         kerla_runtime::arch::halt();
     }
 
