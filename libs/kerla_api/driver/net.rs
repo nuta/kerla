@@ -1,5 +1,7 @@
 use alloc::boxed::Box;
 
+use super::Driver;
+
 use crate::kernel_ops::kernel_ops;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -12,10 +14,6 @@ impl MacAddress {
     pub fn as_array(&self) -> [u8; 6] {
         self.0
     }
-}
-
-pub trait Driver: Send + Sync {
-    fn name(&self) -> &str;
 }
 
 pub trait EthernetDriver: Driver {

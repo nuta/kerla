@@ -20,8 +20,9 @@ use virtio::transports::{virtio_mmio::VirtioMmio, virtio_pci::VirtioPci, VirtioT
 use kerla_api::address::VAddr;
 use kerla_api::arch::PAGE_SIZE;
 use kerla_api::driver::{
+    Driver,
     attach_irq,
-    net::{register_ethernet_driver, Driver, EthernetDriver, MacAddress},
+    net::{register_ethernet_driver, EthernetDriver, MacAddress},
     DeviceProber,
 };
 use kerla_api::driver::{pci::PciDevice, VirtioMmioDevice};
