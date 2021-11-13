@@ -67,7 +67,7 @@ def main():
         argv += ["-gdb", "tcp::7789", "-S"]
     if args.kvm:
         argv += ["-accel", "kvm"]
-    if len(args.append_cmdline) > 0:
+    if args.append_cmdline is not None:
         argv += ["-append", " ".join(args.append_cmdline)]
 
     p = subprocess.run(argv, preexec_fn=os.setsid)
