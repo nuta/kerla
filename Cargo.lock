@@ -194,6 +194,7 @@ dependencies = [
  "cfg-if",
  "kerla_utils",
  "log",
+ "log_filter",
  "spin 0.9.2",
  "vte",
  "x86",
@@ -229,6 +230,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "51b9bbe6c47d51fc3e1a9b945965946b4c44142ab8792c50835a980d362c2710"
 dependencies = [
  "cfg-if",
+]
+
+[[package]]
+name = "log_filter"
+version = "0.0.1"
+dependencies = [
+ "log",
 ]
 
 [[package]]

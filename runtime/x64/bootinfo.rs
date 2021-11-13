@@ -1,6 +1,6 @@
 use crate::address::{PAddr, VAddr};
 use crate::bootinfo::{BootInfo, RamArea, VirtioMmioDevice};
-use arrayvec::ArrayVec;
+use arrayvec::{ArrayString, ArrayVec};
 use core::cmp::max;
 use core::mem::size_of;
 use kerla_utils::alignment::align_up;
@@ -126,6 +126,7 @@ extern "C" {
 struct Cmdline {
     pub pci_enabled: bool,
     pub virtio_mmio_devices: ArrayVec<VirtioMmioDevice, 4>,
+    pub log_filter: ArrayString<64>,
 }
 
 impl Cmdline {
@@ -135,6 +136,7 @@ impl Cmdline {
 
         let mut pci_enabled = true;
         let mut virtio_mmio_devices = ArrayVec::new();
+        let mut log_filter = ArrayString::new();
         if !s.is_empty() {
             for config in s.split(' ') {
                 let mut words = config.splitn(2, '=');
@@ -142,6 +144,11 @@ impl Cmdline {
                     (Some("pci"), Some("off")) => {
                         warn!("bootinfo: PCI disabled");
                         pci_enabled = false;
+                    }
+                    (Some("log"), Some(value)) => {
+                        if let Err(_) = log_filter.try_push_str(value) {
+                            warn!("bootinfo: log filter is too long");
+                        }
                     }
                     (Some("virtio_mmio.device"), Some(value)) => {
                         let mut size_and_rest = value.splitn(2, "@0x");
@@ -171,6 +178,7 @@ impl Cmdline {
         Cmdline {
             pci_enabled,
             virtio_mmio_devices,
+            log_filter,
         }
     }
 }
@@ -247,6 +255,7 @@ unsafe fn parse_multiboot2_info(header: &Multiboot2InfoHeader) -> BootInfo {
         ram_areas,
         pci_enabled: cmdline.pci_enabled,
         virtio_mmio_devices: cmdline.virtio_mmio_devices,
+        log_filter: cmdline.log_filter,
     }
 }
 
@@ -270,6 +279,7 @@ unsafe fn parse_multiboot_legacy_info(info: &MultibootLegacyInfo) -> BootInfo {
         ram_areas,
         pci_enabled: cmdline.pci_enabled,
         virtio_mmio_devices: cmdline.virtio_mmio_devices,
+        log_filter: cmdline.log_filter,
     }
 }
 
@@ -299,6 +309,7 @@ unsafe fn parse_linux_boot_params(boot_params: PAddr) -> BootInfo {
         ram_areas,
         pci_enabled: cmdline.pci_enabled,
         virtio_mmio_devices: cmdline.virtio_mmio_devices,
+        log_filter: cmdline.log_filter,
     }
 }
 
