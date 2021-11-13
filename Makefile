@@ -3,6 +3,7 @@ export V         ?=
 export GUI       ?=
 export RELEASE   ?=
 export ARCH      ?= x64
+export LOG       ?=
 export KEXTS     ?= $(patsubst exts/%/Cargo.toml,%,$(wildcard exts/*/Cargo.toml))
 
 # The default build target.
@@ -111,12 +112,13 @@ iso: build
 
 .PHONY: run
 run: build
-	$(PYTHON3) tools/run-qemu.py              \
-		--arch $(ARCH)                    \
-		$(if $(GUI),--gui,)               \
-		$(if $(KVM),--kvm,)               \
-		$(if $(GDB),--gdb,)               \
-		$(if $(QEMU),--qemu $(QEMU),)     \
+	$(PYTHON3) tools/run-qemu.py                               \
+		--arch $(ARCH)                                     \
+		$(if $(GUI),--gui,)                                \
+		$(if $(KVM),--kvm,)                                \
+		$(if $(GDB),--gdb,)                                \
+		$(if $(LOG),--append-cmdline "log=$(LOG)",)        \
+		$(if $(QEMU),--qemu $(QEMU),)                      \
 		$(kernel_elf)
 
 .PHONY: bochs

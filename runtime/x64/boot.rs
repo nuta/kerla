@@ -82,6 +82,8 @@ unsafe extern "C" fn bsp_early_init(boot_magic: u32, boot_params: u64) -> ! {
     let boot_info = bootinfo::parse(boot_magic, PAddr::new(boot_params as usize));
     page_allocator::init(&boot_info.ram_areas);
 
+    logger::set_log_filter(&boot_info.log_filter);
+
     serial::init();
     init_pic();
     common_setup(VAddr::new(&__bsp_cpu_local as *const _ as usize));

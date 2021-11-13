@@ -1,12 +1,13 @@
-struct Logger;
+use atomic_refcell::AtomicRefCell;
+use log_filter::LogFilter;
+
+struct Logger {
+    filter: AtomicRefCell<LogFilter>,
+}
 
 impl log::Log for Logger {
-    fn enabled(&self, metadata: &log::Metadata) -> bool {
-        if cfg!(debug_assertions) {
-            true
-        } else {
-            metadata.level() <= log::Level::Info
-        }
+    fn enabled(&self, _metadata: &log::Metadata) -> bool {
+        true
     }
 
     fn log(&self, record: &log::Record) {
@@ -16,20 +17,22 @@ impl log::Log for Logger {
         const WARN_COLOR: &str = "\x1b[33m";
         const ERROR_COLOR: &str = "\x1b[1;31m";
 
-        if self.enabled(record.metadata()) {
-            match record.level() {
-                Level::Trace | Level::Debug => {
-                    println!("{}", record.args());
-                }
-                Level::Info => {
-                    println!("{}{}{}", INFO_COLOR, record.args(), RESET);
-                }
-                Level::Warn => {
-                    println!("{}{}{}", WARN_COLOR, record.args(), RESET);
-                }
-                Level::Error => {
-                    println!("{}{}{}", ERROR_COLOR, record.args(), RESET);
-                }
+        if !self.filter.borrow().should_print(record) {
+            return;
+        }
+
+        match record.level() {
+            Level::Trace | Level::Debug => {
+                println!("{}", record.args());
+            }
+            Level::Info => {
+                println!("{}{}{}", INFO_COLOR, record.args(), RESET);
+            }
+            Level::Warn => {
+                println!("{}{}{}", WARN_COLOR, record.args(), RESET);
+            }
+            Level::Error => {
+                println!("{}{}{}", ERROR_COLOR, record.args(), RESET);
             }
         }
     }
@@ -37,7 +40,14 @@ impl log::Log for Logger {
     fn flush(&self) {}
 }
 
-static LOGGER: Logger = Logger;
+static LOGGER: Logger = Logger {
+    filter: AtomicRefCell::new(LogFilter::empty()),
+};
+
+pub fn set_log_filter(pattern: &str) {
+    let new_filter = LogFilter::new(pattern);
+    *LOGGER.filter.borrow_mut() = new_filter;
+}
 
 pub(crate) fn init() {
     log::set_logger(&LOGGER).unwrap();
