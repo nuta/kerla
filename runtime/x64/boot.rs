@@ -84,7 +84,7 @@ unsafe extern "C" fn bsp_early_init(boot_magic: u32, boot_params: u64) -> ! {
 
     logger::set_log_filter(&boot_info.log_filter);
 
-    serial::init();
+    serial::init(boot_info.use_second_serialport);
     init_pic();
     common_setup(VAddr::new(&__bsp_cpu_local as *const _ as usize));
 

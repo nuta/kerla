@@ -1,6 +1,6 @@
 use crate::{address::UserVAddr, handler};
 
-use super::{apic::ack_interrupt, ioapic::VECTOR_IRQ_BASE, serial::SERIAL_IRQ, PageFaultReason};
+use super::{apic::ack_interrupt, ioapic::VECTOR_IRQ_BASE, serial::SERIAL0_IRQ, PageFaultReason};
 use x86::{
     controlregs::cr2,
     current::rflags::{self, RFlags},
@@ -72,8 +72,8 @@ unsafe extern "C" fn x64_handle_interrupt(vec: u8, frame: *const InterruptFrame)
                 TIMER_IRQ | TIMER_IRQ2 => {
                     handler().handle_timer_irq();
                 }
-                SERIAL_IRQ => {
-                    super::serial::irq_handler();
+                SERIAL0_IRQ => {
+                    super::serial::serial0_irq_handler();
                 }
                 _ => {
                     handler().handle_irq(irq);

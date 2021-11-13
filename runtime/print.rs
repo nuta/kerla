@@ -3,10 +3,24 @@ use core::{fmt, str};
 use kerla_utils::static_cell::StaticCell;
 
 static PRINTER: StaticCell<&dyn Printer> = StaticCell::new(&NopPrinter);
+static DEBUG_PRINTER: StaticCell<&dyn Printer> = StaticCell::new(&NopPrinter);
 
-/// Sets the global log printer.
+pub fn get_printer() -> &'static dyn Printer {
+    PRINTER.load()
+}
+
+pub fn get_debug_printer() -> &'static dyn Printer {
+    DEBUG_PRINTER.load()
+}
+
+/// Sets the global log printer for user process output.
 pub fn set_printer(new_printer: &'static dyn Printer) {
     PRINTER.store(new_printer);
+}
+
+/// Sets the global log printer for log messages.
+pub fn set_debug_printer(new_printer: &'static dyn Printer) {
+    DEBUG_PRINTER.store(new_printer);
 }
 
 pub trait Printer: Sync {
@@ -31,13 +45,9 @@ pub struct PrinterWrapper;
 
 impl fmt::Write for PrinterWrapper {
     fn write_str(&mut self, s: &str) -> fmt::Result {
-        print_bytes(s.as_bytes());
+        get_debug_printer().print_bytes(s.as_bytes());
         Ok(())
     }
-}
-
-pub fn print_bytes(s: &[u8]) {
-    PRINTER.load().print_bytes(s);
 }
 
 /// Prints a string.

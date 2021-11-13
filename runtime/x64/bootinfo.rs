@@ -128,6 +128,7 @@ struct Cmdline {
     pub pci_enabled: bool,
     pub virtio_mmio_devices: ArrayVec<VirtioMmioDevice, 4>,
     pub log_filter: ArrayString<64>,
+    pub use_second_serialport: bool,
 }
 
 impl Cmdline {
@@ -138,6 +139,7 @@ impl Cmdline {
         let mut pci_enabled = true;
         let mut virtio_mmio_devices = ArrayVec::new();
         let mut log_filter = ArrayString::new();
+        let mut use_second_serialport = false;
         if !s.is_empty() {
             for config in s.split(' ') {
                 let mut words = config.splitn(2, '=');
@@ -146,7 +148,12 @@ impl Cmdline {
                         warn!("bootinfo: PCI disabled");
                         pci_enabled = false;
                     }
+                    (Some("serial1"), Some("on")) => {
+                        info!("bootinfo: secondary serial port enabled");
+                        use_second_serialport = true;
+                    }
                     (Some("log"), Some(value)) => {
+                        info!("bootinfo: log filter = \"{}\"", value);
                         if log_filter.try_push_str(value).is_err() {
                             warn!("bootinfo: log filter is too long");
                         }
@@ -183,6 +190,7 @@ impl Cmdline {
             pci_enabled,
             virtio_mmio_devices,
             log_filter,
+            use_second_serialport,
         }
     }
 }
@@ -281,6 +289,7 @@ unsafe fn parse_multiboot2_info(header: &Multiboot2InfoHeader) -> BootInfo {
         pci_enabled: cmdline.pci_enabled,
         virtio_mmio_devices: cmdline.virtio_mmio_devices,
         log_filter: cmdline.log_filter,
+        use_second_serialport: cmdline.use_second_serialport,
     }
 }
 
@@ -321,6 +330,7 @@ unsafe fn parse_multiboot_legacy_info(info: &MultibootLegacyInfo) -> BootInfo {
         pci_enabled: cmdline.pci_enabled,
         virtio_mmio_devices: cmdline.virtio_mmio_devices,
         log_filter: cmdline.log_filter,
+        use_second_serialport: cmdline.use_second_serialport,
     }
 }
 
@@ -351,6 +361,7 @@ unsafe fn parse_linux_boot_params(boot_params: PAddr) -> BootInfo {
         pci_enabled: cmdline.pci_enabled,
         virtio_mmio_devices: cmdline.virtio_mmio_devices,
         log_filter: cmdline.log_filter,
+        use_second_serialport: cmdline.use_second_serialport,
     }
 }
 

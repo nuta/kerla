@@ -17,4 +17,5 @@ pub struct BootInfo {
     pub virtio_mmio_devices: ArrayVec<VirtioMmioDevice, 4>,
     pub log_filter: ArrayString<64>,
     pub pci_enabled: bool,
+    pub use_second_serialport: bool,
 }
