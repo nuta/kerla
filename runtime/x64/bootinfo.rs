@@ -147,7 +147,7 @@ impl Cmdline {
                         pci_enabled = false;
                     }
                     (Some("log"), Some(value)) => {
-                        if let Err(_) = log_filter.try_push_str(value) {
+                        if log_filter.try_push_str(value).is_err() {
                             warn!("bootinfo: log filter is too long");
                         }
                     }

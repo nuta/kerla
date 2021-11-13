@@ -17,7 +17,7 @@ impl log::Log for Logger {
         const WARN_COLOR: &str = "\x1b[33m";
         const ERROR_COLOR: &str = "\x1b[1;31m";
 
-        if !self.filter.borrow().should_print(&record) {
+        if !self.filter.borrow().should_print(record) {
             return;
         }
 
