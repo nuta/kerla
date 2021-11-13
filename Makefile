@@ -4,6 +4,7 @@ export GUI       ?=
 export RELEASE   ?=
 export ARCH      ?= x64
 export LOG       ?=
+export QEMU_ARGS ?=
 export KEXTS     ?= $(patsubst exts/%/Cargo.toml,%,$(wildcard exts/*/Cargo.toml))
 
 # The default build target.
@@ -119,7 +120,7 @@ run: build
 		$(if $(GDB),--gdb,)                                \
 		$(if $(LOG),--append-cmdline "log=$(LOG)",)        \
 		$(if $(QEMU),--qemu $(QEMU),)                      \
-		$(kernel_elf)
+		$(kernel_elf) -- $(QEMU_ARGS)
 
 .PHONY: bochs
 bochs: iso

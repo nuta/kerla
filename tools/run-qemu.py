@@ -4,6 +4,7 @@ import shutil
 from tempfile import NamedTemporaryFile
 import os
 import subprocess
+import shlex
 import sys
 
 COMMON_ARGS = [
@@ -37,6 +38,7 @@ def main():
     parser.add_argument("--append-cmdline", action="append")
     parser.add_argument("--qemu")
     parser.add_argument("kernel_elf", help="The kernel ELF executable.")
+    parser.add_argument("qemu_args", nargs="*")
     args = parser.parse_args()
 
     if args.arch == "x64":
@@ -69,6 +71,8 @@ def main():
         argv += ["-accel", "kvm"]
     if args.append_cmdline is not None:
         argv += ["-append", " ".join(args.append_cmdline)]
+    if args.qemu_args:
+        argv += args.qemu_args
 
     p = subprocess.run(argv, preexec_fn=os.setsid)
     if p.returncode != 33:
