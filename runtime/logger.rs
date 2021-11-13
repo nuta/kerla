@@ -44,6 +44,11 @@ static LOGGER: Logger = Logger {
     filter: AtomicRefCell::new(LogFilter::empty()),
 };
 
+pub fn set_log_filter(pattern: &str) {
+    let new_filter = LogFilter::new(pattern);
+    *LOGGER.filter.borrow_mut() = new_filter;
+}
+
 pub(crate) fn init() {
     log::set_logger(&LOGGER).unwrap();
     log::set_max_level(if cfg!(debug_assertions) {

@@ -3,6 +3,7 @@ use crate::bootinfo::{BootInfo, RamArea, VirtioMmioDevice};
 use arrayvec::{ArrayString, ArrayVec};
 use core::cmp::max;
 use core::mem::size_of;
+use core::slice;
 use kerla_utils::alignment::align_up;
 use kerla_utils::byte_size::ByteSize;
 
@@ -168,6 +169,9 @@ impl Cmdline {
                             irq,
                         })
                     }
+                    (Some(path), None) if path.starts_with('/') => {
+                        // QEMU appends a kernel image path. Just ignore it.
+                    }
                     _ => {
                         warn!("cmdline: unsupported option, ignoring: '{}'", config);
                     }
@@ -223,26 +227,47 @@ unsafe fn parse_multiboot2_info(header: &Multiboot2InfoHeader) -> BootInfo {
     let header_vaddr = VAddr::new(header as *const _ as usize);
     let mut off = size_of::<Multiboot2TagHeader>();
     let mut ram_areas = ArrayVec::new();
+    let mut cmdline = None;
     while off + size_of::<Multiboot2TagHeader>() < header.total_size as usize {
         let tag_vaddr = header_vaddr.add(off);
         let tag = &*tag_vaddr.as_ptr::<Multiboot2TagHeader>();
-        if tag.tag_type == 6 {
-            // Memory map.
-            let tag = &*(tag as *const Multiboot2TagHeader as *const Multiboot2MemoryMapTag);
-            let mut entry_off = size_of::<Multiboot2MemoryMapTag>();
-            while entry_off < tag.tag_size as usize {
-                let entry = &*tag_vaddr
-                    .add(entry_off)
-                    .as_ptr::<Multiboot2MemoryMapEntry>();
+        match tag.tag_type {
+            1 => {
+                // Command line.
+                let cstr = tag_vaddr
+                    .add(size_of::<Multiboot2TagHeader>())
+                    .as_ptr::<u8>();
+                let mut len = 0;
+                while cstr.add(len).read() != 0 {
+                    len += 1;
+                }
 
-                process_memory_map_entry(
-                    &mut ram_areas,
-                    entry.entry_type,
-                    entry.base as usize,
-                    entry.len as usize,
+                cmdline = Some(
+                    core::str::from_utf8(slice::from_raw_parts(cstr, len))
+                        .expect("cmdline is not a utf-8 string"),
                 );
+            }
+            6 => {
+                // Memory map.
+                let tag = &*(tag as *const Multiboot2TagHeader as *const Multiboot2MemoryMapTag);
+                let mut entry_off = size_of::<Multiboot2MemoryMapTag>();
+                while entry_off < tag.tag_size as usize {
+                    let entry = &*tag_vaddr
+                        .add(entry_off)
+                        .as_ptr::<Multiboot2MemoryMapEntry>();
 
-                entry_off += tag.entry_size as usize;
+                    process_memory_map_entry(
+                        &mut ram_areas,
+                        entry.entry_type,
+                        entry.base as usize,
+                        entry.len as usize,
+                    );
+
+                    entry_off += tag.entry_size as usize;
+                }
+            }
+            _ => {
+                // Unsupported tag. Ignored .
             }
         }
 
@@ -250,7 +275,7 @@ unsafe fn parse_multiboot2_info(header: &Multiboot2InfoHeader) -> BootInfo {
     }
 
     assert!(!ram_areas.is_empty());
-    let cmdline = Cmdline::parse(b"" /* TODO: */);
+    let cmdline = Cmdline::parse(cmdline.unwrap_or("").as_bytes());
     BootInfo {
         ram_areas,
         pci_enabled: cmdline.pci_enabled,
@@ -274,7 +299,23 @@ unsafe fn parse_multiboot_legacy_info(info: &MultibootLegacyInfo) -> BootInfo {
         off += entry.entry_size + size_of::<u32>() as u32;
     }
 
-    let cmdline = Cmdline::parse(b"" /* TODO: */);
+    let mut cmdline = None;
+    if info.cmdline != 0 {
+        // Command line.
+        let cstr = PAddr::new(info.cmdline as usize).as_ptr::<u8>();
+        let mut len = 0;
+        while cstr.add(len).read() != 0 {
+            len += 1;
+        }
+
+        cmdline = Some(
+            core::str::from_utf8(slice::from_raw_parts(cstr, len))
+                .expect("cmdline is not a utf-8 string"),
+        );
+        trace!("cmdline={:?}", cmdline);
+    }
+
+    let cmdline = Cmdline::parse(cmdline.unwrap_or("").as_bytes());
     BootInfo {
         ram_areas,
         pci_enabled: cmdline.pci_enabled,
