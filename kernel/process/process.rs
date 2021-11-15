@@ -32,7 +32,7 @@ use core::sync::atomic::{AtomicI32, Ordering};
 use crossbeam::atomic::AtomicCell;
 use goblin::elf64::program_header::PT_LOAD;
 use kerla_runtime::{
-    arch::{SyscallFrame, PAGE_SIZE},
+    arch::{PtRegs, PAGE_SIZE},
     page_allocator::{alloc_pages, AllocPageFlags},
     spinlock::{SpinLock, SpinLockGuard},
 };
@@ -103,7 +103,7 @@ pub struct Process {
     opened_files: SpinLock<OpenedFileTable>,
     root_fs: Arc<SpinLock<RootFs>>,
     signals: SpinLock<SignalDelivery>,
-    signaled_frame: AtomicCell<Option<SyscallFrame>>,
+    signaled_frame: AtomicCell<Option<PtRegs>>,
 }
 
 impl Process {
@@ -355,7 +355,7 @@ impl Process {
     ///
     /// If there's a pending signal, it may modify `frame` (e.g. user return
     /// address and stack pointer) to call the registered user's signal handler.
-    pub fn try_delivering_signal(frame: &mut SyscallFrame) -> Result<()> {
+    pub fn try_delivering_signal(frame: &mut PtRegs) -> Result<()> {
         // TODO: sigmask
         let current = current_process();
         if let Some((signal, sigaction)) = current.signals.lock().pop_pending() {
@@ -380,7 +380,7 @@ impl Process {
 
     /// So-called `sigreturn`: restores the user context when the signal is
     /// delivered to a signal handler.
-    pub fn restore_signaled_user_stack(current: &Arc<Process>, current_frame: &mut SyscallFrame) {
+    pub fn restore_signaled_user_stack(current: &Arc<Process>, current_frame: &mut PtRegs) {
         if let Some(signaled_frame) = current.signaled_frame.swap(None) {
             current
                 .arch
@@ -399,7 +399,7 @@ impl Process {
     /// new stack (ie. argv and envp) when the system call handler returns into
     /// the userspace.
     pub fn execve(
-        frame: &mut SyscallFrame,
+        frame: &mut PtRegs,
         executable_path: Arc<PathComponent>,
         argv: &[&[u8]],
         envp: &[&[u8]],
@@ -425,7 +425,7 @@ impl Process {
 
     /// Creates a new process. The calling process (`self`) will be the parent
     /// process of the created process. Returns the created child process.
-    pub fn fork(parent: &Arc<Process>, parent_frame: &SyscallFrame) -> Result<Arc<Process>> {
+    pub fn fork(parent: &Arc<Process>, parent_frame: &PtRegs) -> Result<Arc<Process>> {
         let parent_weak = Arc::downgrade(parent);
         let mut process_table = PROCESSES.lock();
         let pid = alloc_pid(&mut process_table)?;

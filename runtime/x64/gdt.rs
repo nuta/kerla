@@ -5,8 +5,8 @@ use x86::dtables::{lgdt, DescriptorTablePointer};
 
 pub const KERNEL_CS: u16 = 8;
 pub const USER_CS32: u16 = 24;
-pub const USER_DS: u16 = 32;
-pub const USER_CS64: u16 = 40;
+pub const USER_DS: u16 = 32; // Note: it's hard coded in kernel's usermode.S
+pub const USER_CS64: u16 = 40; // Note: it's hard coded in kernel's usermode.S
 pub const TSS_SEG: u16 = 48;
 pub const USER_RPL: u16 = 3;
 

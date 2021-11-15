@@ -14,7 +14,7 @@ use crate::{
     user_buffer::UserCStr,
 };
 use bitflags::bitflags;
-use kerla_runtime::{address::UserVAddr, arch::SyscallFrame};
+use kerla_runtime::{address::UserVAddr, arch::PtRegs};
 
 pub(self) mod accept;
 pub(self) mod arch_prctl;
@@ -168,11 +168,11 @@ fn resolve_path(uaddr: usize) -> Result<PathBuf> {
 }
 
 pub struct SyscallHandler<'a> {
-    pub frame: &'a mut SyscallFrame,
+    pub frame: &'a mut PtRegs,
 }
 
 impl<'a> SyscallHandler<'a> {
-    pub fn new(frame: &'a mut SyscallFrame) -> SyscallHandler<'a> {
+    pub fn new(frame: &'a mut PtRegs) -> SyscallHandler<'a> {
         SyscallHandler { frame }
     }
 

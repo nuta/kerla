@@ -61,7 +61,7 @@ use alloc::{boxed::Box, sync::Arc};
 use interrupt::attach_irq;
 use kerla_api::kernel_ops::KernelOps;
 use kerla_runtime::{
-    arch::{idle, PageFaultReason, SyscallFrame},
+    arch::{idle, PageFaultReason, PtRegs},
     bootinfo::BootInfo,
     profile::StopWatch,
     spinlock::SpinLock,
@@ -106,7 +106,7 @@ impl kerla_runtime::Handler for Handler {
         a5: usize,
         a6: usize,
         n: usize,
-        frame: *mut SyscallFrame,
+        frame: *mut PtRegs,
     ) -> isize {
         let mut handler = SyscallHandler::new(unsafe { &mut *frame });
         handler
