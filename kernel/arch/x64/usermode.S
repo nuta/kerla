@@ -38,7 +38,7 @@ syscall_entry:
     push rsi
     push rdx
     push rcx
-    push 0            // User RAX.
+    push rax          // User RAX.
     push r8
     push r9
     push r10
