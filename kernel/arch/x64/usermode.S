@@ -63,7 +63,7 @@ syscall_entry:
     pop r12
     pop rbp
     pop rbx
-    pop r11
+    add rsp, 8 // User R11
     pop r10
     pop r9
     pop r8
