@@ -1,10 +1,12 @@
+use kerla_runtime::address::UserVAddr;
+
 use crate::{
     ctypes::c_int,
-    printk::{KERNEL_LOG_BUF, KERNEL_LOG_BUF_SIZE},
+    logger::{KERNEL_LOG_BUF, KERNEL_LOG_BUF_SIZE},
     result::Errno,
+    result::Result,
     syscalls::SyscallHandler,
     user_buffer::UserBufWriter,
-    {arch::UserVAddr, result::Result},
 };
 
 const SYSLOG_ACTION_READ_ALL: c_int = 3;

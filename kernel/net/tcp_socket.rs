@@ -1,20 +1,17 @@
 use crate::{
-    arch::SpinLock,
     fs::{
         inode::{FileLike, PollStatus},
         opened_file::OpenOptions,
     },
     net::{socket::SockAddr, RecvFromFlags},
+    result::{Errno, Result},
     user_buffer::UserBuffer,
     user_buffer::{UserBufReader, UserBufWriter, UserBufferMut},
-};
-use crate::{
-    arch::SpinLockGuard,
-    result::{Errno, Result},
 };
 use alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
 use core::{cmp::min, convert::TryInto, fmt};
 use crossbeam::atomic::AtomicCell;
+use kerla_runtime::spinlock::{SpinLock, SpinLockGuard};
 use smoltcp::socket::{SocketRef, TcpSocketBuffer};
 use smoltcp::wire::{IpAddress, IpEndpoint, Ipv4Address};
 

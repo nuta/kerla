@@ -1,7 +1,10 @@
 [workspace]
 members = [
+    "runtime",
     "kernel",
     "libs/*",
+    "exts/*",
+    "build/kexts_loader",
 ]
 
 [profile.release]

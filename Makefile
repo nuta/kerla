@@ -1,8 +1,12 @@
 # Default values for build system.
-export V         ?=
-export GUI       ?=
-export RELEASE   ?=
-export ARCH      ?= x64
+export V          ?=
+export GUI        ?=
+export RELEASE    ?=
+export ARCH       ?= x64
+export LOG        ?=
+export LOG_SERIAL ?=
+export QEMU_ARGS  ?=
+export KEXTS      ?= $(patsubst exts/%/Cargo.toml,%,$(wildcard exts/*/Cargo.toml))
 
 # The default build target.
 .PHONY: default
@@ -27,6 +31,15 @@ INITRAMFS_PATH := build/$(IMAGE_FILENAME).initramfs
 export INIT_SCRIPT := $(shell tools/inspect-init-in-docker-image.py $(IMAGE))
 endif
 
+# Set the platform name for docker image cross compiling.
+ifeq ($(ARCH),x64)
+docker_platform = linux/amd64
+endif
+
+ifeq ($(docker_platform),)
+$(error "docker_platform is not set for $(ARCH)!")
+endif
+
 topdir      := $(PWD)
 build_mode  := $(if $(RELEASE),release,debug)
 target_json := kernel/arch/$(ARCH)/$(ARCH).json
@@ -47,9 +60,10 @@ export RUSTFLAGS = -Z emit-stack-sizes
 CARGOFLAGS += -Z build-std=core,alloc -Z build-std-features=compiler-builtins-mem
 CARGOFLAGS += --target $(target_json)
 CARGOFLAGS += $(if $(RELEASE),--release,)
-TESTCARGOFLAGS += --package kerla -Z unstable-options
+TESTCARGOFLAGS += --package kerla_kernel -Z unstable-options
 TESTCARGOFLAGS += --config "target.$(ARCH).runner = './tools/run-unittests.sh'"
 WATCHFLAGS += --clear
+
 export CARGO_FROM_MAKE=1
 export INITRAMFS_PATH
 export ARCH
@@ -62,7 +76,7 @@ export NM
 .PHONY: build
 build:
 	$(MAKE) build-crate
-	cp target/$(ARCH)/$(build_mode)/kerla $(kernel_elf)
+	cp target/$(ARCH)/$(build_mode)/kerla_kernel $(kernel_elf)
 
 	$(PROGRESS) "NM" $(kernel_symbols)
 	$(NM) $(kernel_elf) | rustfilt | awk '{ $$2=""; print $$0 }' > $(kernel_symbols)
@@ -76,6 +90,10 @@ build:
 .PHONY: build-crate
 build-crate:
 	$(MAKE) initramfs
+
+	$(PROGRESS) "GEN" "kexts-loader ($(KEXTS))"
+	$(PYTHON3) tools/generate-kexts-loader.py --out-dir build/kexts_loader $(KEXTS)
+
 	$(PROGRESS) "CARGO" "kernel"
 	$(CARGO) build $(CARGOFLAGS) --manifest-path kernel/Cargo.toml
 
@@ -96,13 +114,15 @@ iso: build
 
 .PHONY: run
 run: build
-	$(PYTHON3) tools/run-qemu.py              \
-		--arch $(ARCH)                    \
-		$(if $(GUI),--gui,)               \
-		$(if $(KVM),--kvm,)               \
-		$(if $(GDB),--gdb,)               \
-		$(if $(QEMU),--qemu $(QEMU),)     \
-		$(kernel_elf)
+	$(PYTHON3) tools/run-qemu.py                                           \
+		--arch $(ARCH)                                                 \
+		$(if $(GUI),--gui,)                                            \
+		$(if $(KVM),--kvm,)                                            \
+		$(if $(GDB),--gdb,)                                            \
+		$(if $(LOG),--append-cmdline "log=$(LOG)",)                    \
+		$(if $(LOG_SERIAL),--log-serial "$(LOG_SERIAL)",)              \
+		$(if $(QEMU),--qemu $(QEMU),)                                  \
+		$(kernel_elf) -- $(QEMU_ARGS)
 
 .PHONY: bochs
 bochs: iso
@@ -169,11 +189,11 @@ clean:
 #  Build Rules
 #
 build/kerla.initramfs: $(wildcard initramfs/*) $(wildcard initramfs/*/*) Makefile
-	$(PROGRESS) "BUILD" initramfs
-	cd initramfs && docker buildx build -t kerla-initramfs .
-	$(PROGRESS) "EXPORT" initramfs
+	$(PROGRESS) "BUILD" testing
+	cd testing && docker buildx build --platform $(docker_platform) -t kerla-testing .
+	$(PROGRESS) "EXPORT" testing
 	mkdir -p build
-	$(PYTHON3) tools/docker2initramfs.py $@ kerla-initramfs
+	$(PYTHON3) tools/docker2initramfs.py $@ kerla-testing
 
 build/$(IMAGE_FILENAME).initramfs: tools/docker2initramfs.py Makefile
 	$(PROGRESS) "EXPORT" $(IMAGE)

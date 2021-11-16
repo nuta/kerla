@@ -1,10 +1,10 @@
-use crate::arch::UserVAddr;
 use crate::fs::path::Path;
 use crate::prelude::*;
 use crate::process::Process;
 use crate::user_buffer::UserCStr;
 use crate::{process::current_process, syscalls::SyscallHandler};
 use core::mem::size_of;
+use kerla_runtime::address::UserVAddr;
 
 const ARG_MAX: usize = 512;
 const ARG_LEN_MAX: usize = 4096;
@@ -24,8 +24,7 @@ impl<'a> SyscallHandler<'a> {
         let mut argv = Vec::new();
         for i in 0..ARG_MAX {
             let ptr = argv_uaddr.add(i * size_of::<usize>());
-            let str_ptr = UserVAddr::new(ptr.read::<usize>()?)?;
-            match str_ptr {
+            match UserVAddr::new(ptr.read::<usize>()?) {
                 Some(str_ptr) => argv.push(UserCStr::new(str_ptr, ARG_LEN_MAX)?),
                 None => break,
             }
@@ -34,8 +33,7 @@ impl<'a> SyscallHandler<'a> {
         let mut envp = Vec::new();
         for i in 0..ENV_MAX {
             let ptr = envp_uaddr.add(i * size_of::<usize>());
-            let str_ptr = UserVAddr::new(ptr.read::<usize>()?)?;
-            match str_ptr {
+            match UserVAddr::new(ptr.read::<usize>()?) {
                 Some(str_ptr) => envp.push(UserCStr::new(str_ptr, ENV_LEN_MAX)?),
                 None => break,
             }

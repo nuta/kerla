@@ -1,4 +1,5 @@
-use crate::{arch::UserVAddr, ctypes::c_int, prelude::*};
+use crate::{ctypes::c_int, prelude::*};
+use kerla_runtime::address::UserVAddr;
 
 pub type Signal = c_int;
 #[allow(unused)]

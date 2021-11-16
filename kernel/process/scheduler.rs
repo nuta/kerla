@@ -1,6 +1,6 @@
-use crate::arch::SpinLock;
 use crate::process::PId;
 use alloc::collections::VecDeque;
+use kerla_runtime::spinlock::SpinLock;
 
 /// The process scheduler.
 ///

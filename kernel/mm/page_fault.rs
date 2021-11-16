@@ -1,18 +1,34 @@
 use kerla_utils::alignment::align_down;
 
-use super::{
-    page_allocator::{alloc_pages, AllocPageFlags},
-    vm::VmAreaType,
-};
+use super::vm::VmAreaType;
 use crate::{
-    arch::{PageFaultReason, UserVAddr, PAGE_SIZE},
     fs::opened_file::OpenOptions,
-    process::{current_process, signal::SIGSEGV, Process},
+    process::{
+        current_process,
+        signal::{self, SIGSEGV},
+        Process,
+    },
 };
 use core::cmp::min;
 use core::slice;
+use kerla_runtime::{
+    address::UserVAddr,
+    arch::{PageFaultReason, PAGE_SIZE},
+    page_allocator::{alloc_pages, AllocPageFlags},
+};
 
-pub fn handle_page_fault(unaligned_vaddr: UserVAddr, ip: usize, _reason: PageFaultReason) {
+pub fn handle_page_fault(unaligned_vaddr: Option<UserVAddr>, ip: usize, _reason: PageFaultReason) {
+    let unaligned_vaddr = match unaligned_vaddr {
+        Some(unaligned_vaddr) => unaligned_vaddr,
+        None => {
+            debug_warn!(
+                "null pointer access (ip={:x}), killing the current process...",
+                ip
+            );
+            Process::exit_by_signal(signal::SIGSEGV);
+        }
+    };
+
     let current = current_process();
     let aligned_vaddr = match UserVAddr::new_nonnull(align_down(unaligned_vaddr.value(), PAGE_SIZE))
     {

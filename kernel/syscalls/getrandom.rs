@@ -1,9 +1,10 @@
 use crate::random::{read_insecure_random, read_secure_random};
+use crate::result::Result;
 use crate::syscalls::SyscallHandler;
-use crate::{arch::UserVAddr, result::Result};
 use crate::{ctypes::c_uint, user_buffer::UserBufferMut};
 use bitflags::bitflags;
 use core::cmp::min;
+use kerla_runtime::address::UserVAddr;
 
 const GETRANDOM_LEN_MAX: usize = 256;
 

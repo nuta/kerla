@@ -148,7 +148,47 @@ dependencies = [
 ]
 
 [[package]]
-name = "kerla"
+name = "kerla_api"
+version = "0.0.1"
+dependencies = [
+ "arrayvec 0.7.2",
+ "kerla_runtime",
+ "kerla_utils",
+ "log",
+ "memoffset",
+ "x86",
+]
+
+[[package]]
+name = "kerla_kernel"
+version = "0.0.4"
+dependencies = [
+ "arrayvec 0.7.2",
+ "atomic_refcell",
+ "bitflags",
+ "crossbeam",
+ "goblin",
+ "hashbrown",
+ "kerla_api",
+ "kerla_kexts_loader",
+ "kerla_runtime",
+ "kerla_utils",
+ "log",
+ "smoltcp",
+ "spin 0.9.2",
+ "x86",
+]
+
+[[package]]
+name = "kerla_kexts_loader"
+version = "0.0.0"
+dependencies = [
+ "log",
+ "virtio_net",
+]
+
+[[package]]
+name = "kerla_runtime"
 version = "0.0.4"
 dependencies = [
  "arrayvec 0.7.2",
@@ -156,13 +196,9 @@ dependencies = [
  "bitflags",
  "buddy_system_allocator",
  "cfg-if",
- "crossbeam",
- "goblin",
- "hashbrown",
  "kerla_utils",
  "log",
- "memoffset",
- "smoltcp",
+ "log_filter",
  "spin 0.9.2",
  "vte",
  "x86",
@@ -172,6 +208,7 @@ dependencies = [
 name = "kerla_utils"
 version = "0.0.1"
 dependencies = [
+ "crossbeam",
  "spin 0.9.2",
 ]
 
@@ -197,6 +234,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "51b9bbe6c47d51fc3e1a9b945965946b4c44142ab8792c50835a980d362c2710"
 dependencies = [
  "cfg-if",
+]
+
+[[package]]
+name = "log_filter"
+version = "0.0.1"
+dependencies = [
+ "log",
 ]
 
 [[package]]
@@ -308,6 +352,27 @@ name = "version_check"
 version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5fecdca9a5291cc2b8dcf7dc02453fee791a280f3743cb0905f8822ae463b3fe"
+
+[[package]]
+name = "virtio"
+version = "0.0.1"
+dependencies = [
+ "bitflags",
+ "kerla_api",
+ "kerla_utils",
+ "memoffset",
+]
+
+[[package]]
+name = "virtio_net"
+version = "0.0.1"
+dependencies = [
+ "bitflags",
+ "kerla_api",
+ "kerla_utils",
+ "memoffset",
+ "virtio",
+]
 
 [[package]]
 name = "vte"

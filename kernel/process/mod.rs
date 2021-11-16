@@ -1,8 +1,6 @@
-use crate::arch::{self, SpinLock};
-
 use alloc::sync::Arc;
 
-use arch::UserVAddr;
+use kerla_runtime::{address::UserVAddr, spinlock::SpinLock};
 
 use kerla_utils::lazy::Lazy;
 use kerla_utils::once::Once;

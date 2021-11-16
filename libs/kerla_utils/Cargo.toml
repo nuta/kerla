@@ -1,8 +1,8 @@
 [package]
 name = "kerla_utils"
 version = "0.0.1"
-authors = ["Seiya Nuta <nuta@seiya.me>"]
-edition = "2018"
+authors = ["The Kerla Authors"]
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -15,3 +15,4 @@ no_std = []
 
 [dependencies]
 spin = "0.9.2"
+crossbeam = { version = "0.8.1", default-features = false }

@@ -1,8 +1,5 @@
 use crate::{
-    arch::{
-        self, SpinLock, SpinLockGuard, SyscallFrame, KERNEL_STACK_SIZE, PAGE_SIZE, USER_STACK_TOP,
-    },
-    boot::INITIAL_ROOT_FS,
+    arch::{self, KERNEL_STACK_SIZE, USER_STACK_TOP},
     ctypes::*,
     fs::{
         devfs::SERIAL_TTY,
@@ -10,10 +7,7 @@ use crate::{
         opened_file::{Fd, OpenFlags, OpenOptions, OpenedFile, OpenedFileTable, PathComponent},
         path::Path,
     },
-    mm::{
-        page_allocator::{alloc_pages, AllocPageFlags},
-        vm::{Vm, VmAreaType},
-    },
+    mm::vm::{Vm, VmAreaType},
     prelude::*,
     process::{
         cmdline::Cmdline,
@@ -25,6 +19,7 @@ use crate::{
         switch, UserVAddr, JOIN_WAIT_QUEUE, SCHEDULER,
     },
     random::read_secure_random,
+    INITIAL_ROOT_FS,
 };
 
 use alloc::collections::BTreeMap;
@@ -36,6 +31,11 @@ use core::mem::size_of;
 use core::sync::atomic::{AtomicI32, Ordering};
 use crossbeam::atomic::AtomicCell;
 use goblin::elf64::program_header::PT_LOAD;
+use kerla_runtime::{
+    arch::{PtRegs, PAGE_SIZE},
+    page_allocator::{alloc_pages, AllocPageFlags},
+    spinlock::{SpinLock, SpinLockGuard},
+};
 use kerla_utils::alignment::align_up;
 
 type ProcessTable = BTreeMap<PId, Arc<Process>>;
@@ -103,7 +103,7 @@ pub struct Process {
     opened_files: SpinLock<OpenedFileTable>,
     root_fs: Arc<SpinLock<RootFs>>,
     signals: SpinLock<SignalDelivery>,
-    signaled_frame: AtomicCell<Option<SyscallFrame>>,
+    signaled_frame: AtomicCell<Option<PtRegs>>,
 }
 
 impl Process {
@@ -204,6 +204,13 @@ impl Process {
 
     /// The process ID.
     pub fn pid(&self) -> PId {
+        self.pid
+    }
+
+    /// The thread ID.
+    pub fn tid(&self) -> PId {
+        // In a single-threaded process, the thread ID is equal to the process ID (PID).
+        // https://man7.org/linux/man-pages/man2/gettid.2.html
         self.pid
     }
 
@@ -348,7 +355,7 @@ impl Process {
     ///
     /// If there's a pending signal, it may modify `frame` (e.g. user return
     /// address and stack pointer) to call the registered user's signal handler.
-    pub fn try_delivering_signal(frame: &mut SyscallFrame) -> Result<()> {
+    pub fn try_delivering_signal(frame: &mut PtRegs) -> Result<()> {
         // TODO: sigmask
         let current = current_process();
         if let Some((signal, sigaction)) = current.signals.lock().pop_pending() {
@@ -373,7 +380,7 @@ impl Process {
 
     /// So-called `sigreturn`: restores the user context when the signal is
     /// delivered to a signal handler.
-    pub fn restore_signaled_user_stack(current: &Arc<Process>, current_frame: &mut SyscallFrame) {
+    pub fn restore_signaled_user_stack(current: &Arc<Process>, current_frame: &mut PtRegs) {
         if let Some(signaled_frame) = current.signaled_frame.swap(None) {
             current
                 .arch
@@ -392,7 +399,7 @@ impl Process {
     /// new stack (ie. argv and envp) when the system call handler returns into
     /// the userspace.
     pub fn execve(
-        frame: &mut SyscallFrame,
+        frame: &mut PtRegs,
         executable_path: Arc<PathComponent>,
         argv: &[&[u8]],
         envp: &[&[u8]],
@@ -418,7 +425,7 @@ impl Process {
 
     /// Creates a new process. The calling process (`self`) will be the parent
     /// process of the created process. Returns the created child process.
-    pub fn fork(parent: &Arc<Process>, parent_frame: &SyscallFrame) -> Result<Arc<Process>> {
+    pub fn fork(parent: &Arc<Process>, parent_frame: &PtRegs) -> Result<Arc<Process>> {
         let parent_weak = Arc::downgrade(parent);
         let mut process_table = PROCESSES.lock();
         let pid = alloc_pid(&mut process_table)?;
@@ -563,8 +570,8 @@ fn do_setup_userspace(
     )?;
 
     let mut vm = Vm::new(
-        UserVAddr::new_nonnull(user_stack_bottom).unwrap(),
-        UserVAddr::new_nonnull(user_heap_bottom).unwrap(),
+        UserVAddr::new(user_stack_bottom).unwrap(),
+        UserVAddr::new(user_heap_bottom).unwrap(),
     )?;
     for i in 0..(file_header_len / PAGE_SIZE) {
         vm.page_table_mut().map_user_page(

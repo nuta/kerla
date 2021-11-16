@@ -1,10 +1,10 @@
 use crate::{
-    arch::{SpinLock, TICK_HZ},
     ctypes::*,
     prelude::*,
     process::{self, current_process, Process, ProcessState},
 };
 use core::sync::atomic::{AtomicUsize, Ordering};
+use kerla_runtime::{arch::TICK_HZ, spinlock::SpinLock};
 use process::switch;
 
 const PREEMPT_PER_TICKS: usize = 30;

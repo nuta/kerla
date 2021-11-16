@@ -4,6 +4,7 @@ import shutil
 from tempfile import NamedTemporaryFile
 import os
 import subprocess
+import shlex
 import sys
 
 COMMON_ARGS = [
@@ -34,8 +35,11 @@ def main():
     parser.add_argument("--gui", action="store_true")
     parser.add_argument("--gdb", action="store_true")
     parser.add_argument("--kvm", action="store_true")
+    parser.add_argument("--append-cmdline", action="append")
+    parser.add_argument("--log-serial")
     parser.add_argument("--qemu")
     parser.add_argument("kernel_elf", help="The kernel ELF executable.")
+    parser.add_argument("qemu_args", nargs="*")
     args = parser.parse_args()
 
     if args.arch == "x64":
@@ -60,17 +64,28 @@ def main():
         qemu_bin = qemu["bin"]
 
     argv = [qemu_bin] + qemu["args"] + ["-kernel", kernel_elf]
+    cmdline = []
     if not args.gui:
         argv += ["-nographic"]
     if args.gdb:
         argv += ["-gdb", "tcp::7789", "-S"]
     if args.kvm:
         argv += ["-accel", "kvm"]
+    if args.append_cmdline:
+        cmdline += args.append_cmdline
+    if args.log_serial:
+        argv += ["-serial", args.log_serial]
+        cmdline += ["serial1=on"]
+    if args.qemu_args:
+        argv += args.qemu_args
+
+    if cmdline:
+        argv += ["-append", " ".join(cmdline)]
 
     p = subprocess.run(argv, preexec_fn=os.setsid)
     if p.returncode != 33:
         sys.exit(
-            f"\nrun-qemu.py: qemu exited with failue status (status={p.returncode})")
+            f"\nrun-qemu.py: qemu exited with failure status (status={p.returncode})")
 
 
 if __name__ == "__main__":

@@ -4,10 +4,10 @@ use core::{cmp::min, fmt};
 
 use alloc::sync::Arc;
 use alloc::vec::Vec;
+use kerla_runtime::spinlock::SpinLock;
 use kerla_utils::id_table::IdTable;
 
 use crate::{
-    arch::SpinLock,
     fs::{
         inode::{FileLike, INodeNo, PollStatus},
         opened_file::OpenOptions,

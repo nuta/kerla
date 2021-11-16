@@ -1,19 +1,15 @@
 use core::cell::UnsafeCell;
 
-use super::{
-    address::VAddr,
-    gdt::{USER_CS64, USER_DS},
-    syscall::SyscallFrame,
-    tss::TSS,
-    UserVAddr, KERNEL_STACK_SIZE, PAGE_SIZE,
-};
-use super::{cpu_local::cpu_local_head, gdt::USER_RPL};
 use crate::result::Result;
-use crate::{
-    mm::page_allocator::{alloc_pages, AllocPageFlags},
-    process::signal::Signal,
-};
+use crate::{arch::KERNEL_STACK_SIZE, process::signal::Signal};
 use crossbeam::atomic::AtomicCell;
+use kerla_runtime::address::{UserVAddr, VAddr};
+use kerla_runtime::{
+    arch::x64_specific::{cpu_local_head, TSS, USER_CS64, USER_DS, USER_RPL},
+    arch::PtRegs,
+    arch::PAGE_SIZE,
+    page_allocator::{alloc_pages, AllocPageFlags},
+};
 use x86::current::segmentation::wrfsbase;
 
 #[repr(C, packed)]
@@ -139,7 +135,7 @@ impl Process {
         }
     }
 
-    pub fn fork(&self, frame: &SyscallFrame) -> Result<Process> {
+    pub fn fork(&self, frame: &PtRegs) -> Result<Process> {
         // TODO: Check the size of XSAVE area.
         let xsave_area = alloc_pages(1, AllocPageFlags::KERNEL)
             .expect("failed to allocate xsave area")
@@ -198,7 +194,7 @@ impl Process {
 
     pub fn setup_execve_stack(
         &self,
-        frame: &mut SyscallFrame,
+        frame: &mut PtRegs,
         ip: UserVAddr,
         user_sp: UserVAddr,
     ) -> Result<()> {
@@ -209,7 +205,7 @@ impl Process {
 
     pub unsafe fn setup_signal_stack(
         &self,
-        frame: &mut SyscallFrame,
+        frame: &mut PtRegs,
         signal: Signal,
         sa_handler: UserVAddr,
     ) -> Result<()> {
@@ -246,11 +242,7 @@ impl Process {
         Ok(())
     }
 
-    pub fn setup_sigreturn_stack(
-        &self,
-        current_frame: &mut SyscallFrame,
-        signaled_frame: &SyscallFrame,
-    ) {
+    pub fn setup_sigreturn_stack(&self, current_frame: &mut PtRegs, signaled_frame: &PtRegs) {
         *current_frame = *signaled_frame;
     }
 }

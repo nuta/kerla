@@ -1,9 +1,10 @@
 #![cfg(test)]
 #![allow(clippy::print_with_newline)]
 
-use crate::arch::*;
 use core::panic::PanicInfo;
 use core::sync::atomic::Ordering;
+
+use kerla_runtime::arch::{semihosting_halt, SemihostingExitStatus};
 
 pub trait Testable {
     fn run(&self);
@@ -30,7 +31,7 @@ pub fn run_tests(tests: &[&dyn Testable]) {
 }
 
 pub fn end_tests() -> ! {
-    semihosting_halt(ExitStatus::Success);
+    semihosting_halt(SemihostingExitStatus::Success);
 
     #[allow(clippy::empty_loop)]
     loop {}
@@ -47,6 +48,6 @@ fn panic(info: &PanicInfo) -> ! {
 
     PANICKED.store(true, Ordering::SeqCst);
     print!("\x1b[1;91mfail\npanic: {}\x1b[0m", info);
-    semihosting_halt(ExitStatus::Failure);
+    semihosting_halt(SemihostingExitStatus::Failure);
     loop {}
 }
