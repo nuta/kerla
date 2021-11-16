@@ -27,21 +27,24 @@ syscall_entry:
     mov gs:[GS_RSP3], rsp
     mov rsp, gs:[GS_RSP0]
 
-    // Start accepting interrupts.
-    // sti FIXME:
-
-    // Save SYSRET context and registers onto the kernel stack.
+    // Save SYSRET context and registers (pt_regs) onto the kernel stack.
+    push 32           // User SS (USER_DS). FIXME: Hardcoded.
     push gs:[GS_RSP3] // User RSP.
-    push r11 // User RFLAGS.
-    push rcx // User RIP.
-    push rbp
-    push rbx
-    push rdx
+    push r11          // User RFLAGS.
+    push 40           // User CS (USER_CS64). FIXME: Hardcoded.
+    push rcx          // User RIP.
+    push rax          // orig_rax
     push rdi
     push rsi
+    push rdx
+    push rcx
+    push rax          // User RAX.
     push r8
     push r9
     push r10
+    push r11
+    push rbx
+    push rbp
     push r12
     push r13
     push r14
@@ -58,16 +61,21 @@ syscall_entry:
     pop r14
     pop r13
     pop r12
+    pop rbp
+    pop rbx
+    add rsp, 8 // User R11
     pop r10
     pop r9
     pop r8
+    add rsp, 16 // User RAX & RCX
+    pop rdx
     pop rsi
     pop rdi
-    pop rdx
-    pop rbx
-    pop rbp
-    pop rcx
-    pop r11
+    add rsp, 8 // orig_rax
+    pop rcx    // User RIP
+    add rsp, 8 // User CS
+    pop r11    // User RFLAGS
+
     pop rsp
 
     // Ensure that interrupts are disabled since SWAPGS and SYSRETQ are not a

@@ -30,7 +30,7 @@ pub use ioapic::enable_irq;
 pub use paging::{PageFaultReason, PageTable};
 pub use profile::read_clock_counter;
 pub use semihosting::{semihosting_halt, SemihostingExitStatus};
-pub use syscall::SyscallFrame;
+pub use syscall::PtRegs;
 
 pub mod x64_specific {
     pub use super::cpu_local::cpu_local_head;

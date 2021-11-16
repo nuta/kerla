@@ -26,7 +26,7 @@ mod x64;
 pub mod arch {
     pub use super::x64::{
         enable_irq, halt, idle, read_clock_counter, semihosting_halt, x64_specific, Backtrace,
-        PageFaultReason, PageTable, SavedInterruptStatus, SemihostingExitStatus, SyscallFrame,
+        PageFaultReason, PageTable, PtRegs, SavedInterruptStatus, SemihostingExitStatus,
         KERNEL_BASE_ADDR, KERNEL_STRAIGHT_MAP_PADDR_END, PAGE_SIZE, TICK_HZ,
     };
 }
@@ -55,7 +55,7 @@ pub trait Handler: Sync {
         a5: usize,
         a6: usize,
         n: usize,
-        frame: *mut arch::SyscallFrame,
+        frame: *mut arch::PtRegs,
     ) -> isize;
 
     #[cfg(debug_assertions)]
@@ -88,7 +88,7 @@ impl Handler for NopHandler {
         _a5: usize,
         _a6: usize,
         _n: usize,
-        _frame: *mut x64::SyscallFrame,
+        _frame: *mut x64::PtRegs,
     ) -> isize {
         0
     }
