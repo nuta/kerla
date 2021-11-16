@@ -360,6 +360,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "virtio_blk"
+version = "0.0.1"
+dependencies = [
+ "bitflags",
+ "kerla_api",
+ "kerla_utils",
+ "memoffset",
+ "virtio",
+]
+
+[[package]]
 name = "virtio_net"
 version = "0.0.1"
 dependencies = [
