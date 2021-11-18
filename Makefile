@@ -6,7 +6,6 @@ export ARCH       ?= x64
 export LOG        ?=
 export LOG_SERIAL ?=
 export QEMU_ARGS  ?=
-export KEXTS      ?= $(patsubst exts/%/Cargo.toml,%,$(wildcard exts/*/Cargo.toml))
 
 # The default build target.
 .PHONY: default
