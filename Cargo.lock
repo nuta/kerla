@@ -166,21 +166,13 @@ dependencies = [
  "goblin",
  "hashbrown",
  "kerla_api",
- "kerla_kexts_loader",
  "kerla_runtime",
  "kerla_utils",
  "log",
  "smoltcp",
  "spin 0.9.2",
- "x86",
-]
-
-[[package]]
-name = "kerla_kexts_loader"
-version = "0.0.0"
-dependencies = [
- "log",
  "virtio_net",
+ "x86",
 ]
 
 [[package]]

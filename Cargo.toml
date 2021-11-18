@@ -4,7 +4,6 @@ members = [
     "kernel",
     "libs/*",
     "exts/*",
-    "build/kexts_loader",
 ]
 
 [profile.release]
