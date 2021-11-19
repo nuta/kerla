@@ -29,5 +29,5 @@ kerla_runtime = { path = "../runtime" }
 kerla_api = { path = "../libs/kerla_api" }
 kerla_utils = { path = "../libs/kerla_utils", features = ["no_std"] }
 
-# Automatically generated dependencies.
-kerla_kexts_loader = { path = "../build/kexts_loader" }
+# Kernel Extensions.
+virtio_net = { path = "../exts/virtio_net" }

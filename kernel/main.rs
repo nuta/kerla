@@ -177,8 +177,9 @@ pub fn boot_kernel(#[cfg_attr(debug_assertions, allow(unused))] bootinfo: &BootI
     profiler.lap_time("kerla_api init");
 
     // Load kernel extensions.
-    kerla_kexts_loader::load_all();
-    profiler.lap_time("kernel extensions init");
+    info!("kext: Loading virtio_net...");
+    virtio_net::init();
+    profiler.lap_time("virtio_net init");
 
     // Initialize device drivers.
     kerla_api::kernel_ops::init_drivers(bootinfo.pci_enabled, &bootinfo.virtio_mmio_devices);

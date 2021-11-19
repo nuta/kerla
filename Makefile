@@ -6,7 +6,6 @@ export ARCH       ?= x64
 export LOG        ?=
 export LOG_SERIAL ?=
 export QEMU_ARGS  ?=
-export KEXTS      ?= $(patsubst exts/%/Cargo.toml,%,$(wildcard exts/*/Cargo.toml))
 
 # The default build target.
 .PHONY: default
@@ -91,9 +90,6 @@ build:
 build-crate:
 	$(MAKE) initramfs
 
-	$(PROGRESS) "GEN" "kexts-loader ($(KEXTS))"
-	$(PYTHON3) tools/generate-kexts-loader.py --out-dir build/kexts_loader $(KEXTS)
-
 	$(PROGRESS) "CARGO" "kernel"
 	$(CARGO) build $(CARGOFLAGS) --manifest-path kernel/Cargo.toml
 
@@ -139,6 +135,8 @@ testw:
 
 .PHONY: check
 check:
+	mkdir -p $(dir $(INITRAMFS_PATH))
+	touch $(INITRAMFS_PATH)
 	$(CARGO) check $(CARGOFLAGS)
 
 .PHONY: checkw
