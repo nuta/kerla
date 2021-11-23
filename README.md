@@ -76,9 +76,10 @@ Send me bug reports, feature requests, and patches on [GitHub](https://github.co
 - **Writing documentation:** I think Kerla could be good material to learn how an operating system kernel works.
 - **Trying to experiment with Rust-y ideas:** for example currently I'm interested in [GhostCell](http://plv.mpi-sws.org/rustbelt/ghostcell/).
 
-## License
+## License: Multi-option
 
-See [LICENSE.md](https://github.com/nuta/kerla/blob/main/LICENSE.md).
+Multi-licensed This Fork is under the MIT & Apache (latest versions) combination
+See full [LICENSE](https://github.com/nuta/kerla/blob/main/COPYING.md) for more info.
 
 ## Related Work
 
