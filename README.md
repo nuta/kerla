@@ -78,7 +78,7 @@ Send me bug reports, feature requests, and patches on [GitHub](https://github.co
 
 ## License: Multi-option
 
-Multi-licensed This Fork is under the MIT & Apache (latest versions) combination
+Multi-licensed: This Fork is under the MIT & Apache (latest versions) combination
 See full [LICENSE](https://github.com/nuta/kerla/blob/main/COPYING.md) for more info.
 
 ## Related Work
