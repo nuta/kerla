@@ -25,7 +25,7 @@ impl<'a> SyscallHandler<'a> {
                 let target = current_process().get_opened_file_by_fd(fd)?;
 
                 // Read `events` from `struct epoll_event`.
-                let events_raw: u32 = event.ok_or_else(|| Error::new(Errno::EINVAL))?.read()?;
+                let events_raw: u32 = event.ok_or_else(|| Error::new(Errno::EFAULT))?.read()?;
                 let events = PollStatus::from_bits_truncate(events_raw as c_short);
                 epoll.add(&target, fd, events)?;
             }
