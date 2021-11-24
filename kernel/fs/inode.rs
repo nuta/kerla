@@ -2,7 +2,7 @@ use core::fmt::{self, Debug};
 
 use super::{opened_file::OpenOptions, path::PathBuf, stat::FileMode};
 use crate::ctypes::c_short;
-use crate::epoll::EPolledItem;
+use crate::epoll::{EPoll, EPollItem};
 use crate::prelude::*;
 use crate::{fs::stat::Stat, user_buffer::UserBufferMut};
 use crate::{net::*, user_buffer::UserBuffer};
@@ -140,7 +140,15 @@ pub trait FileLike: Debug + Send + Sync + Downcastable {
         Err(Error::new(Errno::EBADF))
     }
 
-    fn epoll_add(&self, _item: &EPolledItem) -> Result<()> {
+    /// `epoll_ctl(2)` with `EPOLL_CTL_ADD`.
+    fn epoll_add(&self, _item: &EPollItem) -> Result<()> {
+        // epoll_ctl(2) on Linux returns EPERM if the file does not support epoll.
+        // https://github.com/torvalds/linux/blob/5d9f4cf36721aba199975a9be7863a3ff5cd4b59/fs/eventpoll.c#L2046-L2049
+        Err(Error::new(Errno::EPERM))
+    }
+
+    /// `epoll_ctl(2)` with `EPOLL_CTL_DEL`.
+    fn epoll_del(&self, _item: &EPollItem) -> Result<()> {
         // epoll_ctl(2) on Linux returns EPERM if the file does not support epoll.
         // https://github.com/torvalds/linux/blob/5d9f4cf36721aba199975a9be7863a3ff5cd4b59/fs/eventpoll.c#L2046-L2049
         Err(Error::new(Errno::EPERM))
@@ -223,6 +231,7 @@ pub enum INode {
     FileLike(Arc<dyn FileLike>),
     Directory(Arc<dyn Directory>),
     Symlink(Arc<dyn Symlink>),
+    EPoll(Arc<EPoll>),
 }
 
 impl INode {
@@ -242,6 +251,14 @@ impl INode {
         }
     }
 
+    /// Unwraps as an epoll instance. If it's not, returns `Errno::EINVAL`.
+    pub fn as_epoll(&self) -> Result<&Arc<EPoll>> {
+        match self {
+            INode::EPoll(epoll) => Ok(epoll),
+            _ => Err(Error::new(Errno::EINVAL)),
+        }
+    }
+
     /// Returns `true` if it's a file.
     pub fn is_file(&self) -> bool {
         matches!(self, INode::FileLike(_))
@@ -258,6 +275,7 @@ impl INode {
             INode::FileLike(file) => file.stat(),
             INode::Symlink(file) => file.stat(),
             INode::Directory(dir) => dir.stat(),
+            INode::EPoll(_) => Err(Error::new(Errno::EINVAL)),
         }
     }
 
@@ -267,6 +285,7 @@ impl INode {
             INode::FileLike(file) => file.fsync(),
             INode::Symlink(file) => file.fsync(),
             INode::Directory(dir) => dir.fsync(),
+            INode::EPoll(_) => Err(Error::new(Errno::EINVAL)),
         }
     }
 
@@ -276,6 +295,7 @@ impl INode {
             INode::FileLike(file) => file.readlink(),
             INode::Symlink(file) => file.linked_to(),
             INode::Directory(dir) => dir.readlink(),
+            INode::EPoll(_) => Err(Error::new(Errno::EINVAL)),
         }
     }
 
@@ -292,6 +312,7 @@ impl fmt::Debug for INode {
             INode::FileLike(file) => fmt::Debug::fmt(file, f),
             INode::Directory(dir) => fmt::Debug::fmt(dir, f),
             INode::Symlink(symlink) => fmt::Debug::fmt(symlink, f),
+            INode::EPoll(epoll) => fmt::Debug::fmt(epoll, f),
         }
     }
 }

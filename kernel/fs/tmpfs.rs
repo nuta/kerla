@@ -144,6 +144,8 @@ impl Directory for Dir {
             INode::FileLike(file_like) => TmpFsINode::File(file_like.clone()),
             INode::Directory(dir) => TmpFsINode::Directory(downcast(dir).unwrap()),
             INode::Symlink(_) => unreachable!(), /* symblic links are not supported yet */
+            // EPoll instances are anonymous.
+            INode::EPoll(_) => unreachable!(),
         };
 
         self.0.lock().files.insert(name.to_owned(), tmpfs_inode);

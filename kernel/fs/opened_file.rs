@@ -2,10 +2,10 @@ use super::{
     inode::{DirEntry, Directory, FileLike, INode},
     path::PathBuf,
 };
-use crate::ctypes::c_int;
-use crate::fs::inode::PollStatus;
 use crate::prelude::*;
 use crate::user_buffer::UserBufferMut;
+use crate::{ctypes::c_int, epoll::EPollItem};
+use crate::{epoll::EPoll, fs::inode::PollStatus};
 use crate::{net::*, user_buffer::UserBuffer};
 use atomic_refcell::AtomicRefCell;
 use bitflags::bitflags;
@@ -164,6 +164,10 @@ impl OpenedFile {
         self.path.inode.as_dir()
     }
 
+    pub fn as_epoll(&self) -> Result<&Arc<EPoll>> {
+        self.path.inode.as_epoll()
+    }
+
     pub fn pos(&self) -> usize {
         self.pos.load()
     }
@@ -271,6 +275,28 @@ impl OpenedFile {
 
     pub fn poll(&self) -> Result<PollStatus> {
         self.as_file()?.poll()
+    }
+
+    /// Registers an epoll item in a file. `self` points to a file, not an epoll
+    /// instance.
+    pub fn epoll_add(&self, item: &EPollItem) -> Result<()> {
+        match self.inode() {
+            INode::FileLike(file) => file.epoll_add(item),
+            // epoll_ctl(2) on Linux returns EPERM if the file does not support epoll.
+            // https://github.com/torvalds/linux/blob/5d9f4cf36721aba199975a9be7863a3ff5cd4b59/fs/eventpoll.c#L2046-L2049
+            _ => Err(Error::new(Errno::EPERM)),
+        }
+    }
+
+    /// De-registers an epoll item in a file. `self` points to a file, not an epoll
+    /// instance.
+    pub fn epoll_del(&self, item: &EPollItem) -> Result<()> {
+        match self.inode() {
+            INode::FileLike(file) => file.epoll_del(item),
+            // epoll_ctl(2) on Linux returns EPERM if the file does not support epoll.
+            // https://github.com/torvalds/linux/blob/5d9f4cf36721aba199975a9be7863a3ff5cd4b59/fs/eventpoll.c#L2046-L2049
+            _ => Err(Error::new(Errno::EPERM)),
+        }
     }
 
     pub fn readdir(&self) -> Result<Option<DirEntry>> {

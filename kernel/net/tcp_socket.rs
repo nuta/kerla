@@ -1,5 +1,5 @@
 use crate::{
-    epoll::EPolledItem,
+    epoll::EPollItem,
     fs::{
         inode::{FileLike, PollStatus},
         opened_file::OpenOptions,
@@ -38,7 +38,7 @@ pub struct TcpSocket {
     local_endpoint: AtomicCell<Option<IpEndpoint>>,
     backlogs: SpinLock<Vec<Arc<TcpSocket>>>,
     num_backlogs: AtomicCell<usize>,
-    epolls: SpinLock<Vec<EPolledItem>>,
+    epolls: SpinLock<Vec<EPollItem>>,
 }
 
 impl TcpSocket {
@@ -299,14 +299,19 @@ impl FileLike for TcpSocket {
         Ok(status)
     }
 
-    fn epoll_add(&self, item: &EPolledItem) -> Result<()> {
+    fn epoll_add(&self, item: &EPollItem) -> Result<()> {
         // Keep self.epolls locked until checking the current status.
         let mut epolls = self.epolls.lock();
         epolls.push(item.clone());
 
         // Handle the case where the socket is already ready.
         let status = self.poll()?;
-        item.wake_if_satisfied(status);
+        item.notify_if_satisfied(status);
+        Ok(())
+    }
+
+    fn epoll_del(&self, item: &EPollItem) -> Result<()> {
+        self.epolls.lock().retain(|i| i != item);
         Ok(())
     }
 }
@@ -317,19 +322,19 @@ impl fmt::Debug for TcpSocket {
     }
 }
 
+/// Notifies processes waiting on sockets that're ready.
 pub fn poll_tcp_sockets() {
     for sock in ALL_TCP_SOCKETS.lock().iter() {
-        let mut epolls = sock.epolls.lock();
-        for item in epolls.iter_mut() {
-            let status = match sock.poll() {
-                Ok(status) => status,
-                Err(err) => {
-                    debug_warn!("poll returned an error: {:?}", err);
-                    return;
-                }
-            };
+        let status = match sock.poll() {
+            Ok(status) => status,
+            Err(err) => {
+                debug_warn!("poll returned an error: {:?}", err);
+                return;
+            }
+        };
 
-            item.wake_if_satisfied(status);
+        for item in sock.epolls.lock().iter() {
+            item.notify_if_satisfied(status);
         }
     }
 }
