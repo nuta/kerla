@@ -9,7 +9,7 @@ use crate::{
     net::{RecvFromFlags, SendToFlags},
     process::{current_process, process_group::PgId, PId, Process},
     result::{Errno, Error, Result},
-    syscalls::{getrandom::GetRandomFlags, wait4::WaitOptions},
+    syscalls::{epoll_create1::EPollCreateFlags, getrandom::GetRandomFlags, wait4::WaitOptions},
     timer::Timeval,
     user_buffer::UserCStr,
 };
@@ -26,6 +26,7 @@ pub(self) mod clock_gettime;
 pub(self) mod close;
 pub(self) mod connect;
 pub(self) mod dup2;
+pub(self) mod epoll_create1;
 pub(self) mod epoll_ctl;
 pub(self) mod execve;
 pub(self) mod exit;
@@ -162,6 +163,7 @@ const SYS_CLOCK_GETTIME: usize = 228;
 const SYS_EPOLL_CTL: usize = 233;
 const SYS_UTIMES: usize = 235;
 const SYS_LINKAT: usize = 265;
+const SYS_EPOLL_CREATE1: usize = 291;
 const SYS_GETRANDOM: usize = 318;
 
 fn resolve_path(uaddr: usize) -> Result<PathBuf> {
@@ -370,6 +372,9 @@ impl<'a> SyscallHandler<'a> {
             SYS_SYSLOG => self.sys_syslog(a1 as c_int, UserVAddr::new(a2), a3 as c_int),
             SYS_REBOOT => self.sys_reboot(a1 as c_int, a2 as c_int, a3),
             SYS_GETTID => self.sys_gettid(),
+            SYS_EPOLL_CREATE1 => {
+                self.sys_epoll_create1(bitflags_from_user!(EPollCreateFlags, a1 as c_int)?)
+            }
             SYS_EPOLL_CTL => self.sys_epoll_ctl(
                 Fd::new(a1 as i32),
                 a2 as c_int,

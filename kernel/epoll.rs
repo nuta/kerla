@@ -13,6 +13,12 @@ pub struct EPoll {
 }
 
 impl EPoll {
+    pub fn new() -> Arc<EPoll> {
+        Arc::new(EPoll {
+            instance: Arc::new(EPollInstance::new()),
+        })
+    }
+
     pub fn add(&self, file: &Arc<OpenedFile>, fd: Fd, events: PollStatus) -> Result<()> {
         self.instance.add(file, fd, events)
     }
