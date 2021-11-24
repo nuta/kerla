@@ -103,6 +103,7 @@ pub fn process_packets() {
 
     SOCKET_WAIT_QUEUE.wake_all();
     POLL_WAIT_QUEUE.wake_all();
+    poll_tcp_sockets();
 
     // TODO: timeout
     let mut _timeout = dhcp.next_poll(timestamp);

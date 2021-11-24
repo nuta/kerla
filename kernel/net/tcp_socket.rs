@@ -1,4 +1,5 @@
 use crate::{
+    epoll::EPolledItem,
     fs::{
         inode::{FileLike, PollStatus},
         opened_file::OpenOptions,
@@ -19,6 +20,7 @@ use super::{process_packets, SOCKETS, SOCKET_WAIT_QUEUE};
 
 const BACKLOG_MAX: usize = 8;
 static INUSE_ENDPOINTS: SpinLock<BTreeSet<u16>> = SpinLock::new(BTreeSet::new());
+static ALL_TCP_SOCKETS: SpinLock<Vec<Arc<TcpSocket>>> = SpinLock::new(Vec::new());
 
 /// Looks for an accept'able socket in the backlog.
 fn get_ready_backlog_index(
@@ -36,6 +38,7 @@ pub struct TcpSocket {
     local_endpoint: AtomicCell<Option<IpEndpoint>>,
     backlogs: SpinLock<Vec<Arc<TcpSocket>>>,
     num_backlogs: AtomicCell<usize>,
+    epolls: SpinLock<Vec<EPolledItem>>,
 }
 
 impl TcpSocket {
@@ -44,12 +47,16 @@ impl TcpSocket {
         let tx_buffer = TcpSocketBuffer::new(vec![0; 4096]);
         let inner = smoltcp::socket::TcpSocket::new(rx_buffer, tx_buffer);
         let handle = SOCKETS.lock().add(inner);
-        Arc::new(TcpSocket {
+        let sock = Arc::new(TcpSocket {
             handle,
             local_endpoint: AtomicCell::new(None),
             backlogs: SpinLock::new(Vec::new()),
             num_backlogs: AtomicCell::new(0),
-        })
+            epolls: SpinLock::new(Vec::new()),
+        });
+
+        ALL_TCP_SOCKETS.lock().push(sock.clone());
+        sock
     }
 
     fn refill_backlog_sockets(
@@ -291,10 +298,45 @@ impl FileLike for TcpSocket {
 
         Ok(status)
     }
+
+    fn epoll_add(&self, item: &EPolledItem) -> Result<()> {
+        // Keep self.epolls locked until checking the current status.
+        let mut epolls = self.epolls.lock();
+        epolls.push(item.clone());
+
+        // Handle the case where the socket is already ready.
+        let status = self.poll()?;
+        item.wake_if_satisfied(status);
+        Ok(())
+    }
 }
 
 impl fmt::Debug for TcpSocket {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("TcpSocket").finish()
     }
+}
+
+pub fn poll_tcp_sockets() {
+    for sock in ALL_TCP_SOCKETS.lock().iter() {
+        let mut epolls = sock.epolls.lock();
+        for item in epolls.iter_mut() {
+            let status = match sock.poll() {
+                Ok(status) => status,
+                Err(err) => {
+                    debug_warn!("poll returned an error: {:?}", err);
+                    return;
+                }
+            };
+
+            item.wake_if_satisfied(status);
+        }
+    }
+}
+
+/// Removes sockets that're no longer referenced from anywhere except for
+/// `ALL_TCP_SOCKETS`.
+pub fn gc_tcp_sockets() {
+    let mut sockets = ALL_TCP_SOCKETS.lock();
+    sockets.retain(|socket| Arc::strong_count(&socket) > 1);
 }

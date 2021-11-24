@@ -31,6 +31,7 @@ mod arch;
 mod user_buffer;
 mod ctypes;
 mod deferred_job;
+mod epoll;
 mod fs;
 mod interrupt;
 mod lang_items;
@@ -256,5 +257,6 @@ pub fn boot_kernel(#[cfg_attr(debug_assertions, allow(unused))] bootinfo: &BootI
 fn idle_thread() -> ! {
     loop {
         idle();
+        net::gc_tcp_sockets();
     }
 }

@@ -2,6 +2,7 @@ use core::fmt::{self, Debug};
 
 use super::{opened_file::OpenOptions, path::PathBuf, stat::FileMode};
 use crate::ctypes::c_short;
+use crate::epoll::EPolledItem;
 use crate::prelude::*;
 use crate::{fs::stat::Stat, user_buffer::UserBufferMut};
 use crate::{net::*, user_buffer::UserBuffer};
@@ -137,6 +138,12 @@ pub trait FileLike: Debug + Send + Sync + Downcastable {
         _options: &OpenOptions,
     ) -> Result<(usize, SockAddr)> {
         Err(Error::new(Errno::EBADF))
+    }
+
+    fn epoll_add(&self, _item: &EPolledItem) -> Result<()> {
+        // epoll_ctl(2) on Linux returns EPERM if the file does not support epoll.
+        // https://github.com/torvalds/linux/blob/5d9f4cf36721aba199975a9be7863a3ff5cd4b59/fs/eventpoll.c#L2046-L2049
+        Err(Error::new(Errno::EPERM))
     }
 }
 
