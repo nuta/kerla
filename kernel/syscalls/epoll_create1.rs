@@ -11,8 +11,14 @@ use crate::{
 const EPOLL_CTL_ADD: c_int = 1;
 const EPOLL_CTL_DEL: c_int = 2;
 
+bitflags! {
+    pub struct EPollCreateFlags: i32 {
+        const EPOLL_CLOEXEC = OpenFlags::O_CLOEXEC;
+    }
+}
+
 impl<'a> SyscallHandler<'a> {
-    pub fn sys_epoll_ctl(
+    pub fn sys_epoll_create1(
         &mut self,
         epfd: Fd,
         op: c_int,
