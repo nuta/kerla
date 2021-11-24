@@ -26,6 +26,7 @@ pub(self) mod clock_gettime;
 pub(self) mod close;
 pub(self) mod connect;
 pub(self) mod dup2;
+pub(self) mod epoll_ctl;
 pub(self) mod execve;
 pub(self) mod exit;
 pub(self) mod fcntl;
@@ -158,6 +159,7 @@ const SYS_GETTID: usize = 186;
 const SYS_GETDENTS64: usize = 217;
 const SYS_SET_TID_ADDRESS: usize = 218;
 const SYS_CLOCK_GETTIME: usize = 228;
+const SYS_EPOLL_CTL: usize = 233;
 const SYS_UTIMES: usize = 235;
 const SYS_LINKAT: usize = 265;
 const SYS_GETRANDOM: usize = 318;
@@ -368,6 +370,12 @@ impl<'a> SyscallHandler<'a> {
             SYS_SYSLOG => self.sys_syslog(a1 as c_int, UserVAddr::new(a2), a3 as c_int),
             SYS_REBOOT => self.sys_reboot(a1 as c_int, a2 as c_int, a3),
             SYS_GETTID => self.sys_gettid(),
+            SYS_EPOLL_CTL => self.sys_epoll_ctl(
+                Fd::new(a1 as i32),
+                a2 as c_int,
+                Fd::new(a3 as c_int),
+                UserVAddr::new(a4),
+            ),
             _ => {
                 debug_warn!(
                     "unimplemented system call: {} (n={})",

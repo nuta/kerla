@@ -12,6 +12,16 @@ pub struct EPoll {
     instance: Arc<EPollInstance>,
 }
 
+impl EPoll {
+    pub fn add(&self, file: &Arc<OpenedFile>, fd: Fd, events: PollStatus) -> Result<()> {
+        self.instance.add(file, fd, events)
+    }
+
+    pub fn del(&self, file: &Arc<OpenedFile>, fd: Fd) -> Result<()> {
+        self.instance.del(file, fd)
+    }
+}
+
 impl fmt::Debug for EPoll {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("EPoll").finish()
@@ -39,18 +49,13 @@ impl EPollInstance {
         }
     }
 
-    pub fn epoll_add(
-        self: &Arc<Self>,
-        file: &Arc<OpenedFile>,
-        fd: Fd,
-        events: PollStatus,
-    ) -> Result<()> {
+    pub fn add(self: &Arc<Self>, file: &Arc<OpenedFile>, fd: Fd, events: PollStatus) -> Result<()> {
         let item = EPollItem::new(file, fd, self.clone(), events);
         self.items.lock().push(item);
         Ok(())
     }
 
-    pub fn epoll_del(self: &Arc<Self>, file: &Arc<OpenedFile>, fd: Fd) -> Result<()> {
+    pub fn del(self: &Arc<Self>, file: &Arc<OpenedFile>, fd: Fd) -> Result<()> {
         let key = EPollItemKey {
             file: Arc::downgrade(file),
             fd,
