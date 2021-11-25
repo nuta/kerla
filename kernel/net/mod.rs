@@ -101,15 +101,18 @@ pub fn process_packets() {
         }
     }
 
-    SOCKET_WAIT_QUEUE.wake_all();
-    POLL_WAIT_QUEUE.wake_all();
-    poll_tcp_sockets();
-
     // TODO: timeout
     let mut _timeout = dhcp.next_poll(timestamp);
     if let Some(sockets_timeout) = iface.poll_delay(&sockets, timestamp) {
         _timeout = sockets_timeout;
     }
+
+    // sockets will be locked again in poll_tcp_sockets().
+    drop(sockets);
+
+    SOCKET_WAIT_QUEUE.wake_all();
+    POLL_WAIT_QUEUE.wake_all();
+    poll_tcp_sockets();
 }
 
 struct OurRxToken {
