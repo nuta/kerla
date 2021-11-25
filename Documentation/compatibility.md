@@ -252,8 +252,8 @@ Not supported.
 | 229 | clock_getres           | Unimplemented         |          |                                            |
 | 230 | clock_nanosleep        | Unimplemented         |          |                                            |
 | 231 | exit_group             | Unimplemented         |          |                                            |
-| 232 | epoll_wait             | Unimplemented         |          |                                            |
-| 233 | epoll_ctl              | Unimplemented         |          |                                            |
+| 232 | epoll_wait             | Partially             | `v0.0.5` |                                            |
+| 233 | epoll_ctl              | Partially             | `v0.0.5` |                                            |
 | 234 | tgkill                 | Unimplemented         |          |                                            |
 | 235 | utimes                 | Partially             | `v0.0.1` |                                            |
 | 236 | vserver                | Unimplemented         |          |                                            |
@@ -311,7 +311,7 @@ Not supported.
 | 288 | accept4                | Unimplemented         |          |                                            |
 | 289 | signalfd4              | Unimplemented         |          |                                            |
 | 290 | eventfd2               | Unimplemented         |          |                                            |
-| 291 | epoll_create1          | Unimplemented         |          |                                            |
+| 291 | epoll_create1          | Partially             | `v0.0.5` |                                            |
 | 292 | dup3                   | Unimplemented         |          |                                            |
 | 293 | pipe2                  | Unimplemented         |          |                                            |
 | 294 | inotify_init1          | Unimplemented         |          |                                            |

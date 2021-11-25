@@ -10,6 +10,7 @@
 #![reexport_test_harness_main = "test_main"]
 // FIXME:
 #![allow(unaligned_references)]
+#![allow(clippy::new_without_default)]
 #![feature(trait_alias)]
 
 #[macro_use]

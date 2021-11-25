@@ -343,5 +343,5 @@ pub fn poll_tcp_sockets() {
 /// `ALL_TCP_SOCKETS`.
 pub fn gc_tcp_sockets() {
     let mut sockets = ALL_TCP_SOCKETS.lock();
-    sockets.retain(|socket| Arc::strong_count(&socket) > 1);
+    sockets.retain(|socket| Arc::strong_count(socket) > 1);
 }
