@@ -1,7 +1,6 @@
 use core::fmt::{self, Debug};
 
 use super::{opened_file::OpenOptions, path::PathBuf, stat::FileMode};
-use crate::ctypes::c_short;
 use crate::epoll::{EPoll, EPollItem};
 use crate::prelude::*;
 use crate::{fs::stat::Stat, user_buffer::UserBufferMut};
@@ -25,7 +24,7 @@ impl INodeNo {
 }
 
 bitflags! {
-    pub struct PollStatus: c_short {
+    pub struct PollStatus: u32 {
         const POLLIN     = 0x001;
         const POLLPRI    = 0x002;
         const POLLOUT    = 0x004;
@@ -36,6 +35,7 @@ bitflags! {
         const POLLRDBAND = 0x080;
         const POLLWRNORM = 0x100;
         const POLLWRBAND = 0x200;
+        const EPOLLET = 1 << 31;
     }
 }
 

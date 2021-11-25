@@ -28,6 +28,7 @@ pub(self) mod connect;
 pub(self) mod dup2;
 pub(self) mod epoll_create1;
 pub(self) mod epoll_ctl;
+pub(self) mod epoll_wait;
 pub(self) mod execve;
 pub(self) mod exit;
 pub(self) mod fcntl;
@@ -160,6 +161,7 @@ const SYS_GETTID: usize = 186;
 const SYS_GETDENTS64: usize = 217;
 const SYS_SET_TID_ADDRESS: usize = 218;
 const SYS_CLOCK_GETTIME: usize = 228;
+const SYS_EPOLL_WAIT: usize = 232;
 const SYS_EPOLL_CTL: usize = 233;
 const SYS_UTIMES: usize = 235;
 const SYS_LINKAT: usize = 265;
@@ -380,6 +382,12 @@ impl<'a> SyscallHandler<'a> {
                 a2 as c_int,
                 Fd::new(a3 as c_int),
                 UserVAddr::new(a4),
+            ),
+            SYS_EPOLL_WAIT => self.sys_epoll_wait(
+                Fd::new(a1 as i32),
+                UserVAddr::new_nonnull(a2)?,
+                a3 as c_int,
+                a4 as c_int,
             ),
             _ => {
                 debug_warn!(

@@ -1,7 +1,7 @@
 use kerla_runtime::address::UserVAddr;
 
 use crate::{
-    ctypes::{c_int, c_short},
+    ctypes::c_int,
     fs::{inode::PollStatus, opened_file::Fd},
     prelude::*,
     process::current_process,
@@ -27,7 +27,7 @@ impl<'a> SyscallHandler<'a> {
 
                 // Read `events` from `struct epoll_event`.
                 let events_raw: u32 = event.ok_or_else(|| Error::new(Errno::EFAULT))?.read()?;
-                let events = PollStatus::from_bits_truncate(events_raw as c_short);
+                let events = PollStatus::from_bits_truncate(events_raw);
                 epoll.add(&target, fd, events)?;
             }
             EPOLL_CTL_DEL => {

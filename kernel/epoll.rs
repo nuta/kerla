@@ -1,8 +1,10 @@
 use core::fmt;
+use core::ops::BitAnd;
 
 use kerla_api::sync::SpinLock;
 
-use crate::fs::inode::PollStatus;
+use crate::ctypes::c_int;
+use crate::fs::inode::{INode, PollStatus};
 use crate::fs::opened_file::{Fd, OpenedFile};
 use crate::prelude::*;
 use crate::process::WaitQueue;
@@ -26,6 +28,38 @@ impl EPoll {
     pub fn del(&self, file: &Arc<OpenedFile>, fd: Fd) -> Result<()> {
         self.instance.del(file, fd)
     }
+
+    pub fn wait<F>(&self, _timeout: c_int, mut callback: F) -> Result<()>
+    where
+        F: FnMut(Fd, PollStatus) -> Result<()>,
+    {
+        // TODO: Support timeout
+        self.instance.wq.sleep_signalable_until(|| {
+            let mut events = self.instance.pending_events.lock();
+            let mut new_events = Vec::new();
+            let mut delivered_any = false;
+            for e in events.drain(..) {
+                let current_events = e.inode.as_file()?.poll()?;
+                let actual_events = e.listened_events & current_events;
+                if actual_events.is_empty() {
+                    continue;
+                }
+
+                callback(e.fd, actual_events)?;
+                delivered_any = true;
+
+                if !e.listened_events.contains(PollStatus::EPOLLET) {
+                    // If the emitted event is level-triggered, keep it in the
+                    // pending list so that we can keep waking the process up
+                    // until the event goes away.
+                    new_events.push(e);
+                }
+            }
+
+            *events = new_events;
+            Ok(if delivered_any { Some(()) } else { None })
+        })
+    }
 }
 
 impl fmt::Debug for EPoll {
@@ -41,9 +75,16 @@ impl Drop for EPoll {
     }
 }
 
+struct EmittedEvent {
+    fd: Fd,
+    inode: INode,
+    listened_events: PollStatus,
+}
+
 /// An epoll instance created by epoll_create(2).
 pub struct EPollInstance {
     wq: WaitQueue,
+    pending_events: SpinLock<Vec<EmittedEvent>>,
     items: SpinLock<Vec<EPollItem>>,
 }
 
@@ -52,6 +93,7 @@ impl EPollInstance {
         EPollInstance {
             wq: WaitQueue::new(),
             items: SpinLock::new(Vec::new()),
+            pending_events: SpinLock::new(Vec::new()),
         }
     }
 
@@ -68,6 +110,12 @@ impl EPollInstance {
         };
         self.items.lock().retain(|item| item.key != key);
         Ok(())
+    }
+
+    fn notify(&self, e: EmittedEvent) {
+        let mut pending_events = self.pending_events.lock();
+        pending_events.push(e);
+        self.wq.wake_all();
     }
 }
 
@@ -90,8 +138,9 @@ impl PartialEq for EPollItemKey {
 #[derive(Clone)]
 pub struct EPollItem {
     key: EPollItemKey,
-    epoll: Arc<EPollInstance>,
+    instance: Arc<EPollInstance>,
     events: PollStatus,
+    inode: INode,
 }
 
 impl EPollItem {
@@ -106,16 +155,26 @@ impl EPollItem {
                 file: Arc::downgrade(file),
                 fd,
             },
-            epoll,
+            instance: epoll,
             events,
+            inode: file.inode().clone(),
         }
+    }
+
+    pub fn fd(&self) -> Fd {
+        self.key.fd
     }
 
     pub fn notify_if_satisfied(&self, status: PollStatus) {
         // If any of the events in the `events` field is satisfied, wake up
         // waiting processes.
-        if self.events.intersects(status) {
-            self.epoll.wq.wake_all();
+        let events = self.events.bitand(status);
+        if !events.is_empty() {
+            self.instance.notify(EmittedEvent {
+                fd: self.fd(),
+                inode: self.inode.clone(),
+                listened_events: self.events,
+            });
         }
     }
 }
@@ -132,4 +191,22 @@ impl Drop for EPollItem {
             warn_if_err!(opened_file.epoll_del(self));
         }
     }
+}
+
+/// `struct epoll_event`.
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct EPollEvent {
+    pub events: u32,
+    pub data: EPollData,
+}
+
+/// `struct epoll_data`.
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub union EPollData {
+    pub ptr: usize,
+    pub fd: c_int,
+    pub u32: u32,
+    pub u64: u64,
 }

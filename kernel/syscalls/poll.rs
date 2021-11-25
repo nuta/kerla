@@ -29,7 +29,7 @@ impl<'a> SyscallHandler<'a> {
             let mut reader = UserBufReader::from(UserBuffer::from_uaddr(fds, fds_len));
             for _ in 0..nfds {
                 let fd = reader.read::<Fd>()?;
-                let events = bitflags_from_user!(PollStatus, reader.read::<c_short>()?)?;
+                let events = bitflags_from_user!(PollStatus, reader.read::<c_short>()? as u32)?;
 
                 let revents = if fd.as_int() < 0 || events.is_empty() {
                     0
@@ -45,7 +45,8 @@ impl<'a> SyscallHandler<'a> {
                 };
 
                 // Update revents.
-                fds.add(reader.pos()).write::<c_short>(&revents)?;
+                fds.add(reader.pos())
+                    .write::<c_short>(&(revents as c_short))?;
 
                 // Skip revents in the reader.
                 reader.skip(size_of::<c_short>())?;
