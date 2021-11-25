@@ -11,13 +11,13 @@ use crate::process::WaitQueue;
 
 /// The epoll instance referred from the user through a file descriptor.
 pub struct EPoll {
-    instance: Arc<EPollInstance>,
+    instance: Arc<EPollQueue>,
 }
 
 impl EPoll {
     pub fn new() -> Arc<EPoll> {
         Arc::new(EPoll {
-            instance: Arc::new(EPollInstance::new()),
+            instance: Arc::new(EPollQueue::new()),
         })
     }
 
@@ -38,21 +38,24 @@ impl EPoll {
             let mut events = self.instance.pending_events.lock();
             let mut new_events = Vec::new();
             let mut delivered_any = false;
-            for e in events.drain(..) {
-                let current_events = e.inode.as_file()?.poll()?;
-                let actual_events = e.listened_events & current_events;
+            for pe in events.drain(..) {
+                // Recheck the latest poll status as especially if the pending
+                // event is level-triggered, it may no longer have pending poll
+                // events.
+                let current_events = pe.inode.as_file()?.poll()?;
+                let actual_events = pe.listening_events & current_events;
                 if actual_events.is_empty() {
                     continue;
                 }
 
-                callback(e.fd, actual_events)?;
+                callback(pe.fd, actual_events)?;
                 delivered_any = true;
 
-                if !e.listened_events.contains(PollStatus::EPOLLET) {
-                    // If the emitted event is level-triggered, keep it in the
+                if !pe.listening_events.contains(PollStatus::EPOLLET) {
+                    // If the pending event is level-triggered, keep it in the
                     // pending list so that we can keep waking the process up
                     // until the event goes away.
-                    new_events.push(e);
+                    new_events.push(pe);
                 }
             }
 
@@ -75,22 +78,24 @@ impl Drop for EPoll {
     }
 }
 
-struct EmittedEvent {
+/// An epoll item with pending events. It will be delivered to a process through
+/// epoll_wait(2).
+struct PendingEvent {
     fd: Fd,
     inode: INode,
-    listened_events: PollStatus,
+    listening_events: PollStatus,
 }
 
 /// An epoll instance created by epoll_create(2).
-pub struct EPollInstance {
+pub struct EPollQueue {
     wq: WaitQueue,
-    pending_events: SpinLock<Vec<EmittedEvent>>,
+    pending_events: SpinLock<Vec<PendingEvent>>,
     items: SpinLock<Vec<EPollItem>>,
 }
 
-impl EPollInstance {
-    pub fn new() -> EPollInstance {
-        EPollInstance {
+impl EPollQueue {
+    pub fn new() -> EPollQueue {
+        EPollQueue {
             wq: WaitQueue::new(),
             items: SpinLock::new(Vec::new()),
             pending_events: SpinLock::new(Vec::new()),
@@ -112,7 +117,7 @@ impl EPollInstance {
         Ok(())
     }
 
-    fn notify(&self, e: EmittedEvent) {
+    fn notify(&self, e: PendingEvent) {
         let mut pending_events = self.pending_events.lock();
         pending_events.push(e);
         self.wq.wake_all();
@@ -138,7 +143,7 @@ impl PartialEq for EPollItemKey {
 #[derive(Clone)]
 pub struct EPollItem {
     key: EPollItemKey,
-    instance: Arc<EPollInstance>,
+    queue: Arc<EPollQueue>,
     events: PollStatus,
     inode: INode,
 }
@@ -147,7 +152,7 @@ impl EPollItem {
     pub fn new(
         file: &Arc<OpenedFile>,
         fd: Fd,
-        epoll: Arc<EPollInstance>,
+        queue: Arc<EPollQueue>,
         events: PollStatus,
     ) -> EPollItem {
         EPollItem {
@@ -155,7 +160,7 @@ impl EPollItem {
                 file: Arc::downgrade(file),
                 fd,
             },
-            instance: epoll,
+            queue,
             events,
             inode: file.inode().clone(),
         }
@@ -170,10 +175,10 @@ impl EPollItem {
         // waiting processes.
         let events = self.events.bitand(status);
         if !events.is_empty() {
-            self.instance.notify(EmittedEvent {
+            self.queue.notify(PendingEvent {
                 fd: self.fd(),
                 inode: self.inode.clone(),
-                listened_events: self.events,
+                listening_events: self.events,
             });
         }
     }
