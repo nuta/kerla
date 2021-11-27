@@ -1,8 +1,8 @@
 # License Agreement/Contract(s)
-**Severability/salvatorius: If any word, part, portion, provision , of this is or should become illegal, invalid, null or void, rendering this unenforceable in any jurisdiction, that then shall not affect:** 
+**Severability/salvatorius: If any word, part, portion, provision, of this is or should become illegal, invalid, null or void, rendering this unenforceable in any jurisdiction, that then shall not affect:** 
 
-+ the validity or enforceability in that jurisdiction of any other provision of this Agreement; nor the validity or enforceability in any other types of jurisdictions on that or of any other provision of this Agreement.
-- Any other part or character of the license/contract.
+* the validity or enforceability in that jurisdiction of any other provision of this Agreement; nor the validity or enforceability in any other types of jurisdictions on that or of any other provision of this Agreement.
+* Any other part or character of the license/contract.
 
 
 #### (C) Everyone is permitted to copy and distribute verbatim or modified copies of this license document, and changing it is allowed
