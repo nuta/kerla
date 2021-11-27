@@ -10,6 +10,7 @@
 #![reexport_test_harness_main = "test_main"]
 // FIXME:
 #![allow(unaligned_references)]
+#![allow(clippy::new_without_default)]
 #![feature(trait_alias)]
 
 #[macro_use]
@@ -31,6 +32,7 @@ mod arch;
 mod user_buffer;
 mod ctypes;
 mod deferred_job;
+mod epoll;
 mod fs;
 mod interrupt;
 mod lang_items;
@@ -256,5 +258,6 @@ pub fn boot_kernel(#[cfg_attr(debug_assertions, allow(unused))] bootinfo: &BootI
 fn idle_thread() -> ! {
     loop {
         idle();
+        net::gc_tcp_sockets();
     }
 }

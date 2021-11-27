@@ -1,12 +1,12 @@
 use core::fmt::{self, Debug};
 
 use super::{opened_file::OpenOptions, path::PathBuf, stat::FileMode};
-use crate::ctypes::c_short;
+use crate::epoll::{EPoll, EPollItem};
 use crate::prelude::*;
 use crate::{fs::stat::Stat, user_buffer::UserBufferMut};
 use crate::{net::*, user_buffer::UserBuffer};
 use bitflags::bitflags;
-use kerla_utils::downcast::Downcastable;
+use kerla_utils::downcast::{downcast, Downcastable};
 
 /// The inode number.
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
@@ -24,7 +24,7 @@ impl INodeNo {
 }
 
 bitflags! {
-    pub struct PollStatus: c_short {
+    pub struct PollStatus: u32 {
         const POLLIN     = 0x001;
         const POLLPRI    = 0x002;
         const POLLOUT    = 0x004;
@@ -35,6 +35,7 @@ bitflags! {
         const POLLRDBAND = 0x080;
         const POLLWRNORM = 0x100;
         const POLLWRBAND = 0x200;
+        const EPOLLET = 1 << 31;
     }
 }
 
@@ -138,6 +139,20 @@ pub trait FileLike: Debug + Send + Sync + Downcastable {
     ) -> Result<(usize, SockAddr)> {
         Err(Error::new(Errno::EBADF))
     }
+
+    /// `epoll_ctl(2)` with `EPOLL_CTL_ADD`.
+    fn epoll_add(&self, _item: &EPollItem) -> Result<()> {
+        // epoll_ctl(2) on Linux returns EPERM if the file does not support epoll.
+        // https://github.com/torvalds/linux/blob/5d9f4cf36721aba199975a9be7863a3ff5cd4b59/fs/eventpoll.c#L2046-L2049
+        Err(Error::new(Errno::EPERM))
+    }
+
+    /// `epoll_ctl(2)` with `EPOLL_CTL_DEL`.
+    fn epoll_del(&self, _item: &EPollItem) -> Result<()> {
+        // epoll_ctl(2) on Linux returns EPERM if the file does not support epoll.
+        // https://github.com/torvalds/linux/blob/5d9f4cf36721aba199975a9be7863a3ff5cd4b59/fs/eventpoll.c#L2046-L2049
+        Err(Error::new(Errno::EPERM))
+    }
 }
 
 /// Represents `d_type` in `linux_dirent`. See `getdents64(2)` manual.
@@ -233,6 +248,11 @@ impl INode {
             INode::Directory(dir) => Ok(dir),
             _ => Err(Error::new(Errno::EBADF)),
         }
+    }
+
+    /// Unwraps as an epoll instance. If it's not, returns `Errno::EINVAL`.
+    pub fn as_epoll(&self) -> Result<&Arc<EPoll>> {
+        downcast(self.as_file()?).ok_or_else(|| Error::new(Errno::EINVAL))
     }
 
     /// Returns `true` if it's a file.
