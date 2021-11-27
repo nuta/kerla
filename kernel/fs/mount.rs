@@ -64,8 +64,6 @@ impl RootFs {
             INode::FileLike(file) => Ok(file),
             // Symbolic links should be already resolved.
             INode::Symlink(_) => unreachable!(),
-            // EPoll instances are anonymous.
-            INode::EPoll(_) => unreachable!(),
         }
     }
 
@@ -76,8 +74,6 @@ impl RootFs {
             INode::FileLike(_) => Err(Error::new(Errno::EISDIR)),
             // Symbolic links should be already resolved.
             INode::Symlink(_) => unreachable!(),
-            // EPoll instances are anonymous.
-            INode::EPoll(_) => unreachable!(),
         }
     }
 
@@ -253,8 +249,6 @@ impl RootFs {
                         // is not the last one.
                         return Err(Errno::ENOTDIR.into());
                     }
-                    // EPoll instances are anonymous.
-                    INode::EPoll(_) => unreachable!(),
                 }
             } else {
                 // The last component: `c` in `a/b/c`.

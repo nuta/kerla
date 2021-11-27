@@ -142,10 +142,11 @@ impl Directory for Dir {
     fn link(&self, name: &str, link_to: &INode) -> Result<()> {
         let tmpfs_inode = match link_to {
             INode::FileLike(file_like) => TmpFsINode::File(file_like.clone()),
-            INode::Directory(dir) => TmpFsINode::Directory(downcast(dir).unwrap()),
+            INode::Directory(dir) => {
+                let dir: &Arc<Dir> = downcast(dir).unwrap();
+                TmpFsINode::Directory(dir.clone())
+            }
             INode::Symlink(_) => unreachable!(), /* symblic links are not supported yet */
-            // EPoll instances are anonymous.
-            INode::EPoll(_) => unreachable!(),
         };
 
         self.0.lock().files.insert(name.to_owned(), tmpfs_inode);

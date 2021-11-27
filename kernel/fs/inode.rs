@@ -6,7 +6,7 @@ use crate::prelude::*;
 use crate::{fs::stat::Stat, user_buffer::UserBufferMut};
 use crate::{net::*, user_buffer::UserBuffer};
 use bitflags::bitflags;
-use kerla_utils::downcast::Downcastable;
+use kerla_utils::downcast::{downcast, Downcastable};
 
 /// The inode number.
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
@@ -231,7 +231,6 @@ pub enum INode {
     FileLike(Arc<dyn FileLike>),
     Directory(Arc<dyn Directory>),
     Symlink(Arc<dyn Symlink>),
-    EPoll(Arc<EPoll>),
 }
 
 impl INode {
@@ -253,10 +252,7 @@ impl INode {
 
     /// Unwraps as an epoll instance. If it's not, returns `Errno::EINVAL`.
     pub fn as_epoll(&self) -> Result<&Arc<EPoll>> {
-        match self {
-            INode::EPoll(epoll) => Ok(epoll),
-            _ => Err(Error::new(Errno::EINVAL)),
-        }
+        downcast(self.as_file()?).ok_or_else(|| Error::new(Errno::EINVAL))
     }
 
     /// Returns `true` if it's a file.
@@ -275,7 +271,6 @@ impl INode {
             INode::FileLike(file) => file.stat(),
             INode::Symlink(file) => file.stat(),
             INode::Directory(dir) => dir.stat(),
-            INode::EPoll(_) => Err(Error::new(Errno::EINVAL)),
         }
     }
 
@@ -285,7 +280,6 @@ impl INode {
             INode::FileLike(file) => file.fsync(),
             INode::Symlink(file) => file.fsync(),
             INode::Directory(dir) => dir.fsync(),
-            INode::EPoll(_) => Err(Error::new(Errno::EINVAL)),
         }
     }
 
@@ -295,7 +289,6 @@ impl INode {
             INode::FileLike(file) => file.readlink(),
             INode::Symlink(file) => file.linked_to(),
             INode::Directory(dir) => dir.readlink(),
-            INode::EPoll(_) => Err(Error::new(Errno::EINVAL)),
         }
     }
 
@@ -312,7 +305,6 @@ impl fmt::Debug for INode {
             INode::FileLike(file) => fmt::Debug::fmt(file, f),
             INode::Directory(dir) => fmt::Debug::fmt(dir, f),
             INode::Symlink(symlink) => fmt::Debug::fmt(symlink, f),
-            INode::EPoll(epoll) => fmt::Debug::fmt(epoll, f),
         }
     }
 }

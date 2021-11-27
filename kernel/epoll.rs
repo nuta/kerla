@@ -4,7 +4,7 @@ use core::ops::BitAnd;
 use kerla_api::sync::SpinLock;
 
 use crate::ctypes::c_int;
-use crate::fs::inode::{INode, PollStatus};
+use crate::fs::inode::{FileLike, INode, PollStatus};
 use crate::fs::opened_file::{Fd, OpenedFile};
 use crate::prelude::*;
 use crate::process::WaitQueue;
@@ -42,13 +42,13 @@ impl EPoll {
                 // Recheck the latest poll status as especially if the pending
                 // event is level-triggered, it may no longer have pending poll
                 // events.
-                let current_events = pe.inode.as_file()?.poll()?;
-                let actual_events = pe.listening_events & current_events;
-                if actual_events.is_empty() {
+                let latest = pe.inode.as_file()?.poll()?;
+                let deliverable = pe.listening_events & latest;
+                if deliverable.is_empty() {
                     continue;
                 }
 
-                callback(pe.fd, actual_events)?;
+                callback(pe.fd, deliverable)?;
                 delivered_any = true;
 
                 if !pe.listening_events.contains(PollStatus::EPOLLET) {
@@ -64,6 +64,8 @@ impl EPoll {
         })
     }
 }
+
+impl FileLike for EPoll {}
 
 impl fmt::Debug for EPoll {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

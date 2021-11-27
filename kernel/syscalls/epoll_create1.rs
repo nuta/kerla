@@ -4,7 +4,7 @@ use crate::{
     ctypes::c_int,
     epoll::EPoll,
     fs::{
-        inode::INode,
+        inode::{FileLike, INode},
         opened_file::{OpenOptions, PathComponent},
     },
     prelude::*,
@@ -26,10 +26,10 @@ impl<'a> SyscallHandler<'a> {
         }
 
         let epoll = EPoll::new();
-        let epfd = current_process()
-            .opened_files()
-            .lock()
-            .open(PathComponent::new_anonymous(INode::EPoll(epoll)), options)?;
+        let epfd = current_process().opened_files().lock().open(
+            PathComponent::new_anonymous(INode::FileLike(epoll as Arc<dyn FileLike>)),
+            options,
+        )?;
 
         Ok(epfd.as_int() as isize)
     }
