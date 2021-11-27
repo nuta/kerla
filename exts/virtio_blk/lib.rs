@@ -1,12 +1,15 @@
 #![no_std]
+
 extern crate alloc;
+#[macro_use]
+extern crate kerla_api;
 
 use core::mem::size_of;
 
 use kerla_api::address::VAddr;
 use kerla_api::driver::{DeviceProber, Driver};
 use kerla_api::driver::block::BlockDriver;
-use kerla_api::info;
+use kerla_api::{info, warn};
 use kerla_api::mm::{alloc_pages, AllocPageFlags};
 use kerla_api::arch::PAGE_SIZE;
 
@@ -17,10 +20,11 @@ use memoffset::offset_of;
 
 use alloc::sync::Arc;
 
-use virtio::device::{IsrStatus, Virtio, VirtqDescBuffer};
+use virtio::device::{IsrStatus, VirtQueue, Virtio, VirtqDescBuffer, VirtqUsedChain};
 
 use virtio::transports::VirtioTransport;
-use virtio::transports::virtio_pci::VirtioAttachError;
+use virtio::transports::virtio_mmio::VirtioMmio;
+use virtio::transports::virtio_pci::{VirtioAttachError, VirtioPci};
 
 
 const VIRTIO_BLK_F_SIZE: u64 = 1 << 6;
@@ -63,16 +67,14 @@ enum RequestType {
 pub struct VirtioBlk {
     virtio: Virtio,
     buffer: VAddr,
-    
 }
 
 impl VirtioBlk {
     pub fn new(transport: Arc<dyn VirtioTransport>) -> Result<VirtioBlk, VirtioAttachError> {
-        let mut virtio = Virtio::new(transport);
-
+        let virtio = Virtio::new(transport);
         // Read the block size
         let block_size = offset_of!(VirtioBlkConfig, capacity);
-        // TODO: Make sure it returns the block size 
+        // TODO: Make sure it returns the block size once qemu block device is enabled
         info!("Block size is {}", block_size);
 
         // Create buffer for virtqueue
@@ -83,6 +85,8 @@ impl VirtioBlk {
             (align_up(MAX_BLK_SIZE * ring_len, PAGE_SIZE)) / PAGE_SIZE,
             AllocPageFlags::KERNEL 
         ).unwrap().as_vaddr();
+
+        
 
         Ok(VirtioBlk {
             virtio: virtio,
@@ -161,11 +165,61 @@ pub struct VirtioBlkProber;
 
 impl DeviceProber for VirtioBlkProber {
     fn probe_pci(&self, pci_device: &kerla_api::driver::pci::PciDevice) {
+        // Check if device is a block device 
+        if pci_device.config().vendor_id() == 0x1af4 
+        && pci_device.config().device_id() != 0x1042 {
+            return;
+        }
+        trace!("virtio-blk: found the device (over PCI");
+        let device = match VirtioPci::probe_pci(pci_device, VirtioBlk::new) {
+            Ok(device) => Arc::new(SpinLock::new(device)),
+            Err(VirtioAttachError::InvalidVendorId) => {
+                // not a virtio-blk device 
+                return;
+            }
+            Err(err) => {
+                warn!("Failed to attach a virtio-blk: {:?}", err);
+                return;
+            }
+        };
         
     }
 
     fn probe_virtio_mmio(&self, mmio_device: &kerla_api::driver::VirtioMmioDevice) {
-        
+        let mmio = mmio_device.mmio_base.as_vaddr();
+        let magic = unsafe { *mmio.as_ptr::<u32>() };
+        let virtio_version = unsafe { *mmio.add(4).as_ptr::<u32>() };
+        let device_id = unsafe { *mmio.add(8).as_ptr::<u32>() };
+
+        if magic != 0x74726976 {
+            return;
+        }
+
+        if virtio_version != 2 {
+            warn!("unsupported virtio device version: {}", virtio_version);
+            return;
+        }
+
+        // It looks like a virtio device. Check if the device is a network card.
+        if device_id != 1 {
+            return;
+        }
+
+        trace!("virtio-blk: found the device (over MMIO)");
+
+        let transport = Arc::new(VirtioMmio::new(mmio_device.mmio_base));
+        let device = match VirtioBlk::new(transport) {
+            Ok(device) => Arc::new(SpinLock::new(device)),
+            Err(VirtioAttachError::InvalidVendorId) => {
+                // Not a virtio-blk device.
+                return;
+            }
+            Err(err) => {
+                warn!("failed to attach a virtio-blk: {:?}", err);
+                return;
+            }
+        };
+
     }
 }
 
