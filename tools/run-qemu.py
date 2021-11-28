@@ -7,6 +7,7 @@ import subprocess
 import shlex
 import sys
 
+
 COMMON_ARGS = [
     "-serial", "mon:stdio", "-no-reboot",
 ]
@@ -21,6 +22,9 @@ ARCHS = {
             "-device", "virtio-net,netdev=net0,disable-legacy=on,disable-modern=off",
             "-netdev", "user,id=net0,hostfwd=tcp:127.0.0.1:20022-:22,hostfwd=tcp:127.0.0.1:20080-:80",
             "-object", "filter-dump,id=fiter0,netdev=net0,file=virtio-net.pcap",
+            
+            "-device", "virtio-blk-pci,drive=drive0,id=virtblk0,disable-legacy=on,disable-modern=off",
+            "-drive", "file=vdisk,if=none,id=drive0",
 
             "-device", "isa-debug-exit,iobase=0x501,iosize=2",
             "-d", "guest_errors,unimp",
@@ -30,6 +34,7 @@ ARCHS = {
 
 
 def main():
+    os.system("qemu-img create vdisk 1G")
     parser = argparse.ArgumentParser()
     parser.add_argument("--arch", choices=["x64"])
     parser.add_argument("--gui", action="store_true")
