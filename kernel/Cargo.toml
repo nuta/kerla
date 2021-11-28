@@ -31,4 +31,4 @@ kerla_utils = { path = "../libs/kerla_utils", features = ["no_std"] }
 
 # Kernel Extensions.
 virtio_net = { path = "../exts/virtio_net" }
-virtio_blk = { path = "../exts/virtio_blk" }
+virtio_block = { path = "../exts/virtio_block" }

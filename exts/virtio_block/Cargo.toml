@@ -1,11 +1,11 @@
 [package]
-name = "virtio_blk"
+name = "virtio_block"
 version = "0.0.1"
 authors = ["The Kerla Authors"]
 edition = "2021"
 
 [lib]
-name = "virtio_blk"
+name = "virtio_block"
 path = "lib.rs"
 
 [dependencies]

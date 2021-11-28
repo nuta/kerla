@@ -34,14 +34,14 @@ const MAX_BLK_SIZE: usize = 512;
 
 #[derive(Debug, Clone, Copy)]
 #[repr(C, packed)]
-struct VirtioBlkConfig {
+struct VirtioBlockConfig {
     capacity: u64,
     size_max: u32,
     seg_max: u32,
     cylinders: u16,
     heads: u8,
     sectors: u8,
-    blk_size: u32,
+    block_size: u32,
     physical_block_exp: u8,
     alignment_offset: u8,
     min_io_size: u16,
@@ -50,7 +50,7 @@ struct VirtioBlkConfig {
 
 #[derive(Debug, Clone, Copy)]
 #[repr(C, packed)]
-struct VirtioBlkRequest {
+struct VirtioBlockRequest {
     type_: u32,
     reserved: u32,
     sector: u64,
@@ -65,16 +65,16 @@ enum RequestType {
 }
 
 
-pub struct VirtioBlk {
+pub struct VirtioBlock {
     virtio: Virtio,
     buffer: VAddr,
 }
 
-impl VirtioBlk {
-    pub fn new(transport: Arc<dyn VirtioTransport>) -> Result<VirtioBlk, VirtioAttachError> {
+impl VirtioBlock {
+    pub fn new(transport: Arc<dyn VirtioTransport>) -> Result<VirtioBlock, VirtioAttachError> {
         let virtio = Virtio::new(transport);
         // Read the block size
-        let block_size = offset_of!(VirtioBlkConfig, capacity);
+        let block_size = offset_of!(VirtioBlockConfig, capacity);
         // TODO: Make sure it returns the block size once qemu block device is enabled
         info!("Block size is {}", block_size);
 
@@ -89,7 +89,7 @@ impl VirtioBlk {
 
         
 
-        Ok(VirtioBlk {
+        Ok(VirtioBlock {
             virtio: virtio,
             buffer: buffer
         
@@ -100,10 +100,10 @@ impl VirtioBlk {
 
     fn request_to_device(&mut self, request_type: RequestType, sector: u64, frame: &[u8]) {
         let addr = self.buffer.add(MAX_BLK_SIZE);
-        let request_len = size_of::<VirtioBlkRequest>();
+        let request_len = size_of::<VirtioBlockRequest>();
         
         // Fill block request 
-        let block_request = unsafe { &mut *addr.as_mut_ptr::<VirtioBlkRequest>()};
+        let block_request = unsafe { &mut *addr.as_mut_ptr::<VirtioBlockRequest>()};
         block_request.type_ = request_type as u32;
         block_request.sector = sector;
         block_request.reserved = 0;
@@ -135,23 +135,23 @@ impl VirtioBlk {
 
 }
 
-struct VirtioBlkDriver {
-    device: Arc<SpinLock<VirtioBlk>>
+struct VirtioBlockDriver {
+    device: Arc<SpinLock<VirtioBlock>>
 }
 
-impl VirtioBlkDriver {
-    fn new(device: Arc<SpinLock<VirtioBlk>>) -> VirtioBlkDriver {
-        VirtioBlkDriver { device: device}
+impl VirtioBlockDriver {
+    fn new(device: Arc<SpinLock<VirtioBlock>>) -> VirtioBlockDriver {
+        VirtioBlockDriver { device: device}
     }
 }
 
-impl Driver for VirtioBlkDriver {
+impl Driver for VirtioBlockDriver {
     fn name(&self) -> &str {
-        "virtio-blk"
+        "virtio-blk-pci"
     }
 }
 
-impl BlockDriver for VirtioBlkDriver {
+impl BlockDriver for VirtioBlockDriver {
     fn read_block(&self, sector: u64, frame: &[u8]) {
         self.device.lock().request_to_device(RequestType::Read, sector, frame)
     }
@@ -161,35 +161,35 @@ impl BlockDriver for VirtioBlkDriver {
     }
 }
 
-pub struct VirtioBlkProber;
+pub struct VirtioBlockProber;
 
-impl VirtioBlkProber {
-    pub fn new() -> VirtioBlkProber {
-        VirtioBlkProber {}
+impl VirtioBlockProber {
+    pub fn new() -> VirtioBlockProber {
+        VirtioBlockProber {}
     }
 }
 
-impl DeviceProber for VirtioBlkProber {
+impl DeviceProber for VirtioBlockProber {
     fn probe_pci(&self, pci_device: &kerla_api::driver::pci::PciDevice) {
         // Check if device is a block device 
         if pci_device.config().vendor_id() == 0x1af4 
         && pci_device.config().device_id() != 0x1042 {
             return;
         }
-        trace!("virtio-blk: found the device (over PCI");
-        let device = match VirtioPci::probe_pci(pci_device, VirtioBlk::new) {
+        trace!("virtio-block: found the device (over PCI");
+        let device = match VirtioPci::probe_pci(pci_device, VirtioBlock::new) {
             Ok(device) => Arc::new(SpinLock::new(device)),
             Err(VirtioAttachError::InvalidVendorId) => {
-                // not a virtio-blk device 
+                // not a virtio-block device 
                 return;
             }
             Err(err) => {
-                warn!("Failed to attach a virtio-blk: {:?}", err);
+                warn!("Failed to attach a virtio-block: {:?}", err);
                 return;
             }
         };
 
-        register_block_driver(Box::new(VirtioBlkDriver::new(device.clone())))
+        register_block_driver(Box::new(VirtioBlockDriver::new(device.clone())))
         
     }
 
@@ -213,26 +213,26 @@ impl DeviceProber for VirtioBlkProber {
             return;
         }
 
-        trace!("virtio-blk: found the device (over MMIO)");
+        trace!("virtio-block: found the device (over MMIO)");
 
         let transport = Arc::new(VirtioMmio::new(mmio_device.mmio_base));
-        let device = match VirtioBlk::new(transport) {
+        let device = match VirtioBlock::new(transport) {
             Ok(device) => Arc::new(SpinLock::new(device)),
             Err(VirtioAttachError::InvalidVendorId) => {
-                // Not a virtio-blk device.
+                // Not a virtio-block device.
                 return;
             }
             Err(err) => {
-                warn!("failed to attach a virtio-blk: {:?}", err);
+                warn!("failed to attach a virtio-block: {:?}", err);
                 return;
             }
         };
 
-        register_block_driver(Box::new(VirtioBlkDriver::new(device.clone())))
+        register_block_driver(Box::new(VirtioBlockDriver::new(device.clone())))
 
     }
 }
 
 pub fn init() {
-    register_driver_prober(Box::new(VirtioBlkProber::new()));
+    register_driver_prober(Box::new(VirtioBlockProber::new()));
 }
