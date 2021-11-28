@@ -6,9 +6,10 @@ extern crate kerla_api;
 
 use core::mem::size_of;
 
+use alloc::boxed::Box;
 use kerla_api::address::VAddr;
-use kerla_api::driver::{DeviceProber, Driver};
-use kerla_api::driver::block::BlockDriver;
+use kerla_api::driver::{DeviceProber, Driver, register_driver_prober};
+use kerla_api::driver::block::{BlockDriver, register_block_driver};
 use kerla_api::{info, warn};
 use kerla_api::mm::{alloc_pages, AllocPageFlags};
 use kerla_api::arch::PAGE_SIZE;
@@ -92,8 +93,7 @@ impl VirtioBlk {
             virtio: virtio,
             buffer: buffer
         
-        }
-        )
+        })
 
 
     }
@@ -163,6 +163,12 @@ impl BlockDriver for VirtioBlkDriver {
 
 pub struct VirtioBlkProber;
 
+impl VirtioBlkProber {
+    pub fn new() -> VirtioBlkProber {
+        VirtioBlkProber {}
+    }
+}
+
 impl DeviceProber for VirtioBlkProber {
     fn probe_pci(&self, pci_device: &kerla_api::driver::pci::PciDevice) {
         // Check if device is a block device 
@@ -182,6 +188,8 @@ impl DeviceProber for VirtioBlkProber {
                 return;
             }
         };
+
+        register_block_driver(Box::new(VirtioBlkDriver::new(device.clone())))
         
     }
 
@@ -220,9 +228,11 @@ impl DeviceProber for VirtioBlkProber {
             }
         };
 
+        register_block_driver(Box::new(VirtioBlkDriver::new(device.clone())))
+
     }
 }
 
 pub fn init() {
-
+    register_driver_prober(Box::new(VirtioBlkProber::new()));
 }

@@ -4,10 +4,14 @@ use kerla_runtime::bootinfo::VirtioMmioDevice;
 use kerla_utils::static_cell::StaticCell;
 
 use crate::driver::{self, net::EthernetDriver};
+use crate::driver::block::BlockDriver;
 
 pub trait KernelOps: Sync {
     fn receive_etherframe_packet(&self, pkt: &[u8]);
     fn register_ethernet_driver(&self, driver: Box<dyn EthernetDriver>);
+
+    fn register_block_driver(&self, driver: Box<dyn BlockDriver>);
+
     fn attach_irq(&self, irq: u8, f: Box<dyn FnMut() + Send + Sync + 'static>);
 }
 
@@ -17,6 +21,9 @@ struct NopOps;
 
 impl KernelOps for NopOps {
     fn attach_irq(&self, _irq: u8, _f: Box<dyn FnMut() + Send + Sync + 'static>) {}
+
+    fn register_block_driver(&self, driver: Box<dyn BlockDriver>) {}
+    
     fn register_ethernet_driver(&self, _driver: Box<dyn EthernetDriver>) {}
     fn receive_etherframe_packet(&self, _pkt: &[u8]) {}
 }

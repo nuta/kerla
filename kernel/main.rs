@@ -59,7 +59,7 @@ use crate::{
 };
 use alloc::{boxed::Box, sync::Arc};
 use interrupt::attach_irq;
-use kerla_api::kernel_ops::KernelOps;
+use kerla_api::{driver::block::register_block_driver, kernel_ops::KernelOps};
 use kerla_runtime::{
     arch::{idle, PageFaultReason, PtRegs},
     bootinfo::BootInfo,
@@ -135,6 +135,10 @@ impl KernelOps for ApiOps {
         register_ethernet_driver(driver)
     }
 
+    fn register_block_driver(&self, driver: Box<dyn kerla_api::driver::block::BlockDriver>) {
+        register_block_driver(driver)
+    }
+
     fn receive_etherframe_packet(&self, pkt: &[u8]) {
         net::receive_ethernet_frame(pkt);
     }
@@ -180,6 +184,10 @@ pub fn boot_kernel(#[cfg_attr(debug_assertions, allow(unused))] bootinfo: &BootI
     info!("kext: Loading virtio_net...");
     virtio_net::init();
     profiler.lap_time("virtio_net init");
+
+    info!("kext: Loading virtio_blk...");
+    virtio_blk::init();
+    profiler.lap_time("virtio_blk init");
 
     // Initialize device drivers.
     kerla_api::kernel_ops::init_drivers(bootinfo.pci_enabled, &bootinfo.virtio_mmio_devices);
