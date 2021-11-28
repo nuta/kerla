@@ -200,8 +200,8 @@ impl DeviceProber for VirtioBlkProber {
             return;
         }
 
-        // It looks like a virtio device. Check if the device is a network card.
-        if device_id != 1 {
+        // Device is a block device
+        if device_id != 2 {
             return;
         }
 
