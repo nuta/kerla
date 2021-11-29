@@ -1,8 +1,6 @@
-use core::mem::size_of;
 use crate::ext2::Ext2SuperBlock;
-use crate::SuperBlock;
 use crate::error::{FileSysError, Result};
-use crate::endian_tool::*;
+use postcard::from_bytes;
 
 /// read super block from disk
 /// this function is flawed, it should return kernel::SuperBlock,
@@ -20,15 +18,7 @@ pub fn ext2_fill_super(data: &[u8]) -> Result<Ext2SuperBlock> {
     if data.len() < 2048 {
         return Err(FileSysError::EOF);
     }
-    let mut super_block_data = &data[1024..2048];
-    if let Some(super_block) = Ext2SuperBlock::by_binary(&mut super_block_data) {
-        return Ok(super_block);
-    }
-
-    Err(FileSysError::ENOMEM)
-}
-
-/// get super block
-pub fn get_sb_block(data: &[u8]) -> i64 {
-    todo!()
+    let super_block_data = &data[1024..2048];
+    let sb: Ext2SuperBlock = from_bytes(super_block_data).unwrap();
+    Ok(sb)
 }
