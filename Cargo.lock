@@ -198,6 +198,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "ext2_fs_fuse"
+version = "0.1.0"
+dependencies = [
+ "ext2_fs",
+]
+
+[[package]]
 name = "getrandom"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"

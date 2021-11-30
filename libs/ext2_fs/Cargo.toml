@@ -5,7 +5,7 @@ edition = "2021"
 
 [lib]
 name = "ext2_fs"
-path = "lib.rs"
+path = "src/lib.rs"
 
 [features]
 no_std = []

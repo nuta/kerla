@@ -1,4 +1,4 @@
-use crate::ext2::Ext2SuperBlock;
+use crate::layout::Ext2SuperBlock;
 use crate::error::{FileSysError, Result};
 use postcard::from_bytes;
 
@@ -16,7 +16,7 @@ pub fn ext2_fill_super(data: &[u8]) -> Result<Ext2SuperBlock> {
     //    of the super block according to the block size calculated in step 2.
     //    store in the memory super block struct allocated in step 1.
     if data.len() < 2048 {
-        return Err(FileSysError::EOF);
+        return Err(FileSysError::Eof);
     }
     let super_block_data = &data[1024..2048];
     let sb: Ext2SuperBlock = from_bytes(super_block_data).unwrap();

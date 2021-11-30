@@ -6,9 +6,6 @@ big_array! {
     64, 190
 }
 
-/// default block size
-pub const BLOCK_SIZE:u32 = 1024;
-
 /// Structure of the super block
 /// disk layout
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
