@@ -20,10 +20,9 @@ use virtio::transports::{virtio_mmio::VirtioMmio, virtio_pci::VirtioPci, VirtioT
 use kerla_api::address::VAddr;
 use kerla_api::arch::PAGE_SIZE;
 use kerla_api::driver::{
-    Driver,
     attach_irq,
     net::{register_ethernet_driver, EthernetDriver, MacAddress},
-    DeviceProber,
+    DeviceProber, Driver,
 };
 use kerla_api::driver::{pci::PciDevice, VirtioMmioDevice};
 use kerla_api::mm::{alloc_pages, AllocPageFlags};
@@ -246,9 +245,13 @@ impl VirtioNetProber {
 impl DeviceProber for VirtioNetProber {
     fn probe_pci(&self, pci_device: &PciDevice) {
         // Check if the device is a network card ("4.1.2 PCI Device Discovery").
-        if pci_device.config().vendor_id() == 0x1af4
-            && pci_device.config().device_id() != 0x1040 + 1
-        {
+        if pci_device.config().vendor_id() != 0x1af4 {
+            return;
+        }
+
+        // Check if the it's a legacy or traditional device.
+        let device_id = pci_device.config().device_id();
+        if device_id != 0x1040 + 1 && device_id != 0x1000 {
             return;
         }
 
