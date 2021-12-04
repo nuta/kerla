@@ -389,6 +389,10 @@ impl<'a> SyscallHandler<'a> {
                 a3 as c_int,
                 a4 as c_int,
             ),
+            14 => {
+                // FIXME:
+                Ok(0)
+            }
             _ => {
                 debug_warn!(
                     "unimplemented system call: {} (n={})",
