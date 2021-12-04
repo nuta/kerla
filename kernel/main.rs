@@ -189,7 +189,7 @@ pub fn boot_kernel(#[cfg_attr(debug_assertions, allow(unused))] bootinfo: &BootI
     profiler.lap_time("drivers init");
 
     // Connect to the network.
-    net::init_and_start_dhcp_discover();
+    net::init_and_start_dhcp_discover(bootinfo);
     profiler.lap_time("net init");
 
     // Prepare the root file system.

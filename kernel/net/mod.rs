@@ -8,6 +8,7 @@ use alloc::vec::Vec;
 use atomic_refcell::AtomicRefCell;
 use crossbeam::queue::ArrayQueue;
 use kerla_api::driver::net::EthernetDriver;
+use kerla_runtime::bootinfo::BootInfo;
 use kerla_runtime::spinlock::SpinLock;
 use kerla_utils::once::Once;
 use smoltcp::wire::{self, EthernetAddress, IpCidr};
@@ -60,34 +61,37 @@ impl From<MonotonicClock> for Instant {
 pub(self) static SOCKETS: Once<SpinLock<SocketSet>> = Once::new();
 static INTERFACE: Once<SpinLock<EthernetInterface<OurDevice>>> = Once::new();
 static DHCP_CLIENT: Once<SpinLock<Dhcpv4Client>> = Once::new();
+static DHCP_ENABLED: Once<bool> = Once::new();
 pub(self) static SOCKET_WAIT_QUEUE: Once<WaitQueue> = Once::new();
 
 pub fn process_packets() {
     let mut sockets = SOCKETS.lock();
     let mut iface = INTERFACE.lock();
-    let mut dhcp = DHCP_CLIENT.lock();
 
     let timestamp = read_monotonic_clock().into();
     loop {
-        if let Some(config) = dhcp
-            .poll(&mut iface, &mut sockets, timestamp)
-            .unwrap_or_else(|e| {
-                trace!("DHCP: {:?}", e);
-                None
-            })
-        {
-            if let Some(cidr) = config.address {
-                iface.update_ip_addrs(|addrs| {
-                    if let Some(addr) = addrs.iter_mut().next() {
-                        *addr = IpCidr::Ipv4(cidr);
-                    }
-                });
-                info!("DHCP: got a IPv4 address: {}", cidr);
-            }
+        if *DHCP_ENABLED {
+            let mut dhcp = DHCP_CLIENT.lock();
+            if let Some(config) = dhcp
+                .poll(&mut iface, &mut sockets, timestamp)
+                .unwrap_or_else(|e| {
+                    trace!("DHCP: {:?}", e);
+                    None
+                })
+            {
+                if let Some(cidr) = config.address {
+                    iface.update_ip_addrs(|addrs| {
+                        if let Some(addr) = addrs.iter_mut().next() {
+                            *addr = IpCidr::Ipv4(cidr);
+                        }
+                    });
+                    info!("DHCP: got a IPv4 address: {}", cidr);
+                }
 
-            config
-                .router
-                .map(|router| iface.routes_mut().add_default_ipv4_route(router).unwrap());
+                config
+                    .router
+                    .map(|router| iface.routes_mut().add_default_ipv4_route(router).unwrap());
+            }
         }
 
         match iface.poll(&mut sockets, timestamp) {
@@ -101,10 +105,13 @@ pub fn process_packets() {
         }
     }
 
-    // TODO: timeout
-    let mut _timeout = dhcp.next_poll(timestamp);
+    if *DHCP_ENABLED {
+        let dhcp = DHCP_CLIENT.lock();
+        dhcp.next_poll(timestamp);
+    }
+
     if let Some(sockets_timeout) = iface.poll_delay(&sockets, timestamp) {
-        _timeout = sockets_timeout;
+        // TODO: Use timeout
     }
 
     // sockets will be locked again in poll_tcp_sockets().
@@ -183,12 +190,58 @@ pub fn use_ethernet_driver<F: FnOnce(&Box<dyn EthernetDriver>) -> R, R>(f: F) ->
     f(driver.as_ref().expect("no ethernet drivers"))
 }
 
-pub fn init_and_start_dhcp_discover() {
+#[derive(Debug)]
+struct IPv4AddrParseError;
+
+/// Parses an IPv4 address (e.g. "10.123.123.123").
+fn parse_ipv4_addr(addr: &str) -> Result<wire::Ipv4Address, IPv4AddrParseError> {
+    let mut iter = addr.splitn(4, '.');
+    let mut octets = [0; 4];
+    for i in 0..4 {
+        octets[i] = iter
+            .next()
+            .and_then(|s| s.parse().ok())
+            .ok_or(IPv4AddrParseError)?;
+    }
+
+    Ok(wire::Ipv4Address::from_bytes(&octets))
+}
+
+/// Parses an IPv4 address with the prefix length (e.g. "10.123.123.123/24").
+fn parse_ipv4_addr_with_prefix_len(
+    addr: &str,
+) -> Result<(wire::Ipv4Address, u8), IPv4AddrParseError> {
+    let mut iter = addr.splitn(2, '/');
+    let ip = parse_ipv4_addr(iter.next().unwrap())?;
+    let prefix_len = iter
+        .next()
+        .ok_or(IPv4AddrParseError)?
+        .parse()
+        .map_err(|_| IPv4AddrParseError)?;
+
+    Ok((ip, prefix_len))
+}
+
+pub fn init_and_start_dhcp_discover(bootinfo: &BootInfo) {
+    let ip_addrs = match &bootinfo.ip4 {
+        Some(ip4_str) => {
+            let (ip4, prefix_len) = parse_ipv4_addr_with_prefix_len(&ip4_str)
+                .expect("bootinfo.ip4 should be formed as 10.0.0.1/24");
+            [IpCidr::new(ip4.into(), prefix_len)]
+        }
+        None => [IpCidr::new(wire::Ipv4Address::UNSPECIFIED.into(), 0)],
+    };
+
+    let mut routes = Routes::new(BTreeMap::new());
+    if let Some(gateway_ip4_str) = &bootinfo.gateway_ip4 {
+        let gateway_ip4 = parse_ipv4_addr(gateway_ip4_str)
+            .expect("bootinfo.gateway_ip4 should be formed as 10.0.0.1");
+        routes.add_default_ipv4_route(gateway_ip4.into()).unwrap();
+    };
+
     let neighbor_cache = NeighborCache::new(BTreeMap::new());
     let mac_addr = use_ethernet_driver(|driver| driver.mac_addr());
     let ethernet_addr = EthernetAddress(mac_addr.as_array());
-    let ip_addrs = [IpCidr::new(wire::Ipv4Address::UNSPECIFIED.into(), 0)];
-    let routes = Routes::new(BTreeMap::new());
     let iface = EthernetInterfaceBuilder::new(OurDevice)
         .ethernet_addr(ethernet_addr)
         .neighbor_cache(neighbor_cache)
@@ -197,20 +250,24 @@ pub fn init_and_start_dhcp_discover() {
         .finalize();
 
     let mut sockets = SocketSet::new(vec![]);
-    let dhcp_rx_buffer = RawSocketBuffer::new([RawPacketMetadata::EMPTY; 4], vec![0; 2048]);
-    let dhcp_tx_buffer = RawSocketBuffer::new([RawPacketMetadata::EMPTY; 4], vec![0; 2048]);
-    let dhcp = Dhcpv4Client::new(
-        &mut sockets,
-        dhcp_rx_buffer,
-        dhcp_tx_buffer,
-        read_monotonic_clock().into(),
-    );
+
+    DHCP_ENABLED.init(|| bootinfo.dhcp_enabled);
+    if *DHCP_ENABLED {
+        let dhcp_rx_buffer = RawSocketBuffer::new([RawPacketMetadata::EMPTY; 4], vec![0; 2048]);
+        let dhcp_tx_buffer = RawSocketBuffer::new([RawPacketMetadata::EMPTY; 4], vec![0; 2048]);
+        let dhcp = Dhcpv4Client::new(
+            &mut sockets,
+            dhcp_rx_buffer,
+            dhcp_tx_buffer,
+            read_monotonic_clock().into(),
+        );
+        DHCP_CLIENT.init(|| SpinLock::new(dhcp));
+    }
 
     RX_PACKET_QUEUE.init(|| SpinLock::new(ArrayQueue::new(128)));
     SOCKET_WAIT_QUEUE.init(WaitQueue::new);
     INTERFACE.init(|| SpinLock::new(iface));
     SOCKETS.init(|| SpinLock::new(sockets));
-    DHCP_CLIENT.init(|| SpinLock::new(dhcp));
 
     process_packets();
 }

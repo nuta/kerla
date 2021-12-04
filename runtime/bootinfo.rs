@@ -18,4 +18,7 @@ pub struct BootInfo {
     pub log_filter: ArrayString<64>,
     pub pci_enabled: bool,
     pub use_second_serialport: bool,
+    pub dhcp_enabled: bool,
+    pub ip4: Option<ArrayString<18>>,
+    pub gateway_ip4: Option<ArrayString<15>>,
 }

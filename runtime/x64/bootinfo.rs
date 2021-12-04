@@ -129,6 +129,9 @@ struct Cmdline {
     pub virtio_mmio_devices: ArrayVec<VirtioMmioDevice, 4>,
     pub log_filter: ArrayString<64>,
     pub use_second_serialport: bool,
+    pub dhcp_enabled: bool,
+    pub ip4: Option<ArrayString<18>>,
+    pub gateway_ip4: Option<ArrayString<15>>,
 }
 
 impl Cmdline {
@@ -140,8 +143,15 @@ impl Cmdline {
         let mut virtio_mmio_devices = ArrayVec::new();
         let mut log_filter = ArrayString::new();
         let mut use_second_serialport = false;
+        let mut dhcp_enabled = true;
+        let mut ip4 = None;
+        let mut gateway_ip4 = None;
         if !s.is_empty() {
             for config in s.split(' ') {
+                if config.is_empty() {
+                    continue;
+                }
+
                 let mut words = config.splitn(2, '=');
                 match (words.next(), words.next()) {
                     (Some("pci"), Some("off")) => {
@@ -176,6 +186,24 @@ impl Cmdline {
                             irq,
                         })
                     }
+                    (Some("dhcp"), Some("off")) => {
+                        warn!("bootinfo: DHCP disabled");
+                        dhcp_enabled = false;
+                    }
+                    (Some("ip4"), Some(value)) => {
+                        let mut s = ArrayString::new();
+                        if s.try_push_str(value).is_err() {
+                            warn!("bootinfo: ip4 is too long");
+                        }
+                        ip4 = Some(s);
+                    }
+                    (Some("gateway_ip4"), Some(value)) => {
+                        let mut s = ArrayString::new();
+                        if s.try_push_str(value).is_err() {
+                            warn!("bootinfo: gateway_ip4 is too long");
+                        }
+                        gateway_ip4 = Some(s);
+                    }
                     (Some(path), None) if path.starts_with('/') => {
                         // QEMU appends a kernel image path. Just ignore it.
                     }
@@ -191,6 +219,9 @@ impl Cmdline {
             virtio_mmio_devices,
             log_filter,
             use_second_serialport,
+            dhcp_enabled,
+            ip4,
+            gateway_ip4,
         }
     }
 }
@@ -290,6 +321,9 @@ unsafe fn parse_multiboot2_info(header: &Multiboot2InfoHeader) -> BootInfo {
         virtio_mmio_devices: cmdline.virtio_mmio_devices,
         log_filter: cmdline.log_filter,
         use_second_serialport: cmdline.use_second_serialport,
+        dhcp_enabled: cmdline.dhcp_enabled,
+        ip4: cmdline.ip4,
+        gateway_ip4: cmdline.gateway_ip4,
     }
 }
 
@@ -331,6 +365,9 @@ unsafe fn parse_multiboot_legacy_info(info: &MultibootLegacyInfo) -> BootInfo {
         virtio_mmio_devices: cmdline.virtio_mmio_devices,
         log_filter: cmdline.log_filter,
         use_second_serialport: cmdline.use_second_serialport,
+        dhcp_enabled: cmdline.dhcp_enabled,
+        ip4: cmdline.ip4,
+        gateway_ip4: cmdline.gateway_ip4,
     }
 }
 
@@ -362,6 +399,9 @@ unsafe fn parse_linux_boot_params(boot_params: PAddr) -> BootInfo {
         virtio_mmio_devices: cmdline.virtio_mmio_devices,
         log_filter: cmdline.log_filter,
         use_second_serialport: cmdline.use_second_serialport,
+        dhcp_enabled: cmdline.dhcp_enabled,
+        ip4: cmdline.ip4,
+        gateway_ip4: cmdline.gateway_ip4,
     }
 }
 
