@@ -11,6 +11,8 @@ use memoffset::offset_of;
 
 use super::{VirtioAttachError, VirtioTransport};
 
+const VIRTIO_F_VERSION_1: u64 = 1 << 32;
+
 const VIRTIO_PCI_CAP_COMMON_CFG: u8 = 1;
 const VIRTIO_PCI_CAP_NOTIFY_CFG: u8 = 2;
 const VIRTIO_PCI_CAP_ISR_CFG: u8 = 3;
@@ -169,7 +171,9 @@ impl VirtioTransport for VirtioModernPci {
         }
     }
 
-    fn write_driver_features(&self, value: u64) {
+    fn write_driver_features(&self, mut value: u64) {
+        value |= VIRTIO_F_VERSION_1;
+
         unsafe {
             self.common_cfg
                 .add(offset_of!(CommonCfg, driver_feature_select))

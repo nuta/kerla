@@ -32,6 +32,7 @@ use kerla_api::sync::SpinLock;
 use kerla_utils::alignment::align_up;
 
 const VIRTIO_NET_F_MAC: u64 = 1 << 5;
+const VIRTIO_NET_F_MRG_RXBUF: u64 = 1 << 15;
 
 const VIRTIO_NET_QUEUE_RX: u16 = 0;
 const VIRTIO_NET_QUEUE_TX: u16 = 1;
@@ -71,7 +72,10 @@ pub struct VirtioNet {
 impl VirtioNet {
     pub fn new(transport: Arc<dyn VirtioTransport>) -> Result<VirtioNet, VirtioAttachError> {
         let mut virtio = Virtio::new(transport);
-        virtio.initialize(VIRTIO_NET_F_MAC, 2 /* RX and TX queues. */)?;
+        virtio.initialize(
+            VIRTIO_NET_F_MAC | VIRTIO_NET_F_MRG_RXBUF,
+            2, /* RX and TX queues. */
+        )?;
 
         // Read the MAC address.
         let mut mac_addr = [0; 6];
