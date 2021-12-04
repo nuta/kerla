@@ -172,10 +172,9 @@ impl<'a> Device<'a> for OurDevice {
 static ETHERNET_DRIVER: AtomicRefCell<Option<Box<dyn EthernetDriver>>> = AtomicRefCell::new(None);
 
 pub fn register_ethernet_driver(driver: Box<dyn EthernetDriver>) {
-    assert!(
-        ETHERNET_DRIVER.borrow().is_none(),
-        "multiple net drivers are not supported"
-    );
+    if !ETHERNET_DRIVER.borrow().is_none() {
+        warn!("multiple net drivers are not supported");
+    }
     *ETHERNET_DRIVER.borrow_mut() = Some(driver);
 }
 

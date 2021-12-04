@@ -10,7 +10,12 @@ use kerla_runtime::{
     arch::PAGE_SIZE,
     page_allocator::{alloc_pages, AllocPageFlags},
 };
+use kerla_utils::once::Once;
+use x86::cpuid::CpuId;
 use x86::current::segmentation::wrfsbase;
+
+/// Contains the initial XSAVE state for newly created processes.
+static INITIAL_XSAVE_AREA: Once<VAddr> = Once::new();
 
 #[repr(C, packed)]
 pub struct Process {
@@ -34,6 +39,13 @@ unsafe fn push_stack(mut rsp: *mut u64, value: u64) -> *mut u64 {
     rsp = rsp.sub(1);
     rsp.write(value);
     rsp
+}
+
+fn prepare_xsave_area() -> Result<VAddr> {
+    // TODO: Check the size of XSAVE area.
+    let buf = alloc_pages(1, AllocPageFlags::KERNEL)?.as_vaddr();
+    buf.write_bytes(unsafe { core::slice::from_raw_parts(INITIAL_XSAVE_AREA.as_ptr(), PAGE_SIZE) });
+    Ok(buf)
 }
 
 impl Process {
@@ -81,10 +93,7 @@ impl Process {
         let syscall_stack = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
             .expect("failed to allocate kernel stack")
             .as_vaddr();
-        // TODO: Check the size of XSAVE area.
-        let xsave_area = alloc_pages(1, AllocPageFlags::KERNEL)
-            .expect("failed to allocate xsave area")
-            .as_vaddr();
+        let xsave_area = prepare_xsave_area().expect("failed to allocate xsave area");
 
         let rsp = unsafe {
             let mut rsp: *mut u64 = kernel_sp.as_mut_ptr();
@@ -136,11 +145,7 @@ impl Process {
     }
 
     pub fn fork(&self, frame: &PtRegs) -> Result<Process> {
-        // TODO: Check the size of XSAVE area.
-        let xsave_area = alloc_pages(1, AllocPageFlags::KERNEL)
-            .expect("failed to allocate xsave area")
-            .as_vaddr();
-
+        let xsave_area = prepare_xsave_area()?;
         let rsp = unsafe {
             let kernel_sp = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
                 .expect("failed allocate kernel stack");
@@ -264,6 +269,14 @@ pub fn switch_thread(prev: &Process, next: &Process) {
             _xsave64(xsave_area.as_mut_ptr(), xsave_mask);
         }
         if let Some(xsave_area) = next.xsave_area.as_ref() {
+            trace!(
+                "xrstor: {:x}, XSAVEC={}",
+                xsave_area.value(),
+                CpuId::new()
+                    .get_extended_state_info()
+                    .expect("get cpuid ext")
+                    .has_xsavec()
+            );
             _xrstor64(xsave_area.as_mut_ptr(), xsave_mask);
         }
     }
@@ -274,5 +287,20 @@ pub fn switch_thread(prev: &Process, next: &Process) {
     unsafe {
         wrfsbase(next.fsbase.load());
         do_switch_thread(prev.rsp.get(), next.rsp.get());
+    }
+}
+
+pub fn init() {
+    INITIAL_XSAVE_AREA.init(|| {
+        alloc_pages(1, AllocPageFlags::KERNEL)
+            .expect("failed to allocate initial xsave area")
+            .as_vaddr()
+    });
+
+    // FIXME:
+    unsafe {
+        use core::arch::x86_64::_xsave64;
+        let xsave_mask = x86::controlregs::xcr0().bits();
+        _xsave64(INITIAL_XSAVE_AREA.as_mut_ptr(), xsave_mask);
     }
 }

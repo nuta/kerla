@@ -154,7 +154,8 @@ pub fn boot_kernel(#[cfg_attr(debug_assertions, allow(unused))] bootinfo: &BootI
 
     kerla_runtime::set_handler(&Handler);
 
-    // Initialize memory allocators first.
+    arch::init();
+    profiler.lap_time("arch init");
     interrupt::init();
     profiler.lap_time("global interrupt init");
 

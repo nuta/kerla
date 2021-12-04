@@ -12,3 +12,7 @@ pub const USER_STACK_TOP: UserVAddr = USER_VALLOC_BASE;
 
 pub use arch_prctl::arch_prctl;
 pub use process::{switch_thread, Process};
+
+pub fn init() {
+    process::init();
+}

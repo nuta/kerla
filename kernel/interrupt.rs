@@ -24,15 +24,15 @@ pub fn init() {
 
 pub fn attach_irq(irq: u8, f: Box<dyn FnMut() + Send + Sync + 'static>) {
     let mut attached_irq_map = ATTACHED_IRQS.lock();
-    match attached_irq_map.get(irq as usize) {
-        Some(true) => panic!("handler for IRQ #{} is already attached", irq),
-        Some(false) => {
-            attached_irq_map.set(irq as usize);
-            IRQ_HANDLERS.lock()[irq as usize].write(f);
-            enable_irq(irq);
-        }
-        None => panic!("IRQ #{} is out of bound", irq),
-    }
+    // attached_irq_map.set(irq as usize);
+    IRQ_HANDLERS.lock()[irq as usize].write(f);
+    enable_irq(irq);
+    // match attached_irq_map.get(irq as usize) {
+    //         Some(true) => panic!("handler for IRQ #{} is already attached", irq),
+    //         Some(false) => {
+    //         }
+    //         None => panic!("IRQ #{} is out of bound", irq),
+    //     }
 }
 
 pub fn handle_irq(irq: u8) {
