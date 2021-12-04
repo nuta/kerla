@@ -110,7 +110,7 @@ pub fn process_packets() {
         dhcp.next_poll(timestamp);
     }
 
-    if let Some(sockets_timeout) = iface.poll_delay(&sockets, timestamp) {
+    if let Some(_timeout) = iface.poll_delay(&sockets, timestamp) {
         // TODO: Use timeout
     }
 
@@ -197,8 +197,8 @@ struct IPv4AddrParseError;
 fn parse_ipv4_addr(addr: &str) -> Result<wire::Ipv4Address, IPv4AddrParseError> {
     let mut iter = addr.splitn(4, '.');
     let mut octets = [0; 4];
-    for i in 0..4 {
-        octets[i] = iter
+    for octet in &mut octets {
+        *octet = iter
             .next()
             .and_then(|s| s.parse().ok())
             .ok_or(IPv4AddrParseError)?;
@@ -225,8 +225,9 @@ fn parse_ipv4_addr_with_prefix_len(
 pub fn init_and_start_dhcp_discover(bootinfo: &BootInfo) {
     let ip_addrs = match &bootinfo.ip4 {
         Some(ip4_str) => {
-            let (ip4, prefix_len) = parse_ipv4_addr_with_prefix_len(&ip4_str)
+            let (ip4, prefix_len) = parse_ipv4_addr_with_prefix_len(ip4_str)
                 .expect("bootinfo.ip4 should be formed as 10.0.0.1/24");
+            info!("net: using a static IPv4 address: {}/{}", ip4, prefix_len);
             [IpCidr::new(ip4.into(), prefix_len)]
         }
         None => [IpCidr::new(wire::Ipv4Address::UNSPECIFIED.into(), 0)],
@@ -236,7 +237,8 @@ pub fn init_and_start_dhcp_discover(bootinfo: &BootInfo) {
     if let Some(gateway_ip4_str) = &bootinfo.gateway_ip4 {
         let gateway_ip4 = parse_ipv4_addr(gateway_ip4_str)
             .expect("bootinfo.gateway_ip4 should be formed as 10.0.0.1");
-        routes.add_default_ipv4_route(gateway_ip4.into()).unwrap();
+        info!("net: using a static gateway IPv4 address: {}", gateway_ip4);
+        routes.add_default_ipv4_route(gateway_ip4).unwrap();
     };
 
     let neighbor_cache = NeighborCache::new(BTreeMap::new());
