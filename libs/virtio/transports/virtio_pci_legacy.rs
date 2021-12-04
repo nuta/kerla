@@ -81,8 +81,8 @@ impl VirtioTransport for VirtioLegacyPci {
         self.port_base.read16(REG_QUEUE_SIZE)
     }
 
-    fn set_queue_size(&self, queue_size: u16) {
-        self.port_base.write16(REG_QUEUE_SIZE, queue_size);
+    fn set_queue_size(&self, _queue_size: u16) {
+        // Nothing to do for a legacy device.
     }
 
     fn notify_queue(&self, index: u16) {
