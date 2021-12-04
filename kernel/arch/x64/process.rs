@@ -43,8 +43,7 @@ unsafe fn push_stack(mut rsp: *mut u64, value: u64) -> *mut u64 {
 
 fn prepare_xsave_area() -> Result<VAddr> {
     // TODO: Check the size of XSAVE area.
-    let buf = alloc_pages(1, AllocPageFlags::KERNEL)?.as_vaddr();
-    buf.write_bytes(unsafe { core::slice::from_raw_parts(INITIAL_XSAVE_AREA.as_ptr(), PAGE_SIZE) });
+    let buf = alloc_pages(1, AllocPageFlags::KERNEL | AllocPageFlags::ZEROED)?.as_vaddr();
     Ok(buf)
 }
 
@@ -270,12 +269,18 @@ pub fn switch_thread(prev: &Process, next: &Process) {
         }
         if let Some(xsave_area) = next.xsave_area.as_ref() {
             trace!(
-                "xrstor: {:x}, XSAVEC={}",
+                "xrstor2: {:x}, XSAVEC={}",
                 xsave_area.value(),
                 CpuId::new()
                     .get_extended_state_info()
                     .expect("get cpuid ext")
-                    .has_xsavec()
+                    .has_xsavec(),
+            );
+            trace!(
+                "xstate_bv={:x}, xcomp_bv={:x}, xcr0={:x}",
+                *(xsave_area.as_ptr::<u8>().offset(512) as *const u64),
+                *(xsave_area.as_ptr::<u8>().offset(512 + 8) as *const u64),
+                xsave_mask
             );
             _xrstor64(xsave_area.as_mut_ptr(), xsave_mask);
         }
