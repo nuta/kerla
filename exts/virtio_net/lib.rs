@@ -14,8 +14,10 @@ use kerla_api::net::receive_ethernet_frame;
 use memoffset::offset_of;
 
 use virtio::device::{IsrStatus, Virtio, VirtqDescBuffer, VirtqUsedChain};
-use virtio::transports::virtio_pci::VirtioAttachError;
-use virtio::transports::{virtio_mmio::VirtioMmio, virtio_pci::VirtioPci, VirtioTransport};
+use virtio::transports::{
+    virtio_mmio::VirtioMmio, virtio_pci_legacy::VirtioLegacyPci,
+    virtio_pci_modern::VirtioModernPci, VirtioAttachError, VirtioTransport,
+};
 
 use kerla_api::address::VAddr;
 use kerla_api::arch::PAGE_SIZE;
@@ -256,18 +258,36 @@ impl DeviceProber for VirtioNetProber {
         }
 
         trace!("virtio-net: found the device (over PCI)");
-        let device = match VirtioPci::probe_pci(pci_device, VirtioNet::new) {
-            Ok(device) => Arc::new(SpinLock::new(device)),
+        let transport = match VirtioModernPci::probe_pci(pci_device) {
+            Ok(transport) => transport,
             Err(VirtioAttachError::InvalidVendorId) => {
                 // Not a virtio-net device.
                 return;
             }
             Err(err) => {
-                warn!("failed to attach a virtio-net: {:?}", err);
+                trace!("failed to attach a virtio-net as a modern device: {:?}, falling back to the legacy driver", err);
+                match VirtioLegacyPci::probe_pci(pci_device) {
+                    Ok(transport) => transport,
+                    Err(err) => {
+                        warn!(
+                            "failed to attach a virtio-net as a legacy device: {:?}",
+                            err
+                        );
+                        return;
+                    }
+                }
+            }
+        };
+
+        let virtio = match VirtioNet::new(transport) {
+            Ok(virtio) => virtio,
+            Err(err) => {
+                warn!("failed to initialize virtio-net: {:?}", err);
                 return;
             }
         };
 
+        let device = Arc::new(SpinLock::new(virtio));
         register_ethernet_driver(Box::new(VirtioNetDriver::new(device.clone())));
         attach_irq(pci_device.config().interrupt_line(), move || {
             device.lock().handle_irq();

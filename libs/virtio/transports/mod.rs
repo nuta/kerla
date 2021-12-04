@@ -3,7 +3,8 @@ use crate::device::IsrStatus;
 use kerla_api::address::PAddr;
 
 pub mod virtio_mmio;
-pub mod virtio_pci;
+pub mod virtio_pci_legacy;
+pub mod virtio_pci_modern;
 
 pub trait VirtioTransport: Send + Sync {
     fn read_device_config8(&self, offset: u16) -> u8;
@@ -20,4 +21,16 @@ pub trait VirtioTransport: Send + Sync {
     fn set_queue_desc_paddr(&self, paddr: PAddr);
     fn set_queue_driver_paddr(&self, paddr: PAddr);
     fn set_queue_device_paddr(&self, paddr: PAddr);
+}
+
+#[derive(Debug)]
+pub enum VirtioAttachError {
+    InvalidVendorId,
+    MissingFeatures,
+    MissingPciCommonCfg,
+    MissingPciDeviceCfg,
+    MissingPciIsrCfg,
+    MissingPciNotifyCfg,
+    FeatureNegotiationFailure,
+    NotSupportedBarType,
 }

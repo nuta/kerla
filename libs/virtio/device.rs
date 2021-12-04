@@ -11,9 +11,7 @@ use kerla_api::arch::PAGE_SIZE;
 use kerla_api::mm::{alloc_pages, AllocPageFlags};
 use kerla_utils::alignment::align_up;
 
-use crate::transports::virtio_pci::VirtioAttachError;
-
-use super::transports::VirtioTransport;
+use super::transports::{VirtioAttachError, VirtioTransport};
 
 const VIRTIO_STATUS_ACK: u8 = 1;
 const VIRTIO_STATUS_DRIVER: u8 = 2;
@@ -342,7 +340,7 @@ impl Virtio {
         mut features: u64,
         num_virtqueues: u16,
     ) -> Result<(), VirtioAttachError> {
-        features |= VIRTIO_F_VERSION_1;
+        // features |= VIRTIO_F_VERSION_1;
 
         // "3.1.1 Driver Requirements: Device Initialization"
         self.transport.write_device_status(0); // Reset the device.
