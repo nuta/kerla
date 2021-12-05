@@ -12,7 +12,6 @@ impl<const SZ: usize> BitMap<SZ> {
         BitMap(array)
     }
 
-    #[cfg(test)]
     pub fn as_slice(&self) -> &[u8] {
         &self.0
     }
@@ -51,6 +50,30 @@ impl<const SZ: usize> BitMap<SZ> {
 
         None
     }
+
+    pub fn assign(&mut self, rhs: [u8; SZ]) {
+        self.0 = rhs;
+    }
+
+    pub fn assign_or(&mut self, rhs: [u8; SZ]) {
+        let mut iter = rhs.into_iter();
+        for byte in &mut self.0 {
+            *byte |= iter.next().unwrap_or(0);
+        }
+    }
+
+    pub fn assign_material_nonimplication(&mut self, rhs: [u8; SZ]) {
+        let mut iter = rhs.into_iter();
+        for byte in &mut self.0 {
+            *byte &= !iter.next().unwrap_or(0);
+        }
+    }
+}
+
+impl<const SZ: usize> Clone for BitMap<SZ> {
+    fn clone(&self) -> Self {
+        BitMap(self.0)
+    }
 }
 
 #[cfg(all(test, not(feature = "no_std")))]
@@ -70,5 +93,19 @@ mod tests {
         assert_eq!(bitmap.get(11), Some(true));
         assert_eq!(bitmap.as_slice(), &[0b1111_1111, 0b1111_1001]);
         assert_eq!(bitmap.first_zero(), Some(9));
+    }
+
+    #[test]
+    fn or() {
+        let mut bitmap = BitMap::from_array([0b0100_0010, 0b1000_0001]);
+        bitmap.assign_or([0b0010_0100, 0b1010_0110]);
+        assert_eq!(bitmap.as_slice(), &[0b0110_0110, 0b1010_0111]);
+    }
+
+    #[test]
+    fn material_nonimplication() {
+        let mut bitmap = BitMap::from_array([0b0100_0010, 0b1000_0001]);
+        bitmap.assign_material_nonimplication([0b0110_0100, 0b1010_0110]);
+        assert_eq!(bitmap.as_slice(), &[0b0000_0010, 0b0000_0001]);
     }
 }

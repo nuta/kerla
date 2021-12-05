@@ -19,9 +19,9 @@ use crate::{
         switch, UserVAddr, JOIN_WAIT_QUEUE, SCHEDULER,
     },
     random::read_secure_random,
+    result::Errno,
     INITIAL_ROOT_FS,
 };
-
 use alloc::collections::BTreeMap;
 use alloc::sync::{Arc, Weak};
 use alloc::vec::Vec;
@@ -36,7 +36,9 @@ use kerla_runtime::{
     page_allocator::{alloc_pages, AllocPageFlags},
     spinlock::{SpinLock, SpinLockGuard},
 };
-use kerla_utils::alignment::align_up;
+use kerla_utils::{alignment::align_up, bitmap::BitMap};
+
+use super::signal::SigSet;
 
 type ProcessTable = BTreeMap<PId, Arc<Process>>;
 
@@ -104,6 +106,7 @@ pub struct Process {
     root_fs: Arc<SpinLock<RootFs>>,
     signals: SpinLock<SignalDelivery>,
     signaled_frame: AtomicCell<Option<PtRegs>>,
+    sigset: SpinLock<SigSet>,
 }
 
 impl Process {
@@ -126,6 +129,7 @@ impl Process {
             opened_files: SpinLock::new(OpenedFileTable::new()),
             signals: SpinLock::new(SignalDelivery::new()),
             signaled_frame: AtomicCell::new(None),
+            sigset: SpinLock::new(BitMap::zeroed()),
         });
 
         process_group.lock().add(Arc::downgrade(&proc));
@@ -187,6 +191,7 @@ impl Process {
             root_fs,
             signals: SpinLock::new(SignalDelivery::new()),
             signaled_frame: AtomicCell::new(None),
+            sigset: SpinLock::new(BitMap::zeroed()),
         });
 
         process_group.lock().add(Arc::downgrade(&process));
@@ -351,6 +356,38 @@ impl Process {
         self.signals.lock().is_pending()
     }
 
+    /// Sets signal mask
+    pub fn rt_sigprocmask(
+        &self,
+        how: usize,
+        set: Option<UserVAddr>,
+        oldset: Option<UserVAddr>,
+        _length: usize,
+    ) -> Result<isize> {
+        let mut sigset = self.sigset.lock();
+
+        if let Some(old) = oldset {
+            if let Err(_) = old.write_bytes(sigset.as_slice()) {
+                return Err(Error::new(Errno::EFAULT));
+            }
+        }
+
+        if let Some(new) = set {
+            if let Ok(new_set) = new.read::<[u8; 128]>() {
+                match how {
+                    0 => sigset.assign_or(new_set),
+                    1 => sigset.assign_material_nonimplication(new_set),
+                    2 => sigset.assign(new_set),
+                    _ => return Err(Error::new(Errno::EINVAL)),
+                }
+            } else {
+                return Err(Error::new(Errno::EFAULT));
+            }
+        }
+
+        Ok(0)
+    }
+
     /// Tries to delivering a pending signal to the current process.
     ///
     /// If there's a pending signal, it may modify `frame` (e.g. user return
@@ -433,6 +470,7 @@ impl Process {
         let vm = parent.vm().as_ref().unwrap().lock().fork()?;
         let opened_files = parent.opened_files().lock().fork();
         let process_group = parent.process_group();
+        let sig_set = parent.sigset.lock();
 
         let child = Arc::new(Process {
             process_group: AtomicRefCell::new(Arc::downgrade(&process_group)),
@@ -447,6 +485,7 @@ impl Process {
             arch,
             signals: SpinLock::new(SignalDelivery::new()),
             signaled_frame: AtomicCell::new(None),
+            sigset: SpinLock::new(sig_set.clone()),
         });
 
         process_group.lock().add(Arc::downgrade(&child));
