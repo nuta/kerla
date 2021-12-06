@@ -6,7 +6,7 @@ use crate::error::Result;
 /// ext2 will exec it to do block buffer manager
 pub trait BlockDevice : Send + Sync + Any {
     // read block by block_id
-    fn read_block(&mut self, block_id: usize, buf: &mut [u8]) -> Result<usize>;
+    fn read_block(&self, block_id: usize, buf: &mut [u8]) -> Result<usize>;
     // write block by block_id
-    fn write_block(&mut self, block_id: usize, buf: &[u8]) -> Result<usize>;
+    fn write_block(&self, block_id: usize, buf: &[u8]) -> Result<usize>;
 }

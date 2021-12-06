@@ -11,7 +11,3 @@ path = "src/lib.rs"
 no_std = []
 
 [dependencies]
-serde = { version = "1.0", default-features = false, features = ["derive"] }
-postcard = "0.7.2"
-serde-big-array = "0.3.2"
-heapless = "0.7.8"
