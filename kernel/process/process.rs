@@ -356,7 +356,7 @@ impl Process {
         self.signals.lock().is_pending()
     }
 
-    /// Sets signal mask
+    /// Sets signal mask.
     pub fn set_signal_mask(
         &self,
         how: SignalMask,
