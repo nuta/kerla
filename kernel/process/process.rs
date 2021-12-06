@@ -390,17 +390,20 @@ impl Process {
         // TODO: sigmask
         let current = current_process();
         if let Some((signal, sigaction)) = current.signals.lock().pop_pending() {
-            match sigaction {
-                SigAction::Ignore => {}
-                SigAction::Terminate => {
-                    trace!("terminating {:?} by {:?}", current.pid, signal,);
-                    Process::exit(1 /* FIXME: */);
-                }
-                SigAction::Handler { handler } => {
-                    trace!("delivering {:?} to {:?}", signal, current.pid,);
-                    current.signaled_frame.store(Some(*frame));
-                    unsafe {
-                        current.arch.setup_signal_stack(frame, signal, handler)?;
+            let sigset = current.sigset.lock();
+            if !sigset.get(signal as usize).unwrap_or(true) {
+                match sigaction {
+                    SigAction::Ignore => {}
+                    SigAction::Terminate => {
+                        trace!("terminating {:?} by {:?}", current.pid, signal,);
+                        Process::exit(1 /* FIXME: */);
+                    }
+                    SigAction::Handler { handler } => {
+                        trace!("delivering {:?} to {:?}", signal, current.pid,);
+                        current.signaled_frame.store(Some(*frame));
+                        unsafe {
+                            current.arch.setup_signal_stack(frame, signal, handler)?;
+                        }
                     }
                 }
             }
