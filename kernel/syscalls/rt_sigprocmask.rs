@@ -1,6 +1,7 @@
 use crate::prelude::*;
 use crate::process::current_process;
 
+use crate::process::signal::SignalMask;
 use crate::syscalls::SyscallHandler;
 use kerla_runtime::address::UserVAddr;
 
@@ -12,6 +13,13 @@ impl SyscallHandler<'_> {
         oldset: Option<UserVAddr>,
         length: usize,
     ) -> Result<isize> {
-        current_process().rt_sigprocmask(how, set, oldset, length)
+        let how = match how {
+            0 => SignalMask::Block,
+            1 => SignalMask::Unblock,
+            2 => SignalMask::Set,
+            _ => return Err(Errno::EINVAL.into()),
+        };
+        current_process().set_signal_mask(how, set, oldset, length)?;
+        Ok(0)
     }
 }

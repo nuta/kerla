@@ -15,7 +15,7 @@ use crate::{
         elf::{Elf, ProgramHeader},
         init_stack::{estimate_user_init_stack_size, init_user_stack, Auxv},
         process_group::{PgId, ProcessGroup},
-        signal::{SigAction, Signal, SignalDelivery, SIGCHLD, SIGKILL},
+        signal::{SigAction, Signal, SignalDelivery, SignalMask, SIGCHLD, SIGKILL},
         switch, UserVAddr, JOIN_WAIT_QUEUE, SCHEDULER,
     },
     random::read_secure_random,
@@ -357,35 +357,34 @@ impl Process {
     }
 
     /// Sets signal mask
-    pub fn rt_sigprocmask(
+    pub fn set_signal_mask(
         &self,
-        how: usize,
+        how: SignalMask,
         set: Option<UserVAddr>,
         oldset: Option<UserVAddr>,
         _length: usize,
-    ) -> Result<isize> {
+    ) -> Result<()> {
         let mut sigset = self.sigset.lock();
 
         if let Some(old) = oldset {
             if let Err(_) = old.write_bytes(sigset.as_slice()) {
-                return Err(Error::new(Errno::EFAULT));
+                return Err(Errno::EFAULT.into());
             }
         }
 
         if let Some(new) = set {
             if let Ok(new_set) = new.read::<[u8; 128]>() {
                 match how {
-                    0 => sigset.assign_or(new_set),
-                    1 => sigset.assign_material_nonimplication(new_set),
-                    2 => sigset.assign(new_set),
-                    _ => return Err(Error::new(Errno::EINVAL)),
+                    SignalMask::Block => sigset.assign_or(new_set),
+                    SignalMask::Unblock => sigset.assign_and_not(new_set),
+                    SignalMask::Set => sigset.assign(new_set),
                 }
             } else {
-                return Err(Error::new(Errno::EFAULT));
+                return Err(Errno::EFAULT.into());
             }
         }
 
-        Ok(0)
+        Ok(())
     }
 
     /// Tries to delivering a pending signal to the current process.

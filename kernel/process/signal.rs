@@ -156,3 +156,8 @@ impl SignalDelivery {
 }
 
 pub type SigSet = BitMap<128 /* 1024 / 8 */>;
+pub enum SignalMask {
+    Block,
+    Unblock,
+    Set,
+}

@@ -1,5 +1,6 @@
 use core::slice::memchr::memchr;
 
+#[derive(Clone)]
 pub struct BitMap<const SZ: usize>([u8; SZ]);
 
 impl<const SZ: usize> BitMap<SZ> {
@@ -55,24 +56,18 @@ impl<const SZ: usize> BitMap<SZ> {
         self.0 = rhs;
     }
 
+    /// This method will panic if SZ != rhs.len()
     pub fn assign_or(&mut self, rhs: [u8; SZ]) {
-        let mut iter = rhs.into_iter();
-        for byte in &mut self.0 {
-            *byte |= iter.next().unwrap_or(0);
+        for (i, byte) in self.0.iter_mut().enumerate() {
+            *byte |= rhs[i];
         }
     }
 
-    pub fn assign_material_nonimplication(&mut self, rhs: [u8; SZ]) {
-        let mut iter = rhs.into_iter();
-        for byte in &mut self.0 {
-            *byte &= !iter.next().unwrap_or(0);
+    /// This method will panic if SZ != rhs.len()
+    pub fn assign_and_not(&mut self, rhs: [u8; SZ]) {
+        for (i, byte) in self.0.iter_mut().enumerate() {
+            *byte &= !rhs[i];
         }
-    }
-}
-
-impl<const SZ: usize> Clone for BitMap<SZ> {
-    fn clone(&self) -> Self {
-        BitMap(self.0)
     }
 }
 
@@ -105,7 +100,7 @@ mod tests {
     #[test]
     fn material_nonimplication() {
         let mut bitmap = BitMap::from_array([0b0100_0010, 0b1000_0001]);
-        bitmap.assign_material_nonimplication([0b0110_0100, 0b1010_0110]);
+        bitmap.assign_and_not([0b0110_0100, 0b1010_0110]);
         assert_eq!(bitmap.as_slice(), &[0b0000_0010, 0b0000_0001]);
     }
 }
