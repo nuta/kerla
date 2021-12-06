@@ -367,20 +367,15 @@ impl Process {
         let mut sigset = self.sigset.lock();
 
         if let Some(old) = oldset {
-            if let Err(_) = old.write_bytes(sigset.as_slice()) {
-                return Err(Errno::EFAULT.into());
-            }
+            old.write_bytes(sigset.as_slice())?;
         }
 
         if let Some(new) = set {
-            if let Ok(new_set) = new.read::<[u8; 128]>() {
-                match how {
-                    SignalMask::Block => sigset.assign_or(new_set),
-                    SignalMask::Unblock => sigset.assign_and_not(new_set),
-                    SignalMask::Set => sigset.assign(new_set),
-                }
-            } else {
-                return Err(Errno::EFAULT.into());
+            let new_set = new.read::<[u8; 128]>()?;
+            match how {
+                SignalMask::Block => sigset.assign_or(new_set),
+                SignalMask::Unblock => sigset.assign_and_not(new_set),
+                SignalMask::Set => sigset.assign(new_set),
             }
         }
 

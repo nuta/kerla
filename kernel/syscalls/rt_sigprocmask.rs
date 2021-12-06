@@ -19,7 +19,11 @@ impl SyscallHandler<'_> {
             2 => SignalMask::Set,
             _ => return Err(Errno::EINVAL.into()),
         };
-        current_process().set_signal_mask(how, set, oldset, length)?;
+
+        if let Err(_) = current_process().set_signal_mask(how, set, oldset, length) {
+            return Err(Errno::EFAULT.into());
+        }
+
         Ok(0)
     }
 }
