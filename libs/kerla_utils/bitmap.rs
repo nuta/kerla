@@ -98,7 +98,7 @@ mod tests {
     }
 
     #[test]
-    fn material_nonimplication() {
+    fn assign_and_not() {
         let mut bitmap = BitMap::from_array([0b0100_0010, 0b1000_0001]);
         bitmap.assign_and_not([0b0110_0100, 0b1010_0110]);
         assert_eq!(bitmap.as_slice(), &[0b0000_0010, 0b0000_0001]);
