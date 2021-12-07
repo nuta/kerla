@@ -387,7 +387,6 @@ impl Process {
     /// If there's a pending signal, it may modify `frame` (e.g. user return
     /// address and stack pointer) to call the registered user's signal handler.
     pub fn try_delivering_signal(frame: &mut PtRegs) -> Result<()> {
-        // TODO: sigmask
         let current = current_process();
         if let Some((signal, sigaction)) = current.signals.lock().pop_pending() {
             let sigset = current.sigset.lock();
