@@ -10,7 +10,7 @@ path = "lib.rs"
 
 [dependencies]
 log = "0.4"
-memoffset = "0.6.4"
+memoffset = "0.6.5"
 arrayvec = { version = "0.7.2", default-features = false }
 
 # Arch-specific dependencies.
