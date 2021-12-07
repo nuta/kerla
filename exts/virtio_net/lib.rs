@@ -158,23 +158,23 @@ impl VirtioNet {
                 )
             };
 
-            // info!(
-            //     "RX: {:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x} -> {:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}, type={:02x} {:02x}",
-            //     buffer[6 + 0],
-            //     buffer[6 + 1],
-            //     buffer[6 + 2],
-            //     buffer[6 + 3],
-            //     buffer[6 + 4],
-            //     buffer[6 + 5],
-            //     buffer[0],
-            //     buffer[1],
-            //     buffer[2],
-            //     buffer[3],
-            //     buffer[4],
-            //     buffer[5],
-            //     buffer[12],
-            //     buffer[13],
-            // );
+            info!(
+                "RX: {:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x} -> {:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}, type={:02x} {:02x}",
+                buffer[6 + 0],
+                buffer[6 + 1],
+                buffer[6 + 2],
+                buffer[6 + 3],
+                buffer[6 + 4],
+                buffer[6 + 5],
+                buffer[0],
+                buffer[1],
+                buffer[2],
+                buffer[3],
+                buffer[4],
+                buffer[5],
+                buffer[12],
+                buffer[13],
+            );
 
             receive_ethernet_frame(buffer);
 
@@ -200,23 +200,23 @@ impl VirtioNet {
             addr.as_paddr()
         );
 
-        // info!(
-        //     "TX: {:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x} -> {:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}, type={:02x} {:02x}",
-        //     frame[6 + 0],
-        //     frame[6 + 1],
-        //     frame[6 + 2],
-        //     frame[6 + 3],
-        //     frame[6 + 4],
-        //     frame[6 + 5],
-        //     frame[0],
-        //     frame[1],
-        //     frame[2],
-        //     frame[3],
-        //     frame[4],
-        //     frame[5],
-        //     frame[12],
-        //     frame[13],
-        // );
+        info!(
+            "TX: {:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x} -> {:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}, type={:02x} {:02x}",
+            frame[6 + 0],
+            frame[6 + 1],
+            frame[6 + 2],
+            frame[6 + 3],
+            frame[6 + 4],
+            frame[6 + 5],
+            frame[0],
+            frame[1],
+            frame[2],
+            frame[3],
+            frame[4],
+            frame[5],
+            frame[12],
+            frame[13],
+        );
 
         // Fill the virtio-net header.
         let header_len = size_of::<VirtioNetHeader>();
