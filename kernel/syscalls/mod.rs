@@ -57,6 +57,7 @@ pub(self) mod readlink;
 pub(self) mod reboot;
 pub(self) mod recvfrom;
 pub(self) mod rt_sigaction;
+pub(self) mod rt_sigprocmask;
 pub(self) mod rt_sigreturn;
 pub(self) mod select;
 pub(self) mod sendto;
@@ -112,6 +113,7 @@ const SYS_POLL: usize = 7;
 const SYS_MMAP: usize = 9;
 const SYS_BRK: usize = 12;
 const SYS_RT_SIGACTION: usize = 13;
+const SYS_RT_SIGPROCMASK: usize = 14;
 const SYS_RT_SIGRETURN: usize = 15;
 const SYS_IOCTL: usize = 16;
 const SYS_WRITEV: usize = 20;
@@ -368,6 +370,9 @@ impl<'a> SyscallHandler<'a> {
             SYS_SYSLOG => self.sys_syslog(a1 as c_int, UserVAddr::new(a2), a3 as c_int),
             SYS_REBOOT => self.sys_reboot(a1 as c_int, a2 as c_int, a3),
             SYS_GETTID => self.sys_gettid(),
+            SYS_RT_SIGPROCMASK => {
+                self.sys_rt_sigprocmask(a1, UserVAddr::new(a2), UserVAddr::new(a3), a4)
+            }
             _ => {
                 debug_warn!(
                     "unimplemented system call: {} (n={})",

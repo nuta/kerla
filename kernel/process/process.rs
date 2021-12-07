@@ -15,13 +15,13 @@ use crate::{
         elf::{Elf, ProgramHeader},
         init_stack::{estimate_user_init_stack_size, init_user_stack, Auxv},
         process_group::{PgId, ProcessGroup},
-        signal::{SigAction, Signal, SignalDelivery, SIGCHLD, SIGKILL},
+        signal::{SigAction, Signal, SignalDelivery, SignalMask, SIGCHLD, SIGKILL},
         switch, UserVAddr, JOIN_WAIT_QUEUE, SCHEDULER,
     },
     random::read_secure_random,
+    result::Errno,
     INITIAL_ROOT_FS,
 };
-
 use alloc::collections::BTreeMap;
 use alloc::sync::{Arc, Weak};
 use alloc::vec::Vec;
@@ -36,7 +36,9 @@ use kerla_runtime::{
     page_allocator::{alloc_pages, AllocPageFlags},
     spinlock::{SpinLock, SpinLockGuard},
 };
-use kerla_utils::alignment::align_up;
+use kerla_utils::{alignment::align_up, bitmap::BitMap};
+
+use super::signal::SigSet;
 
 type ProcessTable = BTreeMap<PId, Arc<Process>>;
 
@@ -104,6 +106,7 @@ pub struct Process {
     root_fs: Arc<SpinLock<RootFs>>,
     signals: SpinLock<SignalDelivery>,
     signaled_frame: AtomicCell<Option<PtRegs>>,
+    sigset: SpinLock<SigSet>,
 }
 
 impl Process {
@@ -126,6 +129,7 @@ impl Process {
             opened_files: SpinLock::new(OpenedFileTable::new()),
             signals: SpinLock::new(SignalDelivery::new()),
             signaled_frame: AtomicCell::new(None),
+            sigset: SpinLock::new(BitMap::zeroed()),
         });
 
         process_group.lock().add(Arc::downgrade(&proc));
@@ -187,6 +191,7 @@ impl Process {
             root_fs,
             signals: SpinLock::new(SignalDelivery::new()),
             signaled_frame: AtomicCell::new(None),
+            sigset: SpinLock::new(BitMap::zeroed()),
         });
 
         process_group.lock().add(Arc::downgrade(&process));
@@ -351,25 +356,53 @@ impl Process {
         self.signals.lock().is_pending()
     }
 
+    /// Sets signal mask.
+    pub fn set_signal_mask(
+        &self,
+        how: SignalMask,
+        set: Option<UserVAddr>,
+        oldset: Option<UserVAddr>,
+        _length: usize,
+    ) -> Result<()> {
+        let mut sigset = self.sigset.lock();
+
+        if let Some(old) = oldset {
+            old.write_bytes(sigset.as_slice())?;
+        }
+
+        if let Some(new) = set {
+            let new_set = new.read::<[u8; 128]>()?;
+            match how {
+                SignalMask::Block => sigset.assign_or(new_set),
+                SignalMask::Unblock => sigset.assign_and_not(new_set),
+                SignalMask::Set => sigset.assign(new_set),
+            }
+        }
+
+        Ok(())
+    }
+
     /// Tries to delivering a pending signal to the current process.
     ///
     /// If there's a pending signal, it may modify `frame` (e.g. user return
     /// address and stack pointer) to call the registered user's signal handler.
     pub fn try_delivering_signal(frame: &mut PtRegs) -> Result<()> {
-        // TODO: sigmask
         let current = current_process();
         if let Some((signal, sigaction)) = current.signals.lock().pop_pending() {
-            match sigaction {
-                SigAction::Ignore => {}
-                SigAction::Terminate => {
-                    trace!("terminating {:?} by {:?}", current.pid, signal,);
-                    Process::exit(1 /* FIXME: */);
-                }
-                SigAction::Handler { handler } => {
-                    trace!("delivering {:?} to {:?}", signal, current.pid,);
-                    current.signaled_frame.store(Some(*frame));
-                    unsafe {
-                        current.arch.setup_signal_stack(frame, signal, handler)?;
+            let sigset = current.sigset.lock();
+            if !sigset.get(signal as usize).unwrap_or(true) {
+                match sigaction {
+                    SigAction::Ignore => {}
+                    SigAction::Terminate => {
+                        trace!("terminating {:?} by {:?}", current.pid, signal,);
+                        Process::exit(1 /* FIXME: */);
+                    }
+                    SigAction::Handler { handler } => {
+                        trace!("delivering {:?} to {:?}", signal, current.pid,);
+                        current.signaled_frame.store(Some(*frame));
+                        unsafe {
+                            current.arch.setup_signal_stack(frame, signal, handler)?;
+                        }
                     }
                 }
             }
@@ -433,6 +466,7 @@ impl Process {
         let vm = parent.vm().as_ref().unwrap().lock().fork()?;
         let opened_files = parent.opened_files().lock().fork();
         let process_group = parent.process_group();
+        let sig_set = parent.sigset.lock();
 
         let child = Arc::new(Process {
             process_group: AtomicRefCell::new(Arc::downgrade(&process_group)),
@@ -447,6 +481,7 @@ impl Process {
             arch,
             signals: SpinLock::new(SignalDelivery::new()),
             signaled_frame: AtomicCell::new(None),
+            sigset: SpinLock::new(sig_set.clone()),
         });
 
         process_group.lock().add(Arc::downgrade(&child));
