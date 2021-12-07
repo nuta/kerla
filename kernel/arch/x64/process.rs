@@ -268,20 +268,6 @@ pub fn switch_thread(prev: &Process, next: &Process) {
             _xsave64(xsave_area.as_mut_ptr(), xsave_mask);
         }
         if let Some(xsave_area) = next.xsave_area.as_ref() {
-            trace!(
-                "xrstor2: {:x}, XSAVEC={}",
-                xsave_area.value(),
-                CpuId::new()
-                    .get_extended_state_info()
-                    .expect("get cpuid ext")
-                    .has_xsavec(),
-            );
-            trace!(
-                "xstate_bv={:x}, xcomp_bv={:x}, xcr0={:x}",
-                *(xsave_area.as_ptr::<u8>().offset(512) as *const u64),
-                *(xsave_area.as_ptr::<u8>().offset(512 + 8) as *const u64),
-                xsave_mask
-            );
             _xrstor64(xsave_area.as_mut_ptr(), xsave_mask);
         }
     }

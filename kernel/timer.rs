@@ -1,5 +1,6 @@
 use crate::{
     ctypes::*,
+    net::process_packets,
     prelude::*,
     process::{self, current_process, Process, ProcessState},
 };
@@ -119,6 +120,7 @@ pub fn handle_timer_irq() {
     WALLCLOCK_TICKS.fetch_add(1, Ordering::Relaxed);
     let ticks = MONOTONIC_TICKS.fetch_add(1, Ordering::Relaxed);
     if ticks % PREEMPT_PER_TICKS == 0 {
+        process_packets();
         process::switch();
     }
 }
