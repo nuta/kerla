@@ -38,7 +38,7 @@ use kerla_runtime::{
 };
 use kerla_utils::{alignment::align_up, bitmap::BitMap};
 
-use super::signal::SigSet;
+use super::signal::{SigSet, EXCLUDING_SIGNAL_MASK};
 
 type ProcessTable = BTreeMap<PId, Arc<Process>>;
 
@@ -373,7 +373,10 @@ impl Process {
         if let Some(new) = set {
             let new_set = new.read::<[u8; 128]>()?;
             match how {
-                SignalMask::Block => sigset.assign_or(new_set),
+                SignalMask::Block => {
+                    sigset.assign_or(new_set);
+                    sigset.assign_and_not(EXCLUDING_SIGNAL_MASK);
+                }
                 SignalMask::Unblock => sigset.assign_and_not(new_set),
                 SignalMask::Set => sigset.assign(new_set),
             }
