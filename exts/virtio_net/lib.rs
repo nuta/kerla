@@ -121,6 +121,7 @@ impl VirtioNet {
     }
 
     pub fn handle_irq(&mut self) {
+        trace!("virtio: IRQ");
         if !self
             .virtio
             .read_isr_status()

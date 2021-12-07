@@ -128,6 +128,16 @@ impl FileLike for TcpSocket {
         Ok(())
     }
 
+    fn shutdown(&self, _how: super::ShutdownHow) -> Result<()> {
+        SOCKETS
+            .lock()
+            .get::<smoltcp::socket::TcpSocket>(self.handle)
+            .close();
+
+        process_packets();
+        Ok(())
+    }
+
     fn getsockname(&self) -> Result<SockAddr> {
         let endpoint = SOCKETS
             .lock()
