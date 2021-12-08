@@ -247,9 +247,7 @@ fn ping_pong(sockets: &mut SocketSet, iface: &EthernetInterface<OurDevice>) -> b
         sent.store(false, Ordering::SeqCst);
     }
 
-    if !sent.load(Ordering::SeqCst)
-        && read_monotonic_clock().msecs() - last_sent.load(Ordering::SeqCst) > 2500
-    {
+    if read_monotonic_clock().msecs() - last_sent.load(Ordering::SeqCst) > 2500 {
         let seq = seq_no.fetch_add(1, Ordering::SeqCst);
         let icmp_repr = Icmpv4Repr::EchoRequest {
             ident,
@@ -258,9 +256,15 @@ fn ping_pong(sockets: &mut SocketSet, iface: &EthernetInterface<OurDevice>) -> b
         };
 
         info!("ping: seq={}", seq);
-        let dst = IpAddress::from_str("10.0.2.2").expect("invalid st ip");
-        // let dst = IpAddress::from_str("10.123.0.2");
-        let icmp_payload = socket.send(icmp_repr.buffer_len(), dst).unwrap();
+        // let dst = IpAddress::from_str("10.0.2.2").expect("invalid st ip");
+        let dst = IpAddress::from_str("10.123.0.2").expect("invalid dst ip");
+        let icmp_payload = match socket.send(icmp_repr.buffer_len(), dst) {
+            Ok(p) => p,
+            Err(err) => {
+                warn!("couldn't send ping: {}", err);
+                return false;
+            }
+        };
 
         let mut icmp_packet = Icmpv4Packet::new_unchecked(icmp_payload);
         let caps = iface.device().capabilities();
