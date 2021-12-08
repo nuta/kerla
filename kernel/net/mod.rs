@@ -256,7 +256,7 @@ fn ping_pong(sockets: &mut SocketSet, iface: &EthernetInterface<OurDevice>) -> b
         };
 
         info!("ping: seq={}", seq);
-        // let dst = IpAddress::from_str("10.0.2.2").expect("invalid st ip");
+        // let dst = IpAddress::from_str("10.0.2.2").expect("invalid dst ip");
         let dst = IpAddress::from_str("10.123.0.2").expect("invalid dst ip");
         let icmp_payload = match socket.send(icmp_repr.buffer_len(), dst) {
             Ok(p) => p,
