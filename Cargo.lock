@@ -305,6 +305,7 @@ checksum = "3e4a069bef843d170df47e7c0a8bf8d037f217d9f5b325865acc3e466ffe40d3"
 dependencies = [
  "bitflags",
  "byteorder",
+ "log",
  "managed",
 ]
 

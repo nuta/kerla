@@ -54,6 +54,6 @@ pub(crate) fn init() {
     log::set_max_level(if cfg!(debug_assertions) {
         log::LevelFilter::Trace
     } else {
-        log::LevelFilter::Info
+        log::LevelFilter::Trace
     });
 }

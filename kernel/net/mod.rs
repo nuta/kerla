@@ -248,6 +248,7 @@ fn ping_pong(sockets: &mut SocketSet, iface: &EthernetInterface<OurDevice>) -> b
     }
 
     if read_monotonic_clock().msecs() - last_sent.load(Ordering::SeqCst) > 2500 {
+        last_sent.store(read_monotonic_clock().msecs(), Ordering::SeqCst);
         let seq = seq_no.fetch_add(1, Ordering::SeqCst);
         let icmp_repr = Icmpv4Repr::EchoRequest {
             ident,
@@ -256,7 +257,7 @@ fn ping_pong(sockets: &mut SocketSet, iface: &EthernetInterface<OurDevice>) -> b
         };
 
         info!("ping: seq={}", seq);
-        // let dst = IpAddress::from_str("10.0.2.2").expect("invalid dst ip");
+        // let dst = IpAddress::from_str("10.0.2.1").expect("invalid dst ip");
         let dst = IpAddress::from_str("10.123.0.2").expect("invalid dst ip");
         let icmp_payload = match socket.send(icmp_repr.buffer_len(), dst) {
             Ok(p) => p,
@@ -270,7 +271,6 @@ fn ping_pong(sockets: &mut SocketSet, iface: &EthernetInterface<OurDevice>) -> b
         let caps = iface.device().capabilities();
         icmp_repr.emit(&mut icmp_packet, &caps.checksum);
         sent.store(true, Ordering::SeqCst);
-        last_sent.store(read_monotonic_clock().msecs(), Ordering::SeqCst);
         return true;
     }
 
@@ -327,8 +327,10 @@ pub fn init_and_start_dhcp_discover(bootinfo: &BootInfo) {
         DHCP_CLIENT.init(|| SpinLock::new(dhcp));
     }
 
-    let icmp_rx_buffer = IcmpSocketBuffer::new(vec![IcmpPacketMetadata::EMPTY], vec![0; 256]);
-    let icmp_tx_buffer = IcmpSocketBuffer::new(vec![IcmpPacketMetadata::EMPTY], vec![0; 256]);
+    let icmp_rx_buffer =
+        IcmpSocketBuffer::new(vec![IcmpPacketMetadata::EMPTY; 32], vec![0; 16 * 1024]);
+    let icmp_tx_buffer =
+        IcmpSocketBuffer::new(vec![IcmpPacketMetadata::EMPTY; 32], vec![0; 16 * 1024]);
     let icmp_socket = IcmpSocket::new(icmp_rx_buffer, icmp_tx_buffer);
     let icmp_handle = sockets.add(icmp_socket);
     ICMP_HANDLE.init(|| icmp_handle);
