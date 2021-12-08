@@ -1,3 +1,5 @@
+use core::sync::atomic::{AtomicBool, AtomicU16, AtomicUsize, Ordering};
+
 use crate::deferred_job::DeferredJob;
 use crate::{
     poll::POLL_WAIT_QUEUE, process::WaitQueue, timer::read_monotonic_clock, timer::MonotonicClock,
@@ -11,6 +13,7 @@ use kerla_api::driver::net::EthernetDriver;
 use kerla_runtime::bootinfo::BootInfo;
 use kerla_runtime::spinlock::SpinLock;
 use kerla_utils::once::Once;
+use smoltcp::socket::{IcmpPacketMetadata, IcmpSocket, IcmpSocketBuffer, SocketHandle};
 use smoltcp::wire::{self, EthernetAddress, IpCidr};
 use smoltcp::{
     dhcp::Dhcpv4Client,
@@ -62,6 +65,7 @@ pub(self) static SOCKETS: Once<SpinLock<SocketSet>> = Once::new();
 static INTERFACE: Once<SpinLock<EthernetInterface<OurDevice>>> = Once::new();
 static DHCP_CLIENT: Once<SpinLock<Dhcpv4Client>> = Once::new();
 static DHCP_ENABLED: Once<bool> = Once::new();
+static ICMP_HANDLE: Once<SocketHandle> = Once::new();
 pub(self) static SOCKET_WAIT_QUEUE: Once<WaitQueue> = Once::new();
 
 pub fn process_packets() {
@@ -93,6 +97,8 @@ pub fn process_packets() {
                     .map(|router| iface.routes_mut().add_default_ipv4_route(router).unwrap());
             }
         }
+
+        ping_pong(&mut sockets, &iface);
 
         match iface.poll(&mut sockets, timestamp) {
             Ok(false) => break,
@@ -222,6 +228,57 @@ fn parse_ipv4_addr_with_prefix_len(
     Ok((ip, prefix_len))
 }
 
+static sent: AtomicBool = AtomicBool::new(false);
+static last_sent: AtomicUsize = AtomicUsize::new(0);
+static seq_no: AtomicU16 = AtomicU16::new(0);
+fn ping_pong(sockets: &mut SocketSet, iface: &EthernetInterface<OurDevice>) -> bool {
+    use core::str::FromStr;
+    use smoltcp::socket::IcmpEndpoint;
+    use smoltcp::wire::{Icmpv4Packet, Icmpv4Repr, IpAddress};
+    let ident = 0x79ab;
+    let mut socket = sockets.get::<IcmpSocket>(*ICMP_HANDLE);
+    if !socket.is_open() {
+        socket.bind(IcmpEndpoint::Ident(ident)).unwrap();
+    }
+
+    if socket.can_recv() {
+        let (payload, _) = socket.recv().unwrap();
+        info!("pong: {:x?}", &payload[0..core::cmp::min(8, payload.len())]);
+        sent.store(false, Ordering::SeqCst);
+    }
+
+    if !sent.load(Ordering::SeqCst)
+        && read_monotonic_clock().msecs() - last_sent.load(Ordering::SeqCst) > 2500
+    {
+        let seq = seq_no.fetch_add(1, Ordering::SeqCst);
+        let icmp_repr = Icmpv4Repr::EchoRequest {
+            ident,
+            seq_no: seq,
+            data: &[0x55u8; 40],
+        };
+
+        info!("ping: seq={}", seq);
+        let dst = IpAddress::from_str("10.0.2.2").expect("invalid st ip");
+        // let dst = IpAddress::from_str("10.123.0.2");
+        let icmp_payload = socket.send(icmp_repr.buffer_len(), dst).unwrap();
+
+        let mut icmp_packet = Icmpv4Packet::new_unchecked(icmp_payload);
+        let caps = iface.device().capabilities();
+        icmp_repr.emit(&mut icmp_packet, &caps.checksum);
+        sent.store(true, Ordering::SeqCst);
+        last_sent.store(read_monotonic_clock().msecs(), Ordering::SeqCst);
+        return true;
+    }
+
+    return false;
+}
+
+pub fn ping_pong2() {
+    if ping_pong(&mut SOCKETS.lock(), &INTERFACE.lock()) {
+        process_packets();
+    }
+}
+
 pub fn init_and_start_dhcp_discover(bootinfo: &BootInfo) {
     let ip_addrs = match &bootinfo.ip4 {
         Some(ip4_str) => {
@@ -266,10 +323,18 @@ pub fn init_and_start_dhcp_discover(bootinfo: &BootInfo) {
         DHCP_CLIENT.init(|| SpinLock::new(dhcp));
     }
 
+    let icmp_rx_buffer = IcmpSocketBuffer::new(vec![IcmpPacketMetadata::EMPTY], vec![0; 256]);
+    let icmp_tx_buffer = IcmpSocketBuffer::new(vec![IcmpPacketMetadata::EMPTY], vec![0; 256]);
+    let icmp_socket = IcmpSocket::new(icmp_rx_buffer, icmp_tx_buffer);
+    let icmp_handle = sockets.add(icmp_socket);
+    ICMP_HANDLE.init(|| icmp_handle);
+
     RX_PACKET_QUEUE.init(|| SpinLock::new(ArrayQueue::new(128)));
     SOCKET_WAIT_QUEUE.init(WaitQueue::new);
     INTERFACE.init(|| SpinLock::new(iface));
     SOCKETS.init(|| SpinLock::new(sockets));
+
+    ping_pong(&mut SOCKETS.lock(), &INTERFACE.lock());
 
     process_packets();
 }
