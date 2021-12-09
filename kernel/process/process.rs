@@ -26,7 +26,7 @@ use alloc::collections::BTreeMap;
 use alloc::sync::{Arc, Weak};
 use alloc::vec::Vec;
 use atomic_refcell::{AtomicRef, AtomicRefCell};
-use core::cmp::max;
+use core::{cmp::max, ops::RangeBounds};
 use core::mem::size_of;
 use core::sync::atomic::{AtomicI32, Ordering};
 use crossbeam::atomic::AtomicCell;
@@ -37,8 +37,8 @@ use kerla_runtime::{
     spinlock::{SpinLock, SpinLockGuard},
 };
 use kerla_utils::{alignment::align_up, bitmap::BitMap};
-
 use super::signal::SigSet;
+use crate::syscalls::clone3::CloneFlags;
 
 type ProcessTable = BTreeMap<PId, Arc<Process>>;
 
@@ -482,6 +482,114 @@ impl Process {
             signals: SpinLock::new(SignalDelivery::new()),
             signaled_frame: AtomicCell::new(None),
             sigset: SpinLock::new(sig_set.clone()),
+        });
+
+        process_group.lock().add(Arc::downgrade(&child));
+        parent.children().push(child.clone());
+        process_table.insert(pid, child.clone());
+        SCHEDULER.lock().enqueue(pid);
+        Ok(child)
+    }
+
+    /// Creates a new process or thread. The calling process (`self`) will be the parent
+    /// process of the created process or thread. Returns the created child process.
+    pub fn clone(parent: &Arc<Process>,
+        parent_frame: &PtRegs,
+        flags: CloneFlags,
+        exit_signal: usize
+    ) -> Result<Arc<Process>> {
+        let mut process_table = PROCESSES.lock();
+        let pid = alloc_pid(&mut process_table)?;
+        let process_group = parent.process_group();
+        let arch = parent.arch.fork(parent_frame)?;
+        let sigset = parent.sigset.lock(); // TODO: requires understanding
+
+        let vm = if flags.contains(CloneFlags::CLONE_VM) {          // set if VM shared between processes
+            parent.vm.clone()
+        }    else {
+            let forked_vm = parent.vm().as_ref().unwrap().lock().fork()?;
+            AtomicRefCell::new(Some(Arc::new(SpinLock::new(forked_vm))))
+        };
+        let root_fs = if flags.contains(CloneFlags::CLONE_FS) {                // set if fs info shared between processes
+            parent.root_fs.clone()
+        } else {
+            parent.root_fs.clone() // TODO #105: if flags isn't set we need copy of the FS info, not another reference to it!
+        };
+        let opened_files = if flags.contains(CloneFlags::CLONE_FILES){            // set if open files shared between processes
+            SpinLock::new(parent.opened_files().lock().fork()) // TODO #106: we need to share opened files table
+        } else {
+            SpinLock::new(parent.opened_files().lock().fork()) // This one's good - it copies
+        };
+        let signals = if flags.contains(CloneFlags::CLONE_SIGHAND) {           // set if signal handlers and blocked signals shared
+            SpinLock::new(SignalDelivery::new()) // TODO #107: we need to share the table of signal handlers if requested
+        } else {
+            SpinLock::new(SignalDelivery::new())
+        };
+        // TODO: semantics of CloneFlags::CLONE_PIDFD to be understand (since Linux 5.2)            // set if a pidfd should be placed in parent
+
+        // TODO: the flag below cannot be supported, as Kerla doesn't have tracing yet
+        //CloneFlags::CLONE_PTRACE            // set if we want to let tracing continue on the child too
+
+        // TODO: more research required how to handle vfork()
+        //CloneFlags::CLONE_VFORK             // set if the parent wants the child to wake it up on mm_release
+
+        let parent_weak = if flags.contains(CloneFlags::CLONE_PARENT) {           // set if we want to have the same parent as the cloner
+            parent.parent.clone() // TODO: add protection against doing that for the init process to prevent multiple process trees, consider throwing error
+        } else {
+            Arc::downgrade(parent)
+        };
+
+        // TODO: the flag below cannot work as support of thread groups require proper handling of PIDs and TIDs, what Kerla doesn't do yet
+        // CloneFlags::CLONE_THREAD            // Same thread group?
+
+        // TODO: the flag below cannot be supported, as Kerla doesn't have namespaces yet
+        //CloneFlags::CLONE_NEWNS             // New mount namespace group
+
+        // TODO: the flag below cannot be supported, as Kerla doesn't have SYS V semaphores yet
+        //CloneFlags::CLONE_SYSVSEM           // share system V SEM_UNDO semantics
+
+        // TODO: the flag below cannot be supported, as Kerla doesn't handle thread local storage yet
+        //CloneFlags::CLONE_SETTLS            // create a new TLS for the child
+
+        if flags.contains(CloneFlags::CLONE_PARENT_SETTID) {     // set the TID in the parent
+            // TODO: Deal with propagation of the parent's TID upwards! (Tricky, we don't have notion of TIDs withing thread group yet)
+        };
+        if flags.contains(CloneFlags::CLONE_CHILD_CLEARTID) {    // clear the TID in the child
+            // TODO: Deal with clearing of the TID upwards! Deal with futex wake up at the given address.
+        };
+        // CloneFlags::CLONE_DETACHED          // Unused, ignored
+
+        // TODO when tracing supported: CloneFlags::CLONE_UNTRACED          // set if the tracing process can't force CLONE_PTRACE on this clone
+
+        if flags.contains(CloneFlags::CLONE_CHILD_SETTID) {      // set the TID in the child
+            // TODO: Deal with propagation of the child's TID upwards! (Tricky, we don't have notion of TIDs withing thread group yet)
+        };
+
+        // TODO: flags below cannot be supported, as Kerla doesn't have namespaces yet
+        // CloneFlags::CLONE_NEWCGROUP         // New cgroup namespace
+        // CloneFlags::CLONE_NEWUTS            // New utsname namespace
+        // CloneFlags::CLONE_NEWIPC            // New ipc namespace
+        // CloneFlags::CLONE_NEWUSER           // New user namespace
+        // CloneFlags::CLONE_NEWPID            // New pid namespace
+        // CloneFlags::CLONE_NEWNET            // New network namespace
+
+        // TODO: the flag bellow cannot be supported, as Kerla doesn't have IO scheduler yet
+        // CloneFlags::CLONE_IO                // Clone io context
+
+        let child = Arc::new(Process {
+            process_group: AtomicRefCell::new(Arc::downgrade(&process_group)),
+            pid,
+            state: AtomicCell::new(ProcessState::Runnable),
+            parent: parent_weak,
+            cmdline: AtomicRefCell::new(parent.cmdline().clone()),
+            children: SpinLock::new(Vec::new()),
+            vm,
+            opened_files,
+            root_fs,
+            arch,
+            signals,
+            signaled_frame: AtomicCell::new(None),
+            sigset: SpinLock::new(sigset.clone()),
         });
 
         process_group.lock().add(Arc::downgrade(&child));

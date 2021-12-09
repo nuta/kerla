@@ -20,6 +20,7 @@ arrayvec = { version = "0.7.2", default-features = false }
 hashbrown = { version = "0.11.2", features = ["nightly"] }
 crossbeam = { version = "0.8.1", default-features = false, features = ["alloc"] }
 atomic_refcell = "0.1.6"
+simple_endian = { git = "https://github.com/michalfita/simple-endian-rs", branch ="bugfix/4/fix-no_std-support-right-way", default-features = false, features = ["big_endian", "little_endian", "byte_impls", "integer_impls", "comparisons", "format"] }
 
 # Arch-specific dependencies.
 x86 = "0.43.0"

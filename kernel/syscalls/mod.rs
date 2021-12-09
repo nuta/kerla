@@ -24,6 +24,7 @@ pub(self) mod chdir;
 pub(self) mod chmod;
 pub(self) mod clock_gettime;
 pub(self) mod close;
+pub(crate) mod clone3; // TODO: we have structures and bitfields that may require moving
 pub(self) mod connect;
 pub(self) mod dup2;
 pub(self) mod execve;
@@ -102,6 +103,7 @@ pub(self) struct IoVec {
     len: usize,
 }
 
+// TODO: these are valid for x86_64
 const SYS_READ: usize = 0;
 const SYS_WRITE: usize = 1;
 const SYS_OPEN: usize = 2;
@@ -131,7 +133,9 @@ const SYS_LISTEN: usize = 50;
 const SYS_GETSOCKNAME: usize = 51;
 const SYS_GETPEERNAME: usize = 52;
 const SYS_GETSOCKOPT: usize = 55;
+const SYS_CLONE: usize = 56;
 const SYS_FORK: usize = 57;
+const SYS_VFORK: usize = 58;
 const SYS_EXECVE: usize = 59;
 const SYS_EXIT: usize = 60;
 const SYS_WAIT4: usize = 61;
@@ -152,6 +156,7 @@ const SYS_SETGID: usize = 106;
 const SYS_GETEUID: usize = 107;
 const SYS_SETPGID: usize = 109;
 const SYS_GETPPID: usize = 110;
+
 const SYS_GETPGID: usize = 121;
 const SYS_SETGROUPS: usize = 116;
 const SYS_ARCH_PRCTL: usize = 158;
@@ -163,6 +168,8 @@ const SYS_CLOCK_GETTIME: usize = 228;
 const SYS_UTIMES: usize = 235;
 const SYS_LINKAT: usize = 265;
 const SYS_GETRANDOM: usize = 318;
+const SYS_CLONE3: usize = 435;
+
 
 fn resolve_path(uaddr: usize) -> Result<PathBuf> {
     const PATH_MAX: usize = 512;
@@ -308,7 +315,15 @@ impl<'a> SyscallHandler<'a> {
                 UserVAddr::new_nonnull(a2)?,
                 UserVAddr::new_nonnull(a3)?,
             ),
+            SYS_CLONE => self.sys_clone(
+                clone3::CloneFlags::from_bits(a1 as u32).ok_or_else(|| Errno::EINVAL)?, // TODO: check if valid / it may be correct only for some platforms
+                UserVAddr::new_nonnull(a2).map_or(None, |v| Some(v)),
+                UserVAddr::new_nonnull(a3).map_or(None, |v| Some(v)),
+                UserVAddr::new_nonnull(a4).map_or(None, |v| Some(v)),
+                UserVAddr::new_nonnull(a5).map_or(None, |v| Some(v)),
+            ),
             SYS_FORK => self.sys_fork(),
+            SYS_VFORK => self.sys_vfork(),
             SYS_WAIT4 => self.sys_wait4(
                 PId::new(a1 as i32),
                 UserVAddr::new(a2),
@@ -386,6 +401,7 @@ impl<'a> SyscallHandler<'a> {
 }
 
 fn syscall_name_by_number(n: usize) -> &'static str {
+    // TODO: Consider one of crates automatically dealing with enum serialization
     match n {
         0 => "read",
         1 => "write",
@@ -722,6 +738,7 @@ fn syscall_name_by_number(n: usize) -> &'static str {
         332 => "statx",
         333 => "io_pgetevents",
         334 => "rseq",
+        435 => "clone3",
         _ => "(unknown)",
     }
 }

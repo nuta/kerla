@@ -169,6 +169,7 @@ dependencies = [
  "kerla_runtime",
  "kerla_utils",
  "log",
+ "simple_endian",
  "smoltcp",
  "spin 0.9.2",
  "virtio_net",
@@ -296,6 +297,11 @@ name = "scroll"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fda28d4b4830b807a8b43f7b0e6b5df875311b3e7621d84577188c175b6ec1ec"
+
+[[package]]
+name = "simple_endian"
+version = "0.2.1"
+source = "git+https://github.com/michalfita/simple-endian-rs?branch=bugfix/4/fix-no_std-support-right-way#7210f40881d16f7f2e3d8d40f6381fa222843caa"
 
 [[package]]
 name = "smoltcp"
