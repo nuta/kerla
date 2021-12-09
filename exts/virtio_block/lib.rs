@@ -72,7 +72,8 @@ pub struct VirtioBlock {
 
 impl VirtioBlock {
     pub fn new(transport: Arc<dyn VirtioTransport>) -> Result<VirtioBlock, VirtioAttachError> {
-        let virtio = Virtio::new(transport);
+        let mut virtio = Virtio::new(transport);
+        virtio.initialize(VIRTIO_BLK_F_SIZE, 1)?;
         // Read the block size
         let block_size = offset_of!(VirtioBlockConfig, capacity);
         // TODO: Make sure it returns the block size once qemu block device is enabled
