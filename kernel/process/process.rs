@@ -373,14 +373,7 @@ impl Process {
         if let Some(new) = set {
             let new_set = new.read::<[u8; 128]>()?;
             match how {
-                SignalMask::Block => {
-                    sigset.assign_or(new_set);
-                    // It is not possible to block SIGKILL or SIGSTOP.
-                    // Attempts to do so are silently ignored.
-                    // https://man7.org/linux/man-pages/man2/sigprocmask.2.html
-                    sigset.unset(SIGKILL as usize);
-                    sigset.unset(SIGSTOP as usize);
-                }
+                SignalMask::Block => sigset.assign_or(new_set),
                 SignalMask::Unblock => sigset.assign_and_not(new_set),
                 SignalMask::Set => sigset.assign(new_set),
             }
@@ -397,7 +390,10 @@ impl Process {
         let current = current_process();
         if let Some((signal, sigaction)) = current.signals.lock().pop_pending() {
             let sigset = current.sigset.lock();
-            if !sigset.get(signal as usize).unwrap_or(true) {
+            if signal == SIGSTOP
+                || signal == SIGKILL
+                || !sigset.get(signal as usize).unwrap_or(true)
+            {
                 match sigaction {
                     SigAction::Ignore => {}
                     SigAction::Terminate => {
