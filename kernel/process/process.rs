@@ -38,7 +38,7 @@ use kerla_runtime::{
 };
 use kerla_utils::{alignment::align_up, bitmap::BitMap};
 
-use super::signal::{SigSet, EXCLUDING_SIGNAL_MASK};
+use super::signal::{SigSet, SIGSTOP};
 
 type ProcessTable = BTreeMap<PId, Arc<Process>>;
 
@@ -375,7 +375,11 @@ impl Process {
             match how {
                 SignalMask::Block => {
                     sigset.assign_or(new_set);
-                    sigset.assign_and_not(EXCLUDING_SIGNAL_MASK);
+                    // It is not possible to block SIGKILL or SIGSTOP.
+                    // Attempts to do so are silently ignored.
+                    // https://man7.org/linux/man-pages/man2/sigprocmask.2.html
+                    sigset.unset(SIGKILL as usize);
+                    sigset.unset(SIGSTOP as usize);
                 }
                 SignalMask::Unblock => sigset.assign_and_not(new_set),
                 SignalMask::Set => sigset.assign(new_set),

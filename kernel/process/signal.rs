@@ -156,15 +156,6 @@ impl SignalDelivery {
 }
 
 pub type SigSet = BitMap<128 /* 1024 / 8 */>;
-// Bits 9 (SIGKILL) and 19 (SIGSTOP) are set because of
-// "It is not possible to block SIGKILL or SIGSTOP.  Attempts to do so are silently ignored."
-// https://man7.org/linux/man-pages/man2/sigprocmask.2.html
-pub const EXCLUDING_SIGNAL_MASK: [u8; 128] = [
-    0, 2, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-];
 pub enum SignalMask {
     Block,
     Unblock,
