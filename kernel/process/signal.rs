@@ -1,5 +1,6 @@
 use crate::{ctypes::c_int, prelude::*};
 use kerla_runtime::address::UserVAddr;
+use kerla_utils::bitmap::BitMap;
 
 pub type Signal = c_int;
 #[allow(unused)]
@@ -152,4 +153,11 @@ impl SignalDelivery {
     pub fn signal(&mut self, signal: Signal) {
         self.pending |= 1 << (signal);
     }
+}
+
+pub type SigSet = BitMap<128 /* 1024 / 8 */>;
+pub enum SignalMask {
+    Block,
+    Unblock,
+    Set,
 }
