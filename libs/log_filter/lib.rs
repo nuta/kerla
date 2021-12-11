@@ -8,7 +8,7 @@ use alloc::{
 };
 use log::{warn, Level, Record};
 
-static DEFAULT_LOG_LEVEL: Level = Level::Trace;
+static DEFAULT_LOG_LEVEL: Level = Level::Info;
 
 pub struct LogFilter {
     patterns: Vec<Pattern>,

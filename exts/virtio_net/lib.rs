@@ -33,6 +33,7 @@ use kerla_utils::alignment::align_up;
 
 const VIRTIO_NET_F_MAC: u64 = 1 << 5;
 const VIRTIO_NET_F_MRG_RXBUF: u64 = 1 << 15;
+const VIRTIO_F_ANY_LAYOUT: u64 = 1 << 27;
 
 const VIRTIO_NET_QUEUE_RX: u16 = 0;
 const VIRTIO_NET_QUEUE_TX: u16 = 1;
@@ -48,7 +49,7 @@ struct VirtioNetHeader {
     gso_size: u16,
     checksum_start: u16,
     checksum_offset: u16,
-    num_buffer: u16,
+    // num_buffer: u16,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -73,7 +74,7 @@ impl VirtioNet {
     pub fn new(transport: Arc<dyn VirtioTransport>) -> Result<VirtioNet, VirtioAttachError> {
         let mut virtio = Virtio::new(transport);
         virtio.initialize(
-            VIRTIO_NET_F_MAC | VIRTIO_NET_F_MRG_RXBUF,
+            VIRTIO_NET_F_MAC ,
             2, /* RX and TX queues. */
         )?;
 
@@ -227,20 +228,39 @@ impl VirtioNet {
         header.gso_size = 0;
         header.checksum_start = 0;
         header.checksum_offset = 0;
-        header.num_buffer = 1;
+        // header.num_buffer = 0;
 
         // Copy the payload into the our buffer.
+        let payload_addr =  unsafe{  addr.as_mut_ptr::<u8>()
+        .add(header_len) }
+;
         unsafe {
-            addr.as_mut_ptr::<u8>()
-                .add(header_len)
+            payload_addr
                 .copy_from_nonoverlapping(frame.as_ptr(), frame.len());
         }
 
+        if frame.len() > 0 {
+                print!("TX len={}\n{:02}: ", frame.len(), 0);
+                for i in 0..frame.len() {
+                    if i > 0 && i % 16 == 0 {
+                        print!("\n{:02}: ", i);
+                    }
+                    print!("{:02x} ", frame[i]);
+                }
+                print!("\n");
+        }
+
         // Construct a descriptor chain.
-        let chain = &[VirtqDescBuffer::ReadOnlyFromDevice {
-            addr: addr.as_paddr(),
-            len: header_len + frame.len(),
-        }];
+        let chain = &[
+            VirtqDescBuffer::ReadOnlyFromDevice {
+                addr: addr.as_paddr(),
+                len: header_len,
+            },
+            VirtqDescBuffer::ReadOnlyFromDevice {
+                addr: addr.as_paddr().add(header_len),
+                len: frame.len(),
+            },
+            ];
 
         // Enqueue the transmission request and kick the device.
         let tx_virtq = self.virtio.virtq_mut(VIRTIO_NET_QUEUE_TX);

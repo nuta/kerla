@@ -90,9 +90,8 @@ impl VirtQueue {
     pub fn new(index: u16, transport: Arc<dyn VirtioTransport>) -> VirtQueue {
         transport.select_queue(index);
 
-        let num_descs = min(transport.queue_max_size(), 512);
-        transport.set_queue_size(num_descs);
-
+        let num_descs = transport.queue_max_size();
+        info!("num_descs = {}", num_descs);
         let avail_ring_off = size_of::<VirtqDesc>() * (num_descs as usize);
         let avail_ring_size: usize = size_of::<u16>() * (3 + (num_descs as usize));
         let used_ring_off = align_up(avail_ring_off + avail_ring_size, PAGE_SIZE);
@@ -165,7 +164,7 @@ impl VirtQueue {
                 }
 
                 self.num_free_descs += num_freed;
-                self.last_used_index = self.last_used_index.wrapping_add(1);
+                self.last_used_index = (self.last_used_index + 1) % (self.num_descs() - 1);
             }
         }
 
@@ -200,14 +199,29 @@ impl VirtQueue {
             }
         }
 
-        let avail_elem_index = self.avail().index;
+        atomic::fence(Ordering::SeqCst);
+        atomic::compiler_fence(Ordering::SeqCst);
+        unsafe {
+            asm!("sfence");
+            asm!("mfence");
+        }
+        atomic::fence(Ordering::SeqCst);
+        atomic::compiler_fence(Ordering::SeqCst);
+        let avail_elem_index = self.avail().index & (self.num_descs() - 1);
         *self.avail_elem_mut(avail_elem_index) = head_index;
         self.avail_mut().index = self.avail_mut().index.wrapping_add(1);
+        // info!("% (self.num_descs() - 1) {}", self.num_descs());
     }
 
     /// Notifies the device to start processing descriptors.
     pub fn notify(&self) {
-        atomic::fence(Ordering::Release);
+        atomic::fence(Ordering::SeqCst);
+        atomic::compiler_fence(Ordering::SeqCst);
+        unsafe {
+            asm!("mfence");
+        }
+        atomic::fence(Ordering::SeqCst);
+        atomic::compiler_fence(Ordering::SeqCst);
         self.transport.notify_queue(self.index);
     }
 
@@ -345,8 +359,12 @@ impl Virtio {
             .write_device_status(self.transport.read_device_status() | VIRTIO_STATUS_ACK);
         self.transport
             .write_device_status(self.transport.read_device_status() | VIRTIO_STATUS_DRIVER);
-
         let device_features = self.transport.read_device_features();
+            warn!(
+                "virtio: driver={:x}, device={:x}",
+                features,
+                device_features,
+            );
         if (device_features & features) != features {
             warn!(
                 "virtio: feature negotiation failure: driver={:x}, device={:x}, unspported={:x}",

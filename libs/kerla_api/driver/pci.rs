@@ -100,6 +100,17 @@ impl PciDevice {
         &self.config
     }
 
+    pub fn enable_io(&self) {
+        let bus = PciBus {};
+        let value = bus.read32(self.bus, self.slot, pci_config_offset!(command));
+        bus.write32(
+            self.bus,
+            self.slot,
+            pci_config_offset!(command),
+            value  | 0x0001 | 0x0002,
+        );
+    }
+
     pub fn enable_bus_master(&self) {
         let bus = PciBus {};
         let value = bus.read32(self.bus, self.slot, pci_config_offset!(command));
@@ -107,7 +118,7 @@ impl PciDevice {
             self.bus,
             self.slot,
             pci_config_offset!(command),
-            value | (1 << 2),
+            value | (1 << 2) | 0x0001 | 0x0002,
         );
     }
 

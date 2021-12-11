@@ -10,7 +10,7 @@ pub mod driver;
 pub mod kernel_ops;
 pub mod net;
 
-pub use kerla_runtime::{debug_warn, warn_if_err, warn_once};
+pub use kerla_runtime::{print, debug_warn, warn_if_err, warn_once};
 pub use log::{debug, error, info, trace, warn};
 
 pub mod address {

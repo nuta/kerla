@@ -152,6 +152,12 @@ pub fn boot_kernel(#[cfg_attr(debug_assertions, allow(unused))] bootinfo: &BootI
     info!("Booting Kerla...");
     let mut profiler = StopWatch::start();
 
+    for _ in 0..0x1000 {
+        unsafe {
+            let _ = x86::io::inb(0x80);
+        }
+    }
+
     kerla_runtime::set_handler(&Handler);
 
     arch::init();

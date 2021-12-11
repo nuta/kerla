@@ -231,10 +231,10 @@ fn parse_ipv4_addr_with_prefix_len(
 static sent: AtomicBool = AtomicBool::new(false);
 static last_sent: AtomicUsize = AtomicUsize::new(0);
 static seq_no: AtomicU16 = AtomicU16::new(0);
+use core::str::FromStr;
+use smoltcp::socket::IcmpEndpoint;
+use smoltcp::wire::{Icmpv4Packet, Icmpv4Repr, IpAddress};
 fn ping_pong(sockets: &mut SocketSet, iface: &EthernetInterface<OurDevice>) -> bool {
-    use core::str::FromStr;
-    use smoltcp::socket::IcmpEndpoint;
-    use smoltcp::wire::{Icmpv4Packet, Icmpv4Repr, IpAddress};
     let ident = 0x79ab;
     let mut socket = sockets.get::<IcmpSocket>(*ICMP_HANDLE);
     if !socket.is_open() {
@@ -258,7 +258,7 @@ fn ping_pong(sockets: &mut SocketSet, iface: &EthernetInterface<OurDevice>) -> b
 
         info!("ping: seq={}", seq);
         // let dst = IpAddress::from_str("10.0.2.1").expect("invalid dst ip");
-        let dst = IpAddress::from_str("10.123.0.2").expect("invalid dst ip");
+        let dst = IpAddress::from_str("10.123.0.3").expect("invalid dst ip");
         let icmp_payload = match socket.send(icmp_repr.buffer_len(), dst) {
             Ok(p) => p,
             Err(err) => {
@@ -302,7 +302,13 @@ pub fn init_and_start_dhcp_discover(bootinfo: &BootInfo) {
         routes.add_default_ipv4_route(gateway_ip4).unwrap();
     };
 
-    let neighbor_cache = NeighborCache::new(BTreeMap::new());
+    let mut neighbor_cache = NeighborCache::new(BTreeMap::new());
+    // neighbor_cache.fill(
+    //     IpAddress::from_str("10.123.0.3").expect("oh nonono"),
+    //     EthernetAddress::from_bytes(&[0x7e, 0xe0, 0xab, 0x9c, 0x36, 0x4e]),
+    //     read_monotonic_clock().into(),
+    // );
+
     let mac_addr = use_ethernet_driver(|driver| driver.mac_addr());
     let ethernet_addr = EthernetAddress(mac_addr.as_array());
     let iface = EthernetInterfaceBuilder::new(OurDevice)

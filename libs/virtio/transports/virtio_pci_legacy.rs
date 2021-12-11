@@ -42,6 +42,7 @@ impl VirtioLegacyPci {
             }
         };
 
+        pci_device.enable_io();
         pci_device.enable_bus_master();
 
         Ok(Arc::new(VirtioLegacyPci { port_base }))
@@ -58,11 +59,17 @@ impl VirtioTransport for VirtioLegacyPci {
     }
 
     fn read_device_status(&self) -> u8 {
+        info!("read dev");
         self.port_base.read8(REG_DEVICE_STATUS)
     }
 
-    fn write_device_status(&self, value: u8) {
+    fn write_device_status(&self, mut value: u8) {
         self.port_base.write8(REG_DEVICE_STATUS, value);
+        if value == 0 {
+        while self.read_device_status() != 0 {
+            trace!("vdev still not ready");
+        }
+    }
     }
 
     fn read_device_features(&self) -> u64 {
