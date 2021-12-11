@@ -235,6 +235,17 @@ use core::str::FromStr;
 use smoltcp::socket::IcmpEndpoint;
 use smoltcp::wire::{Icmpv4Packet, Icmpv4Repr, IpAddress};
 fn ping_pong(sockets: &mut SocketSet, iface: &EthernetInterface<OurDevice>) -> bool {
+    return false;
+
+
+
+
+
+
+
+
+
+
     let ident = 0x79ab;
     let mut socket = sockets.get::<IcmpSocket>(*ICMP_HANDLE);
     if !socket.is_open() {

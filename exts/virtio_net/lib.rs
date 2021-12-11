@@ -122,7 +122,7 @@ impl VirtioNet {
     }
 
     pub fn handle_irq(&mut self) {
-        trace!("virtio: IRQ");
+        info!("virtio: IRQ");
         if !self
             .virtio
             .read_isr_status()
@@ -145,11 +145,11 @@ impl VirtioNet {
                 continue;
             }
 
-            trace!(
+            info!(
                 "virtio-net: received {} octets (paddr={}, payload_len={})",
                 total_len,
                 addr,
-                total_len - size_of::<VirtioNetHeader>()
+                total_len - size_of::<VirtioNetHeader>(),
             );
 
             let buffer = unsafe {
@@ -202,7 +202,7 @@ impl VirtioNet {
         );
 
         info!(
-            "TX: {:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x} -> {:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}, type={:02x} {:02x}",
+            "TX: {:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x} -> {:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}, type={:02x} {:02x}, len={}",
             frame[6 + 0],
             frame[6 + 1],
             frame[6 + 2],
@@ -217,6 +217,7 @@ impl VirtioNet {
             frame[5],
             frame[12],
             frame[13],
+            frame.len(),
         );
 
         // Fill the virtio-net header.
@@ -239,16 +240,16 @@ impl VirtioNet {
                 .copy_from_nonoverlapping(frame.as_ptr(), frame.len());
         }
 
-        if frame.len() > 0 {
-                print!("TX len={}\n{:02}: ", frame.len(), 0);
-                for i in 0..frame.len() {
-                    if i > 0 && i % 16 == 0 {
-                        print!("\n{:02}: ", i);
-                    }
-                    print!("{:02x} ", frame[i]);
-                }
-                print!("\n");
-        }
+        // if frame.len() > 0 {
+        //         print!("TX len={}\n{:02}: ", frame.len(), 0);
+        //         for i in 0..frame.len() {
+        //             if i > 0 && i % 16 == 0 {
+        //                 print!("\n{:02}: ", i);
+        //             }
+        //             print!("{:02x} ", frame[i]);
+        //         }
+        //         print!("\n");
+        // }
 
         // Construct a descriptor chain.
         let chain = &[

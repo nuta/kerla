@@ -143,8 +143,9 @@ impl VirtQueue {
 
         // Try freeing used descriptors.
         if (self.num_free_descs as usize) < chain.len() {
+            info!("enqueue: GC");
             while self.last_used_index != self.used().index {
-                let used_elem_index = self.used_elem(self.last_used_index).id as u16;
+                let used_elem_index = self.used_elem(self.last_used_index % self.num_descs()).id as u16;
 
                 // Enqueue the popped chain back into the free list.
                 self.free_head = used_elem_index;
@@ -164,7 +165,7 @@ impl VirtQueue {
                 }
 
                 self.num_free_descs += num_freed;
-                self.last_used_index = (self.last_used_index + 1) % (self.num_descs() - 1);
+                self.last_used_index = self.last_used_index.wrapping_add(1);
             }
         }
 
@@ -191,6 +192,7 @@ impl VirtQueue {
             if i == chain.len() - 1 {
                 let unused_next = desc.next;
                 desc.next = 0;
+                desc.flags &= !VIRTQ_DESC_F_NEXT;
                 self.free_head = unused_next;
                 self.num_free_descs -= chain.len() as u16;
             } else {
