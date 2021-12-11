@@ -122,7 +122,7 @@ impl VirtioNet {
     }
 
     pub fn handle_irq(&mut self) {
-        info!("virtio: IRQ");
+        trace!("virtio: IRQ");
         if !self
             .virtio
             .read_isr_status()
@@ -145,7 +145,7 @@ impl VirtioNet {
                 continue;
             }
 
-            info!(
+            trace!(
                 "virtio-net: received {} octets (paddr={}, payload_len={})",
                 total_len,
                 addr,
@@ -159,7 +159,7 @@ impl VirtioNet {
                 )
             };
 
-            info!(
+            trace!(
                 "RX: {:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x} -> {:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}, type={:02x} {:02x}",
                 buffer[6 + 0],
                 buffer[6 + 1],
@@ -201,7 +201,7 @@ impl VirtioNet {
             addr.as_paddr()
         );
 
-        info!(
+        trace!(
             "TX: {:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x} -> {:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}, type={:02x} {:02x}, len={}",
             frame[6 + 0],
             frame[6 + 1],
