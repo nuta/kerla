@@ -18,7 +18,7 @@ use smoltcp::wire::{IpAddress, IpEndpoint, Ipv4Address};
 
 use super::{process_packets, SOCKETS, SOCKET_WAIT_QUEUE};
 
-const BACKLOG_MAX: usize = 8;
+const BACKLOG_MAX: usize = 4096;
 static INUSE_ENDPOINTS: SpinLock<BTreeSet<u16>> = SpinLock::new(BTreeSet::new());
 static ALL_TCP_SOCKETS: SpinLock<Vec<Arc<TcpSocket>>> = SpinLock::new(Vec::new());
 

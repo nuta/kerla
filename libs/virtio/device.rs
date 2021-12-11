@@ -91,7 +91,6 @@ impl VirtQueue {
         transport.select_queue(index);
 
         let num_descs = transport.queue_max_size();
-        info!("num_descs = {}", num_descs);
         let avail_ring_off = size_of::<VirtqDesc>() * (num_descs as usize);
         let avail_ring_size: usize = size_of::<u16>() * (3 + (num_descs as usize));
         let used_ring_off = align_up(avail_ring_off + avail_ring_size, PAGE_SIZE);
@@ -143,21 +142,24 @@ impl VirtQueue {
 
         // Try freeing used descriptors.
         if (self.num_free_descs as usize) < chain.len() {
-            info!("enqueue: GC");
+            info!("enqueue: GC ---------------------------");
             while self.last_used_index != self.used().index {
                 let used_elem_index = self.used_elem(self.last_used_index).id as u16;
 
                 // Enqueue the popped chain back into the free list.
+                let prev_head = self.free_head;
                 self.free_head = used_elem_index;
 
                 // Count the number of descriptors in the chain.
                 let mut num_freed = 0;
                 let mut next_desc_index = used_elem_index;
                 loop {
-                    let desc = self.desc(next_desc_index);
+                    let desc = self.desc_mut(next_desc_index);
                     num_freed += 1;
 
                     if (desc.flags & VIRTQ_DESC_F_NEXT) == 0 {
+                        debug_assert_eq!(desc.next, 0);
+                        desc.next = prev_head;
                         break;
                     }
 
@@ -171,11 +173,13 @@ impl VirtQueue {
 
         // Check if we have the enough number of free descriptors.
         if (self.num_free_descs as usize) < chain.len() {
+            panic!("not enough descs for {}!",self.index);
             return;
         }
 
         let head_index = self.free_head;
         let mut desc_index = self.free_head;
+        let qindex = self.index;
         for (i, buffer) in chain.iter().enumerate() {
             let desc = self.desc_mut(desc_index);
             let (addr, len, flags) = match buffer {
@@ -185,12 +189,21 @@ impl VirtQueue {
                 }
             };
 
+            // if qindex == 1 {
+            //     // info!("@{}", desc_index);
+            // info!("push: index={}, next={}, len={} [{}]", desc_index, desc.next, desc.len,
+            // if i == chain.len() - 1 { "END" } else { "..." });
+            // }
+
             desc.addr = addr.value() as u64;
             desc.len = len.try_into().unwrap();
             desc.flags = flags;
 
             if i == chain.len() - 1 {
                 let unused_next = desc.next;
+                // if qindex == 1 {
+                //     info!("unused_next: {}", unused_next);
+                // }
                 desc.next = 0;
                 desc.flags &= !VIRTQ_DESC_F_NEXT;
                 self.free_head = unused_next;
