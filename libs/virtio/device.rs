@@ -145,7 +145,7 @@ impl VirtQueue {
         if (self.num_free_descs as usize) < chain.len() {
             info!("enqueue: GC");
             while self.last_used_index != self.used().index {
-                let used_elem_index = self.used_elem(self.last_used_index % self.num_descs()).id as u16;
+                let used_elem_index = self.used_elem(self.last_used_index).id as u16;
 
                 // Enqueue the popped chain back into the free list.
                 self.free_head = used_elem_index;
