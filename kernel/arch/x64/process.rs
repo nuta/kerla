@@ -196,6 +196,8 @@ impl Process {
             alloc_pages_owned(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
                 .expect("failed allocate kernel stack");
 
+        net::gc_tcp_sockets();
+
         Ok(Process {
             rsp: UnsafeCell::new(rsp as u64),
             fsbase: AtomicCell::new(self.fsbase.load()),
