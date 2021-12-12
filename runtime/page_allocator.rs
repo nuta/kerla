@@ -3,10 +3,15 @@ use core::ops::Deref;
 use crate::{address::PAddr, arch::PAGE_SIZE, bootinfo::RamArea, spinlock::SpinLock};
 use arrayvec::ArrayVec;
 use bitflags::bitflags;
-use kerla_utils::bump_allocator::BumpAllocator as Allocator;
 use kerla_utils::byte_size::ByteSize;
-// TODO:
+
+use kerla_utils::bitmap_allocator::BitMapAllocator as Allocator;
+
+// TODO: Fix bugs in use the buddy allocator.
 // use kerla_utils::buddy_allocator::BuddyAllocator as Allocator;
+
+// Comment out the following line to use BumpAllocator.
+// use kerla_utils::bump_allocator::BumpAllocator as Allocator;
 
 static ZONES: SpinLock<ArrayVec<Allocator, 8>> = SpinLock::new(ArrayVec::new_const());
 
@@ -77,11 +82,11 @@ pub fn alloc_pages(num_pages: usize, flags: AllocPageFlags) -> Result<PAddr, Pag
     for zone in zones.iter_mut() {
         if let Some(paddr) = zone.alloc_pages(order).map(PAddr::new) {
             // if flags.contains(AllocPageFlags::ZEROED) {
-                unsafe {
-                    paddr
-                        .as_mut_ptr::<u8>()
-                        .write_bytes(0, num_pages * PAGE_SIZE);
-                }
+            unsafe {
+                paddr
+                    .as_mut_ptr::<u8>()
+                    .write_bytes(0, num_pages * PAGE_SIZE);
+            }
             // }
 
             // return Ok(OwnedPages::new(paddr, num_pages));

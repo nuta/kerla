@@ -25,6 +25,13 @@ impl BumpAllocator {
             return None;
         }
 
+        info!(
+            "bump: Allocated {} pages at offset {:x} - {:x}",
+            1 << order,
+            self.current,
+            self.current + len
+        );
+
         let ptr = self.current;
         self.current += len;
         Some(ptr)
