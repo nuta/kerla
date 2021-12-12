@@ -42,6 +42,7 @@ type ProcessTable = BTreeMap<PId, Arc<Process>>;
 
 /// The process table. All processes are registered in with its process Id.
 pub(super) static PROCESSES: SpinLock<ProcessTable> = SpinLock::new(BTreeMap::new());
+pub(super) static EXITED_PROCESSES: SpinLock<Vec<Arc<Process>>> = SpinLock::new(Vec::new());
 
 /// Returns an unused PID. Note that this function does not reserve the PID:
 /// keep the process table locked until you insert the process into the table!
@@ -323,6 +324,9 @@ impl Process {
                 // If the parent process is not waiting for a child,
                 // remove the child from its list.
                 parent.children().retain(|p| p.pid() != current.pid);
+
+                //
+                EXITED_PROCESSES.lock().push(current.clone());
             } else {
                 parent.send_signal(SIGCHLD)
             }
@@ -620,4 +624,8 @@ fn do_setup_userspace(
     }
 
     Ok(UserspaceEntry { vm, ip, user_sp })
+}
+
+pub fn gc_exited_processes() {
+    EXITED_PROCESSES.lock().clear();
 }

@@ -69,10 +69,7 @@ impl Deref for OwnedPages {
 
 impl Drop for OwnedPages {
     fn drop(&mut self) {
-        // It's safe because we have the ownership of the pages.
-        unsafe {
-            free_pages(self.paddr, self.num_pages);
-        }
+        free_pages(self.paddr, self.num_pages);
     }
 }
 
@@ -89,7 +86,6 @@ pub fn alloc_pages(num_pages: usize, flags: AllocPageFlags) -> Result<PAddr, Pag
             }
             // }
 
-            // return Ok(OwnedPages::new(paddr, num_pages));
             return Ok(paddr);
         }
     }
@@ -113,7 +109,7 @@ pub fn alloc_pages_owned(
             }
             // }
 
-            // return Ok(OwnedPages::new(paddr, num_pages));
+            trace!("!!! alloc {:x?}, {}", paddr, num_pages);
             return Ok(OwnedPages::new(paddr, num_pages));
         }
     }
@@ -121,11 +117,19 @@ pub fn alloc_pages_owned(
     Err(PageAllocError)
 }
 
-/// # Safety
-///
 /// The caller must ensure that the pages are not already freed. Keep holding
 /// `OwnedPages` to free the pages in RAII basis.
-pub unsafe fn free_pages(paddr: PAddr, num_pages: usize) {
+pub fn free_pages(paddr: PAddr, num_pages: usize) {
+    trace!("!!! free {:x?}, {}", paddr, num_pages);
+    if cfg!(debug_assertions) {
+        // Poison the memory.
+        unsafe {
+            paddr
+                .as_mut_ptr::<u8>()
+                .write_bytes(0xa5, num_pages * PAGE_SIZE);
+        }
+    }
+
     let order = num_pages_to_order(num_pages);
     let mut zones = ZONES.lock();
     for zone in zones.iter_mut() {

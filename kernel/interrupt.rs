@@ -50,5 +50,6 @@ pub fn handle_irq(irq: u8) {
 
     // So-called "bottom half" in Linux kernel. Execute time-consuming but
     // non-critical work like processing packets.
+    crate::interval_work();
     run_deferred_jobs();
 }

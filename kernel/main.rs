@@ -266,9 +266,14 @@ pub fn boot_kernel(#[cfg_attr(debug_assertions, allow(unused))] bootinfo: &BootI
     idle_thread();
 }
 
+pub fn interval_work() {
+    process::gc_exited_processes();
+    net::gc_tcp_sockets();
+}
+
 fn idle_thread() -> ! {
     loop {
+        interval_work();
         idle();
-        net::gc_tcp_sockets();
     }
 }
