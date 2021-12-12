@@ -15,7 +15,7 @@ use crate::{
         elf::{Elf, ProgramHeader},
         init_stack::{estimate_user_init_stack_size, init_user_stack, Auxv},
         process_group::{PgId, ProcessGroup},
-        signal::{SigAction, Signal, SignalDelivery, SignalMask, SIGCHLD, SIGKILL},
+        signal::{SigAction, SigSet, Signal, SignalDelivery, SignalMask, SIGCHLD, SIGKILL},
         switch, UserVAddr, JOIN_WAIT_QUEUE, SCHEDULER,
     },
     random::read_secure_random,
@@ -37,8 +37,6 @@ use kerla_runtime::{
     spinlock::{SpinLock, SpinLockGuard},
 };
 use kerla_utils::{alignment::align_up, bitmap::BitMap};
-
-use super::signal::{SigSet, SIGSTOP};
 
 type ProcessTable = BTreeMap<PId, Arc<Process>>;
 
@@ -390,10 +388,7 @@ impl Process {
         let current = current_process();
         if let Some((signal, sigaction)) = current.signals.lock().pop_pending() {
             let sigset = current.sigset.lock();
-            if signal == SIGSTOP
-                || signal == SIGKILL
-                || !sigset.get(signal as usize).unwrap_or(true)
-            {
+            if !sigset.get(signal as usize).unwrap_or(true) {
                 match sigaction {
                     SigAction::Ignore => {}
                     SigAction::Terminate => {
