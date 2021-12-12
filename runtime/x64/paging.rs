@@ -193,26 +193,34 @@ impl PageTable {
     }
 
     /// Used from `Drop::drop` implementation.
-    fn drop_table(&mut self, level: usize, table: *const u64) {
+    fn drop_table(&mut self, level: usize, table_paddr: PAddr) {
         let table = self.pml4.as_ptr::<PageTableEntry>();
         for i in 0..256 {
             let entry = unsafe { table.offset(i) };
-            let table_paddr = entry_paddr(unsafe { *entry });
-            if table_paddr.value() == 0 {
+            let paddr = entry_paddr(unsafe { *entry });
+            if paddr.value() == 0 {
                 continue;
             }
 
             if level == 3 {
-                unsafe { free_pages(table_paddr, 1) };
+                // TODO: Decrement the reference count of the physical page.
             } else {
-                self.drop_table(level + 1, table);
+                self.drop_table(level + 1, paddr);
             }
+        }
+
+        unsafe {
+            free_pages(table_paddr, 1);
         }
     }
 }
 
 impl Drop for PageTable {
     fn drop(&mut self) {
-        self.drop_table(0, self.pml4.as_ptr::<PageTableEntry>());
+        self.drop_table(0, self.pml4);
+
+        unsafe {
+            free_pages(self.pml4, 1);
+        }
     }
 }
