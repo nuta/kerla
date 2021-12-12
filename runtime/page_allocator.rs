@@ -125,7 +125,7 @@ pub fn alloc_pages_owned(
 ///
 /// The caller must ensure that the pages are not already freed. Keep holding
 /// `OwnedPages` to free the pages in RAII basis.
-unsafe fn free_pages(paddr: PAddr, num_pages: usize) {
+pub unsafe fn free_pages(paddr: PAddr, num_pages: usize) {
     let order = num_pages_to_order(num_pages);
     let mut zones = ZONES.lock();
     for zone in zones.iter_mut() {

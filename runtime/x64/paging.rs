@@ -1,6 +1,6 @@
 use super::PAGE_SIZE;
 use crate::address::{PAddr, UserVAddr};
-use crate::page_allocator::{alloc_pages, AllocPageFlags, PageAllocError};
+use crate::page_allocator::{alloc_pages, free_pages, AllocPageFlags, PageAllocError};
 use bitflags::bitflags;
 use core::{
     debug_assert,
@@ -190,5 +190,29 @@ impl PageTable {
         unsafe {
             *entry.as_mut() = paddr.value() as u64 | attrs.bits();
         }
+    }
+
+    /// Used from `Drop::drop` implementation.
+    fn drop_table(&mut self, level: usize, table: *const u64) {
+        let table = self.pml4.as_ptr::<PageTableEntry>();
+        for i in 0..256 {
+            let entry = unsafe { table.offset(i) };
+            let table_paddr = entry_paddr(unsafe { *entry });
+            if table_paddr.value() == 0 {
+                continue;
+            }
+
+            if level == 3 {
+                unsafe { free_pages(table_paddr, 1) };
+            } else {
+                self.drop_table(level + 1, table);
+            }
+        }
+    }
+}
+
+impl Drop for PageTable {
+    fn drop(&mut self) {
+        self.drop_table(0, self.pml4.as_ptr::<PageTableEntry>());
     }
 }
