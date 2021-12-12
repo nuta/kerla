@@ -109,7 +109,6 @@ pub fn alloc_pages_owned(
             }
             // }
 
-            trace!("!!! alloc {:x?}, {}", paddr, num_pages);
             return Ok(OwnedPages::new(paddr, num_pages));
         }
     }
@@ -120,7 +119,6 @@ pub fn alloc_pages_owned(
 /// The caller must ensure that the pages are not already freed. Keep holding
 /// `OwnedPages` to free the pages in RAII basis.
 pub fn free_pages(paddr: PAddr, num_pages: usize) {
-    trace!("!!! free {:x?}, {}", paddr, num_pages);
     if cfg!(debug_assertions) {
         // Poison the memory.
         unsafe {

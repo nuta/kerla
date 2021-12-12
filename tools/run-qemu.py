@@ -20,7 +20,7 @@ ARCHS = {
         "args":
         COMMON_ARGS + [
             "-m",
-            "32",
+            "1024",
             "-cpu",
             "Icelake-Server",
             "-device",

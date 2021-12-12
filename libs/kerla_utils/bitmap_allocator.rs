@@ -36,7 +36,6 @@ impl BitMapAllocator {
 
     pub fn alloc_pages(&mut self, order: usize) -> Option<usize> {
         let num_pages = 1 << order;
-        trace!("Allocating {} pages", num_pages);
         let mut bitmap = self.bitmap.lock();
         let mut off = 0;
         while let Some(first_zero) = bitmap[off..].first_zero() {
@@ -47,12 +46,6 @@ impl BitMapAllocator {
             }
 
             if bitmap[start..end].not_any() {
-                trace!(
-                    "Allocated {} pages at offset {:x} - {:x}",
-                    num_pages,
-                    self.base + start * PAGE_SIZE,
-                    self.base + start * PAGE_SIZE + num_pages * PAGE_SIZE
-                );
                 bitmap[start..end].set_all(true);
                 return Some(self.base + start * PAGE_SIZE);
             }
@@ -65,11 +58,11 @@ impl BitMapAllocator {
 
     pub fn free_pages(&mut self, ptr: usize, order: usize) {
         let num_pages = 1 << order;
-        trace!("Freeing {} pages", num_pages);
         let off = (ptr - self.base) / PAGE_SIZE;
+
         let mut bitmap = self.bitmap.lock();
+
         debug_assert!(bitmap[off..(off + num_pages)].all(), "double free");
         bitmap[off..(off + num_pages)].set_all(false);
-        trace!("freed");
     }
 }

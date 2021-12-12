@@ -325,7 +325,8 @@ impl Process {
                 // remove the child from its list.
                 parent.children().retain(|p| p.pid() != current.pid);
 
-                //
+                // Keep the reference because we're using its kernel stack. Postpone
+                // freeing the stack until we move from the current thread.
                 EXITED_PROCESSES.lock().push(current.clone());
             } else {
                 parent.send_signal(SIGCHLD)
@@ -339,11 +340,6 @@ impl Process {
 
         PROCESSES.lock().remove(&current.pid);
         JOIN_WAIT_QUEUE.wake_all();
-        info!(
-            "@@@ EXIT {:?} (ref={})",
-            current.pid,
-            Arc::strong_count(current)
-        );
         switch();
         unreachable!();
     }
