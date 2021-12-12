@@ -142,7 +142,6 @@ impl VirtQueue {
 
         // Try freeing used descriptors.
         if (self.num_free_descs as usize) < chain.len() {
-            info!("enqueue: GC ---------------------------");
             while self.last_used_index != self.used().index {
                 let used_elem_index = self.used_elem(self.last_used_index).id as u16;
 
@@ -173,7 +172,7 @@ impl VirtQueue {
 
         // Check if we have the enough number of free descriptors.
         if (self.num_free_descs as usize) < chain.len() {
-            panic!("not enough descs for {}!",self.index);
+            panic!("not enough descs for {}!", self.index);
             return;
         }
 
@@ -375,11 +374,10 @@ impl Virtio {
         self.transport
             .write_device_status(self.transport.read_device_status() | VIRTIO_STATUS_DRIVER);
         let device_features = self.transport.read_device_features();
-            warn!(
-                "virtio: driver={:x}, device={:x}",
-                features,
-                device_features,
-            );
+        warn!(
+            "virtio: driver={:x}, device={:x}",
+            features, device_features,
+        );
         if (device_features & features) != features {
             warn!(
                 "virtio: feature negotiation failure: driver={:x}, device={:x}, unspported={:x}",
