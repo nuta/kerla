@@ -171,8 +171,6 @@ impl Process {
 
         let entry = setup_userspace(executable_path, argv, &[], &root_fs)?;
         let pid = PId::new(1);
-        let stack_bottom = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)?;
-        let kernel_sp = stack_bottom.as_vaddr().add(KERNEL_STACK_SIZE);
         let process_group = ProcessGroup::new(PgId::new(1));
         let process = Arc::new(Process {
             process_group: AtomicRefCell::new(Arc::downgrade(&process_group)),
@@ -181,7 +179,7 @@ impl Process {
             children: SpinLock::new(Vec::new()),
             state: AtomicCell::new(ProcessState::Runnable),
             cmdline: AtomicRefCell::new(Cmdline::from_argv(argv)),
-            arch: arch::Process::new_user_thread(entry.ip, entry.user_sp, kernel_sp),
+            arch: arch::Process::new_user_thread(entry.ip, entry.user_sp),
             vm: AtomicRefCell::new(Some(Arc::new(SpinLock::new(entry.vm)))),
             opened_files: SpinLock::new(opened_files),
             root_fs,

@@ -97,6 +97,30 @@ pub fn alloc_pages(num_pages: usize, flags: AllocPageFlags) -> Result<PAddr, Pag
     Err(PageAllocError)
 }
 
+pub fn alloc_pages_owned(
+    num_pages: usize,
+    flags: AllocPageFlags,
+) -> Result<OwnedPages, PageAllocError> {
+    let order = num_pages_to_order(num_pages);
+    let mut zones = ZONES.lock();
+    for zone in zones.iter_mut() {
+        if let Some(paddr) = zone.alloc_pages(order).map(PAddr::new) {
+            // if flags.contains(AllocPageFlags::ZEROED) {
+            unsafe {
+                paddr
+                    .as_mut_ptr::<u8>()
+                    .write_bytes(0, num_pages * PAGE_SIZE);
+            }
+            // }
+
+            // return Ok(OwnedPages::new(paddr, num_pages));
+            return Ok(OwnedPages::new(paddr, num_pages));
+        }
+    }
+
+    Err(PageAllocError)
+}
+
 /// # Safety
 ///
 /// The caller must ensure that the pages are not already freed. Keep holding

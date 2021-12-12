@@ -42,6 +42,10 @@ impl BitMapAllocator {
         while let Some(first_zero) = bitmap[off..].first_zero() {
             let start = off + first_zero;
             let end = off + first_zero + num_pages;
+            if end > bitmap.len() {
+                break;
+            }
+
             if bitmap[start..end].not_any() {
                 trace!(
                     "Allocated {} pages at offset {:x} - {:x}",
