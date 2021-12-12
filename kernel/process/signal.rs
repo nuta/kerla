@@ -70,7 +70,7 @@ const SIGMAX: c_int = 32;
 pub const SIG_DFL: usize = 0;
 pub const SIG_IGN: usize = 1;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum SigAction {
     Ignore,
     Terminate,
@@ -124,6 +124,10 @@ impl SignalDelivery {
             pending: 0,
             actions: DEFAULT_ACTIONS,
         }
+    }
+
+    pub fn get_action(&self, signal: Signal) -> SigAction {
+        self.actions[signal as usize]
     }
 
     pub fn set_action(&mut self, signal: Signal, action: SigAction) -> Result<()> {

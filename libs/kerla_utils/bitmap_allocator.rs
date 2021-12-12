@@ -68,6 +68,6 @@ impl BitMapAllocator {
         trace!("Freeing {} pages", num_pages);
         let off = (ptr - self.base) / PAGE_SIZE;
         let mut bitmap = self.bitmap.lock();
-        self.bitmap.lock()[off..(off + num_pages)].set_all(false);
+        bitmap[off..(off + num_pages)].set_all(false);
     }
 }

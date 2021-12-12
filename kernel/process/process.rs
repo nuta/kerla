@@ -319,7 +319,13 @@ impl Process {
 
         current.set_state(ProcessState::ExitedWith(status));
         if let Some(parent) = current.parent.upgrade() {
-            parent.send_signal(SIGCHLD);
+            if parent.signals().lock().get_action(SIGCHLD) == SigAction::Ignore {
+                // If the parent process is not waiting for a child,
+                // remove the child from its list.
+                parent.children().retain(|p| p.pid() != current.pid);
+            } else {
+                parent.send_signal(SIGCHLD)
+            }
         }
 
         // Close opened files here instead of in Drop::drop because `proc` is
@@ -329,6 +335,11 @@ impl Process {
 
         PROCESSES.lock().remove(&current.pid);
         JOIN_WAIT_QUEUE.wake_all();
+        info!(
+            "@@@ EXIT {:?} (ref={})",
+            current.pid,
+            Arc::strong_count(current)
+        );
         switch();
         unreachable!();
     }
