@@ -13,10 +13,10 @@ impl SyscallHandler<'_> {
         oldset: Option<UserVAddr>,
         length: usize,
     ) -> Result<isize> {
-        if length != 8{
+        if length != 8 {
             debug_warn!("sys_rt_sigprocmask length argument is not equal 8");
         }
-        
+
         let how = match how {
             0 => SignalMask::Block,
             1 => SignalMask::Unblock,
@@ -24,9 +24,7 @@ impl SyscallHandler<'_> {
             _ => return Err(Errno::EINVAL.into()),
         };
 
-        if let Err(_) = current_process().set_signal_mask(how, set, oldset, length) {
-            return Err(Errno::EFAULT.into());
-        }
+        current_process().set_signal_mask(how, set, oldset, length)?;
 
         Ok(0)
     }
