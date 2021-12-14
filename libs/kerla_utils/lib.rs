@@ -11,8 +11,12 @@ extern crate std;
 #[macro_use]
 extern crate alloc;
 
+#[macro_use]
+extern crate log;
+
 pub mod alignment;
 pub mod bitmap;
+pub mod bitmap_allocator;
 pub mod buddy_allocator;
 pub mod bump_allocator;
 pub mod byte_size;
