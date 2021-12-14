@@ -236,6 +236,10 @@ impl OpenedFile {
         self.as_file()?.bind(sockaddr)
     }
 
+    pub fn shutdown(&self, how: ShutdownHow) -> Result<()> {
+        self.as_file()?.shutdown(how)
+    }
+
     pub fn getsockname(&self) -> Result<SockAddr> {
         self.as_file()?.getsockname()
     }
