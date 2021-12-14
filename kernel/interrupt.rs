@@ -5,7 +5,7 @@ use core::mem::MaybeUninit;
 use kerla_runtime::{arch::enable_irq, spinlock::SpinLock};
 use kerla_utils::bitmap::BitMap;
 
-use crate::deferred_job::run_deferred_jobs;
+use crate::{deferred_job::run_deferred_jobs, interval_work};
 
 fn empty_irq_handler() {}
 
@@ -50,5 +50,6 @@ pub fn handle_irq(irq: u8) {
 
     // So-called "bottom half" in Linux kernel. Execute time-consuming but
     // non-critical work like processing packets.
+    interval_work();
     run_deferred_jobs();
 }

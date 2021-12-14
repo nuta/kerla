@@ -253,8 +253,13 @@ pub fn boot_kernel(#[cfg_attr(debug_assertions, allow(unused))] bootinfo: &BootI
     idle_thread();
 }
 
+pub fn interval_work() {
+    process::gc_exited_processes();
+}
+
 fn idle_thread() -> ! {
     loop {
+        interval_work();
         idle();
     }
 }
