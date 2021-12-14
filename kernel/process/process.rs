@@ -338,6 +338,12 @@ impl Process {
         unreachable!();
     }
 
+    /// Terminates the **current** thread and other threads belonging to the same thread group.
+    pub fn exit_group(status: c_int) -> ! {
+        // TODO: Kill other threads belonging to the same thread group.
+        Process::exit(status)
+    }
+
     /// Terminates the **current** process by a signal.
     pub fn exit_by_signal(_signal: Signal) -> ! {
         Process::exit(1 /* FIXME: how should we compute the exit status? */);
