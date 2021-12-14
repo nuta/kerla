@@ -668,6 +668,8 @@ fn do_setup_userspace(
 
 pub fn gc_exited_processes() {
     if current_process().is_idle() {
+        // If we're in an idle thread, it's safe to free kernel stacks allocated
+        // for other exited processes.
         EXITED_PROCESSES.lock().clear();
     }
 }
