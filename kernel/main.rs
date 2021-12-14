@@ -182,11 +182,15 @@ pub fn boot_kernel(#[cfg_attr(debug_assertions, allow(unused))] bootinfo: &BootI
     profiler.lap_time("virtio_net init");
 
     // Initialize device drivers.
-    kerla_api::kernel_ops::init_drivers(bootinfo.pci_enabled, &bootinfo.virtio_mmio_devices);
+    kerla_api::kernel_ops::init_drivers(
+        bootinfo.pci_enabled,
+        &bootinfo.pci_allowlist,
+        &bootinfo.virtio_mmio_devices,
+    );
     profiler.lap_time("drivers init");
 
     // Connect to the network.
-    net::init_and_start_dhcp_discover();
+    net::init_and_start_dhcp_discover(bootinfo);
     profiler.lap_time("net init");
 
     // Prepare the root file system.
