@@ -63,6 +63,7 @@ pub(self) mod select;
 pub(self) mod sendto;
 pub(self) mod set_tid_address;
 pub(self) mod setpgid;
+pub(self) mod shutdown;
 pub(self) mod socket;
 pub(self) mod stat;
 pub(self) mod syslog;
@@ -126,6 +127,7 @@ const SYS_CONNECT: usize = 42;
 const SYS_ACCEPT: usize = 43;
 const SYS_SENDTO: usize = 44;
 const SYS_RECVFROM: usize = 45;
+const SYS_SHUTDOWN: usize = 48;
 const SYS_BIND: usize = 49;
 const SYS_LISTEN: usize = 50;
 const SYS_GETSOCKNAME: usize = 51;
@@ -318,6 +320,7 @@ impl<'a> SyscallHandler<'a> {
             SYS_EXIT => self.sys_exit(a1 as i32),
             SYS_SOCKET => self.sys_socket(a1 as i32, a2 as i32, a3 as i32),
             SYS_BIND => self.sys_bind(Fd::new(a1 as i32), UserVAddr::new_nonnull(a2)?, a3 as usize),
+            SYS_SHUTDOWN => self.sys_shutdown(Fd::new(a1 as i32), a2 as i32),
             SYS_CONNECT => {
                 self.sys_connect(Fd::new(a1 as i32), UserVAddr::new_nonnull(a2)?, a3 as usize)
             }

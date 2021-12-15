@@ -32,6 +32,17 @@ pub type sa_family_t = u16;
 #[allow(non_camel_case_types)]
 pub type socklen_t = u32;
 
+/// The `how` argument in `shutdown(2)`.
+#[repr(i32)]
+pub enum ShutdownHow {
+    /// `SHUT_RD`.
+    Rd = 0,
+    /// `SHUT_WR`.
+    Wr = 1,
+    /// `SHUT_RDWR`.
+    RdWr = 2,
+}
+
 #[non_exhaustive]
 #[derive(Debug, Clone)]
 pub enum SockAddr {

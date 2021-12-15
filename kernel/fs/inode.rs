@@ -89,6 +89,11 @@ pub trait FileLike: Debug + Send + Sync + Downcastable {
         Err(Error::new(Errno::EBADF))
     }
 
+    /// `shutdown(2)`.
+    fn shutdown(&self, _how: ShutdownHow) -> Result<()> {
+        Err(Error::new(Errno::EBADF))
+    }
+
     /// `listen(2)`.
     fn listen(&self, _backlog: i32) -> Result<()> {
         Err(Error::new(Errno::EBADF))
