@@ -13,7 +13,7 @@ pub struct NLink(usize);
 /// The file size in bytes.
 #[derive(Debug, Copy, Clone)]
 #[repr(transparent)]
-pub struct FileSize(isize);
+pub struct FileSize(pub isize);
 
 /// The user ID.
 #[derive(Debug, Copy, Clone)]
@@ -91,7 +91,7 @@ pub struct Stat {
     pub gid: GId,
     pub pad0: u32,
     pub rdev: DevId,
-    pub usize: FileSize,
+    pub size: FileSize,
     pub blksize: BlockSize,
     pub blocks: BlockCount,
     pub atime: Time,
@@ -110,7 +110,7 @@ impl Stat {
             gid: GId(0),
             pad0: 0,
             rdev: DevId(0),
-            usize: FileSize(0),
+            size: FileSize(0),
             blksize: BlockSize(0),
             blocks: BlockCount(0),
             atime: Time(0),
