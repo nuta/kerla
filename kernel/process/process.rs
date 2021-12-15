@@ -42,6 +42,7 @@ type ProcessTable = BTreeMap<PId, Arc<Process>>;
 
 /// The process table. All processes are registered in with its process Id.
 pub(super) static PROCESSES: SpinLock<ProcessTable> = SpinLock::new(BTreeMap::new());
+pub(super) static EXITED_PROCESSES: SpinLock<Vec<Arc<Process>>> = SpinLock::new(Vec::new());
 
 /// Returns an unused PID. Note that this function does not reserve the PID:
 /// keep the process table locked until you insert the process into the table!
@@ -93,6 +94,7 @@ pub enum ProcessState {
 /// The process control block.
 pub struct Process {
     arch: arch::Process,
+    is_idle: bool,
     process_group: AtomicRefCell<Weak<SpinLock<ProcessGroup>>>,
     pid: PId,
     state: AtomicCell<ProcessState>,
@@ -115,6 +117,7 @@ impl Process {
     pub fn new_idle_thread() -> Result<Arc<Process>> {
         let process_group = ProcessGroup::new(PgId::new(0));
         let proc = Arc::new(Process {
+            is_idle: true,
             process_group: AtomicRefCell::new(Arc::downgrade(&process_group)),
             arch: arch::Process::new_idle_thread(),
             state: AtomicCell::new(ProcessState::Runnable),
@@ -177,6 +180,7 @@ impl Process {
         let kernel_sp = stack_bottom.as_vaddr().add(KERNEL_STACK_SIZE);
         let process_group = ProcessGroup::new(PgId::new(1));
         let process = Arc::new(Process {
+            is_idle: false,
             process_group: AtomicRefCell::new(Arc::downgrade(&process_group)),
             pid,
             parent: Weak::new(),
@@ -203,6 +207,11 @@ impl Process {
     /// Returns the process with the given process ID.
     pub fn find_by_pid(pid: PId) -> Option<Arc<Process>> {
         PROCESSES.lock().get(&pid).cloned()
+    }
+
+    /// Returns true if the process is a idle kernel thread.
+    pub fn is_idle(&self) -> bool {
+        self.is_idle
     }
 
     /// The process ID.
@@ -324,7 +333,17 @@ impl Process {
 
         current.set_state(ProcessState::ExitedWith(status));
         if let Some(parent) = current.parent.upgrade() {
-            parent.send_signal(SIGCHLD);
+            if parent.signals().lock().get_action(SIGCHLD) == SigAction::Ignore {
+                // If the parent process is not waiting for a child,
+                // remove the child from its list.
+                parent.children().retain(|p| p.pid() != current.pid);
+
+                // Keep the reference because we're using its kernel stack. Postpone
+                // freeing the stack until we move from the current thread.
+                EXITED_PROCESSES.lock().push(current.clone());
+            } else {
+                parent.send_signal(SIGCHLD)
+            }
         }
 
         // Close opened files here instead of in Drop::drop because `proc` is
@@ -473,6 +492,7 @@ impl Process {
         let sig_set = parent.sigset.lock();
 
         let child = Arc::new(Process {
+            is_idle: false,
             process_group: AtomicRefCell::new(Arc::downgrade(&process_group)),
             pid,
             state: AtomicCell::new(ProcessState::Runnable),
@@ -650,4 +670,12 @@ fn do_setup_userspace(
     }
 
     Ok(UserspaceEntry { vm, ip, user_sp })
+}
+
+pub fn gc_exited_processes() {
+    if current_process().is_idle() {
+        // If we're in an idle thread, it's safe to free kernel stacks allocated
+        // for other exited processes.
+        EXITED_PROCESSES.lock().clear();
+    }
 }
