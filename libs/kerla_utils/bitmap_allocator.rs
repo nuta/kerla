@@ -33,6 +33,10 @@ impl BitMapAllocator {
         }
     }
 
+    pub fn num_total_pages(&self) -> usize {
+        (self.end - self.base) / PAGE_SIZE
+    }
+
     pub fn includes(&mut self, ptr: usize) -> bool {
         self.base <= ptr && ptr < self.end
     }

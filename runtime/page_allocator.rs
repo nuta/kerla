@@ -1,4 +1,5 @@
 use core::ops::Deref;
+use core::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::{address::PAddr, arch::PAGE_SIZE, bootinfo::RamArea, spinlock::SpinLock};
 use arrayvec::ArrayVec;
@@ -15,6 +16,8 @@ use kerla_utils::bitmap_allocator::BitMapAllocator as Allocator;
 // use kerla_utils::bump_allocator::BumpAllocator as Allocator;
 
 static ZONES: SpinLock<ArrayVec<Allocator, 8>> = SpinLock::new(ArrayVec::new_const());
+static NUM_FREE_PAGES: AtomicUsize = AtomicUsize::new(0);
+static NUM_TOTAL_PAGES: AtomicUsize = AtomicUsize::new(0);
 
 fn num_pages_to_order(num_pages: usize) -> usize {
     // TODO: Use log2 instead
@@ -27,6 +30,18 @@ fn num_pages_to_order(num_pages: usize) -> usize {
     }
 
     unreachable!();
+}
+
+pub struct Stats {
+    pub num_free_pages: usize,
+    pub num_total_pages: usize,
+}
+
+pub fn read_allocator_stats() -> Stats {
+    Stats {
+        num_free_pages: NUM_FREE_PAGES.load(Ordering::SeqCst),
+        num_total_pages: NUM_TOTAL_PAGES.load(Ordering::SeqCst),
+    }
 }
 
 bitflags! {
@@ -70,6 +85,7 @@ impl Drop for OwnedPages {
     }
 }
 
+// TODO: Use alloc_page
 pub fn alloc_pages(num_pages: usize, flags: AllocPageFlags) -> Result<PAddr, PageAllocError> {
     let order = num_pages_to_order(num_pages);
     let mut zones = ZONES.lock();
@@ -83,6 +99,7 @@ pub fn alloc_pages(num_pages: usize, flags: AllocPageFlags) -> Result<PAddr, Pag
                 }
             }
 
+            NUM_FREE_PAGES.fetch_sub(num_pages, Ordering::SeqCst);
             return Ok(paddr);
         }
     }
@@ -106,6 +123,7 @@ pub fn alloc_pages_owned(
                 }
             }
 
+            NUM_FREE_PAGES.fetch_sub(num_pages, Ordering::SeqCst);
             return Ok(OwnedPages::new(paddr, num_pages));
         }
     }
@@ -130,6 +148,7 @@ pub fn free_pages(paddr: PAddr, num_pages: usize) {
     for zone in zones.iter_mut() {
         if zone.includes(paddr.value()) {
             zone.free_pages(paddr.value(), order);
+            NUM_FREE_PAGES.fetch_add(num_pages, Ordering::SeqCst);
             return;
         }
     }
@@ -147,6 +166,8 @@ pub fn init(areas: &[RamArea]) {
         debug_assert!(is_aligned(area.base.value(), PAGE_SIZE));
         let allocator =
             unsafe { Allocator::new(area.base.as_mut_ptr(), area.base.value(), area.len) };
+        NUM_FREE_PAGES.fetch_add(allocator.num_total_pages(), Ordering::SeqCst);
+        NUM_TOTAL_PAGES.fetch_add(allocator.num_total_pages(), Ordering::SeqCst);
         zones.push(allocator);
     }
 }

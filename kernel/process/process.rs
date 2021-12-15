@@ -26,9 +26,9 @@ use alloc::collections::BTreeMap;
 use alloc::sync::{Arc, Weak};
 use alloc::vec::Vec;
 use atomic_refcell::{AtomicRef, AtomicRefCell};
-use core::cmp::max;
 use core::mem::size_of;
 use core::sync::atomic::{AtomicI32, Ordering};
+use core::{cmp::max, sync::atomic::AtomicUsize};
 use crossbeam::atomic::AtomicCell;
 use goblin::elf64::program_header::PT_LOAD;
 use kerla_runtime::{
@@ -43,6 +43,18 @@ type ProcessTable = BTreeMap<PId, Arc<Process>>;
 /// The process table. All processes are registered in with its process Id.
 pub(super) static PROCESSES: SpinLock<ProcessTable> = SpinLock::new(BTreeMap::new());
 pub(super) static EXITED_PROCESSES: SpinLock<Vec<Arc<Process>>> = SpinLock::new(Vec::new());
+
+static FORK_TOTAL: AtomicUsize = AtomicUsize::new(0);
+
+pub struct Stats {
+    pub fork_total: usize,
+}
+
+pub fn read_process_stats() -> Stats {
+    Stats {
+        fork_total: FORK_TOTAL.load(Ordering::SeqCst),
+    }
+}
 
 /// Returns an unused PID. Note that this function does not reserve the PID:
 /// keep the process table locked until you insert the process into the table!
@@ -512,6 +524,8 @@ impl Process {
         parent.children().push(child.clone());
         process_table.insert(pid, child.clone());
         SCHEDULER.lock().enqueue(pid);
+
+        FORK_TOTAL.fetch_add(1, Ordering::Relaxed);
         Ok(child)
     }
 }
