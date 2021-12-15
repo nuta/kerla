@@ -32,6 +32,7 @@ fn num_pages_to_order(num_pages: usize) -> usize {
     unreachable!();
 }
 
+#[derive(Debug)]
 pub struct Stats {
     pub num_free_pages: usize,
     pub num_total_pages: usize,

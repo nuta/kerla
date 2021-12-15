@@ -47,41 +47,23 @@ impl FileLike for MetricsFile {
             return Ok(0);
         }
 
-        let mut writer = UserBufWriter::from(buf);
-
-        // Process related metrics.
         let process_metrics = read_process_stats();
+        let allocator_metrics = read_allocator_stats();
+        let tcp_metrics = read_tcp_stats();
+
+        let mut writer = UserBufWriter::from(buf);
         let _ = write!(
             writer,
             concat!(
                 "# HELP: process_fork_total The total # of process forks.\n",
                 "# TYPE: process_fork_total counter\n",
                 "process_fork_total {fork_total}\n",
-            ),
-            fork_total = process_metrics.fork_total
-        );
-
-        // Allocator  metrics.
-        let allocator_metrics = read_allocator_stats();
-        let _ = write!(
-            writer,
-            concat!(
                 "# HELP: memory_pages_total The total # of pages can be allocated.\n",
                 "# TYPE: memory_pages_total gauge\n",
                 "memory_pages_total {num_free_pages}\n",
                 "# HELP: memory_pages_free The total # of pages can be allocated.\n",
                 "# TYPE: memory_pages_free gauge\n",
                 "memory_pages_free {num_total_pages}\n",
-            ),
-            num_free_pages = allocator_metrics.num_free_pages,
-            num_total_pages = allocator_metrics.num_total_pages
-        );
-
-        // TCP metrics.
-        let tcp_metrics = read_tcp_stats();
-        let _ = write!(
-            writer,
-            concat!(
                 "# HELP: passive_opens_total The total # of established passive TCP opens.\n",
                 "# TYPE: passive_opens_total counter\n",
                 "passive_opens_total {passive_opens_total}\n",
@@ -92,6 +74,9 @@ impl FileLike for MetricsFile {
                 "# TYPE: tcp_written_bytes_total counter\n",
                 "tcp_written_bytes_total {tcp_written_bytes_total}\n",
             ),
+            fork_total = process_metrics.fork_total,
+            num_free_pages = allocator_metrics.num_free_pages,
+            num_total_pages = allocator_metrics.num_total_pages,
             passive_opens_total = tcp_metrics.passive_opens_total,
             tcp_read_bytes_total = tcp_metrics.read_bytes_total,
             tcp_written_bytes_total = tcp_metrics.written_bytes_total,

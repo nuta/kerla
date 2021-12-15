@@ -46,6 +46,7 @@ pub(super) static EXITED_PROCESSES: SpinLock<Vec<Arc<Process>>> = SpinLock::new(
 
 static FORK_TOTAL: AtomicUsize = AtomicUsize::new(0);
 
+#[derive(Debug)]
 pub struct Stats {
     pub fork_total: usize,
 }

@@ -28,6 +28,7 @@ static PASSIVE_OPENS_TOTAL: AtomicUsize = AtomicUsize::new(0);
 static WRITTEN_BYTES_TOTAL: AtomicUsize = AtomicUsize::new(0);
 static READ_BYTES_TOTAL: AtomicUsize = AtomicUsize::new(0);
 
+#[derive(Debug)]
 pub struct Stats {
     pub passive_opens_total: usize,
     pub written_bytes_total: usize,
