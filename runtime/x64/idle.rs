@@ -2,7 +2,7 @@ use super::semihosting::{semihosting_halt, SemihostingExitStatus};
 
 pub fn idle() {
     unsafe {
-        asm!("sti; hlt");
+        asm!("sti; hlt; cli");
     }
 }
 
