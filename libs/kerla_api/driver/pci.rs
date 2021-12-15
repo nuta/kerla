@@ -111,6 +111,14 @@ impl PciDevice {
         );
     }
 
+    pub fn bus(&self) -> u8 {
+        self.bus
+    }
+
+    pub fn slot(&self) -> u8 {
+        self.slot
+    }
+
     pub fn capabilities(&self) -> &[PciCapability] {
         &self.capabilities
     }
@@ -214,13 +222,14 @@ impl Iterator for PciScanner {
             }
 
             let config = self.bus.read_device_config(self.bus_no, self.slot);
+            let slot = self.slot;
             self.slot += 1;
 
             if let Some(config) = config {
-                let capabilities = self.bus.read_capabilities(self.bus_no, self.slot - 1);
+                let capabilities = self.bus.read_capabilities(self.bus_no, slot);
                 return Some(PciDevice {
                     bus: self.bus_no,
-                    slot: self.slot - 1,
+                    slot,
                     config,
                     capabilities,
                 });
