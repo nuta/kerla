@@ -1,6 +1,6 @@
 //! Internal APIs exposed for kerla_kernel crate. **Don't use from your kernel extensions!**
 use alloc::boxed::Box;
-use kerla_runtime::bootinfo::VirtioMmioDevice;
+use kerla_runtime::bootinfo::{AllowedPciDevice, VirtioMmioDevice};
 use kerla_utils::static_cell::StaticCell;
 
 use crate::driver::{self, net::EthernetDriver};
@@ -33,6 +33,10 @@ pub fn init(ops: &'static dyn KernelOps) {
     set_kernel_ops(ops);
 }
 
-pub fn init_drivers(pci_enabled: bool, mmio_devices: &[VirtioMmioDevice]) {
-    driver::init(pci_enabled, mmio_devices);
+pub fn init_drivers(
+    pci_enabled: bool,
+    pci_allowlist: &[AllowedPciDevice],
+    mmio_devices: &[VirtioMmioDevice],
+) {
+    driver::init(pci_enabled, pci_allowlist, mmio_devices);
 }
