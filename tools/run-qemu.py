@@ -24,7 +24,7 @@ ARCHS = {
             "-cpu",
             "Icelake-Server",
             "-device",
-            "virtio-net,netdev=net0,disable-legacy=off,disable-modern=on",
+            "virtio-net,netdev=net0,disable-legacy=on,disable-modern=off",
             "-netdev",
             "user,id=net0,hostfwd=tcp:127.0.0.1:20022-:22,hostfwd=tcp:127.0.0.1:20080-:80",
             "-object",
