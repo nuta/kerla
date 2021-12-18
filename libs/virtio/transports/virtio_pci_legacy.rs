@@ -62,7 +62,6 @@ impl VirtioTransport for VirtioLegacyPci {
     }
 
     fn read_device_status(&self) -> u8 {
-        info!("read dev");
         self.port_base.read8(REG_DEVICE_STATUS)
     }
 
