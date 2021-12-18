@@ -36,11 +36,6 @@ jobs:
         with:
           python-version: 3.9
 
-      - name: Set up Rust
-        run: |
-          rustup override set nightly
-          rustup component add llvm-tools-preview rust-src clippy
-
       - name: Install cargo crates
         run: cargo install cargo-binutils rustfilt
 
