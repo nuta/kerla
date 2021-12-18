@@ -11,6 +11,7 @@ use crate::{
     net::read_tcp_stats,
     process::read_process_stats,
     result::Result,
+    timer::read_monotonic_clock,
     user_buffer::UserBufferMut,
     user_buffer::{UserBufWriter, UserBuffer},
 };
@@ -55,6 +56,9 @@ impl FileLike for MetricsFile {
         let _ = write!(
             writer,
             concat!(
+                "# HELP: clock_monotonic The monotonic clock in milliseconds.\n",
+                "# TYPE: clock_monotonic_ms counter\n",
+                "clock_monotonic_ms {clock_monotonic_ms}\n",
                 "# HELP: process_fork_total The total # of process forks.\n",
                 "# TYPE: process_fork_total counter\n",
                 "process_fork_total {fork_total}\n",
@@ -74,6 +78,7 @@ impl FileLike for MetricsFile {
                 "# TYPE: tcp_written_bytes_total counter\n",
                 "tcp_written_bytes_total {tcp_written_bytes_total}\n",
             ),
+            clock_monotonic_ms = read_monotonic_clock().msecs(),
             fork_total = process_metrics.fork_total,
             num_free_pages = allocator_metrics.num_free_pages,
             num_total_pages = allocator_metrics.num_total_pages,
