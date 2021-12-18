@@ -67,29 +67,31 @@ pub(self) static SOCKET_WAIT_QUEUE: Once<WaitQueue> = Once::new();
 pub fn process_packets() {
     let mut sockets = SOCKETS.lock();
     let mut iface = INTERFACE.lock();
-    let mut dhcp = DHCP_CLIENT.lock();
 
     let timestamp = read_monotonic_clock().into();
     loop {
-        if let Some(config) = dhcp
-            .poll(&mut iface, &mut sockets, timestamp)
-            .unwrap_or_else(|e| {
-                trace!("DHCP: {:?}", e);
-                None
-            })
-        {
-            if let Some(cidr) = config.address {
-                iface.update_ip_addrs(|addrs| {
-                    if let Some(addr) = addrs.iter_mut().next() {
-                        *addr = IpCidr::Ipv4(cidr);
-                    }
-                });
-                info!("DHCP: got a IPv4 address: {}", cidr);
-            }
+        if *DHCP_ENABLED {
+            let mut dhcp = DHCP_CLIENT.lock();
+            if let Some(config) = dhcp
+                .poll(&mut iface, &mut sockets, timestamp)
+                .unwrap_or_else(|e| {
+                    trace!("DHCP: {:?}", e);
+                    None
+                })
+            {
+                if let Some(cidr) = config.address {
+                    iface.update_ip_addrs(|addrs| {
+                        if let Some(addr) = addrs.iter_mut().next() {
+                            *addr = IpCidr::Ipv4(cidr);
+                        }
+                    });
+                    info!("DHCP: got a IPv4 address: {}", cidr);
+                }
 
-            config
-                .router
-                .map(|router| iface.routes_mut().add_default_ipv4_route(router).unwrap());
+                config
+                    .router
+                    .map(|router| iface.routes_mut().add_default_ipv4_route(router).unwrap());
+            }
         }
 
         match iface.poll(&mut sockets, timestamp) {
@@ -103,14 +105,17 @@ pub fn process_packets() {
         }
     }
 
+    if *DHCP_ENABLED {
+        let dhcp = DHCP_CLIENT.lock();
+        dhcp.next_poll(timestamp);
+    }
+
+    if let Some(_timeout) = iface.poll_delay(&sockets, timestamp) {
+        // TODO: Use timeout
+    }
+
     SOCKET_WAIT_QUEUE.wake_all();
     POLL_WAIT_QUEUE.wake_all();
-
-    // TODO: timeout
-    let mut _timeout = dhcp.next_poll(timestamp);
-    if let Some(sockets_timeout) = iface.poll_delay(&sockets, timestamp) {
-        _timeout = sockets_timeout;
-    }
 }
 
 struct OurRxToken {
