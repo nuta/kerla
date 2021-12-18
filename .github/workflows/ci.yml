@@ -38,7 +38,7 @@ jobs:
 
       - name: Set up Rust
         run: |
-          rustup install nightly
+          rustup install nightly-2021-12-04
           rustup component add llvm-tools-preview rust-src clippy
 
       - name: Install cargo crates
