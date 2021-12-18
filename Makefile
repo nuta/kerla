@@ -23,7 +23,7 @@ endif
 
 # $(IMAGE): Use a Docker image for initramfs.
 ifeq ($(IMAGE),)
-INITRAMFS_PATH := build/kerla.initramfs
+INITRAMFS_PATH := build/testing.initramfs
 export INIT_SCRIPT := /bin/sh
 else
 IMAGE_FILENAME := $(subst /,.s,$(IMAGE))
@@ -188,7 +188,7 @@ clean:
 #
 #  Build Rules
 #
-build/kerla.initramfs: $(wildcard testing/*) $(wildcard testing/*/*) Makefile
+build/testing.initramfs: $(wildcard testing/*) $(wildcard testing/*/*) Makefile
 	$(PROGRESS) "BUILD" testing
 	cd testing && docker buildx build --platform $(docker_platform) -t kerla-testing .
 	$(PROGRESS) "EXPORT" testing
