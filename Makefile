@@ -48,7 +48,7 @@ kernel_symbols := $(kernel_elf:.elf=.symbols)
 
 PROGRESS   := printf "  \\033[1;96m%8s\\033[0m  \\033[1;m%s\\033[0m\\n"
 PYTHON3    ?= python3
-CARGO      ?= cargo +nightly
+CARGO      ?= cargo
 BOCHS      ?= bochs
 NM         ?= rust-nm
 READELF    ?= readelf
