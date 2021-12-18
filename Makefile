@@ -5,6 +5,7 @@ export RELEASE    ?=
 export ARCH       ?= x64
 export LOG        ?=
 export LOG_SERIAL ?=
+export CMDLINE    ?=
 export QEMU_ARGS  ?=
 
 # The default build target.
@@ -116,6 +117,7 @@ run: build
 		$(if $(KVM),--kvm,)                                            \
 		$(if $(GDB),--gdb,)                                            \
 		$(if $(LOG),--append-cmdline "log=$(LOG)",)                    \
+		$(if $(CMDLINE),--append-cmdline "$(CMDLINE)",)                \
 		$(if $(LOG_SERIAL),--log-serial "$(LOG_SERIAL)",)              \
 		$(if $(QEMU),--qemu $(QEMU),)                                  \
 		$(kernel_elf) -- $(QEMU_ARGS)
@@ -186,7 +188,7 @@ clean:
 #
 #  Build Rules
 #
-build/kerla.initramfs: $(wildcard initramfs/*) $(wildcard initramfs/*/*) Makefile
+build/kerla.initramfs: $(wildcard testing/*) $(wildcard testing/*/*) Makefile
 	$(PROGRESS) "BUILD" testing
 	cd testing && docker buildx build --platform $(docker_platform) -t kerla-testing .
 	$(PROGRESS) "EXPORT" testing
