@@ -47,13 +47,19 @@ FROM busybox as empty_dir
 RUN mkdir /empty_dir
 
 FROM scratch
+
+# Directories to be populated by "busybox --install -s".
 COPY --from=empty_dir /empty_dir /bin
+COPY --from=empty_dir /empty_dir /sbin
+COPY --from=empty_dir /empty_dir /usr/bin
+COPY --from=empty_dir /empty_dir /usr/sbin
+
 COPY --from=busybox  /build/busybox_unstripped /bin/busybox
 COPY --from=dropbear /build/dropbear /build/dropbearkey /bin
 COPY --from=curl     /build/src/curl /bin
 
 RUN ["/bin/busybox", "--install", "-s"]
-RUN mkdir -p /bin /sbin /usr/bin /usr/sbin /etc /dev /tmp /var/www/html
+RUN mkdir -p /etc /dev /tmp /var/www/html
 ADD etc/banner /etc
 ADD etc/group /etc
 ADD etc/passwd /etc
