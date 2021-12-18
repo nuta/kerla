@@ -330,6 +330,12 @@ impl FileLike for TcpSocket {
     }
 }
 
+impl Drop for TcpSocket {
+    fn drop(&mut self) {
+        SOCKETS.lock().remove(self.handle);
+    }
+}
+
 impl fmt::Debug for TcpSocket {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("TcpSocket").finish()
