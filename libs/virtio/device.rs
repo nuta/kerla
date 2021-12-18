@@ -151,16 +151,23 @@ impl VirtQueue {
                 let used_elem_index = self.used_elem(self.last_used_index).id as u16;
 
                 // Enqueue the popped chain back into the free list.
+                let prev_head = self.free_head;
                 self.free_head = used_elem_index;
 
                 // Count the number of descriptors in the chain.
                 let mut num_freed = 0;
                 let mut next_desc_index = used_elem_index;
                 loop {
-                    let desc = self.desc(next_desc_index);
+                    let desc = self.desc_mut(next_desc_index);
                     num_freed += 1;
 
                     if (desc.flags & VIRTQ_DESC_F_NEXT) == 0 {
+                        #[allow(unaligned_references)]
+                        {
+                            debug_assert_eq!(desc.next, 0);
+                        }
+
+                        desc.next = prev_head;
                         break;
                     }
 
@@ -174,7 +181,7 @@ impl VirtQueue {
 
         // Check if we have the enough number of free descriptors.
         if (self.num_free_descs as usize) < chain.len() {
-            return;
+            panic!("not enough descs for {}!", self.index);
         }
 
         let head_index = self.free_head;
@@ -262,15 +269,6 @@ impl VirtQueue {
     /// Returns the defined number of descriptors in the virtqueue.
     pub fn num_descs(&self) -> u16 {
         self.num_descs
-    }
-
-    fn desc(&mut self, index: u16) -> &VirtqDesc {
-        unsafe {
-            &*self
-                .descs
-                .as_ptr::<VirtqDesc>()
-                .offset((index % self.num_descs) as isize)
-        }
     }
 
     fn desc_mut(&mut self, index: u16) -> &mut VirtqDesc {
