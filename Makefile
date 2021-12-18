@@ -188,7 +188,7 @@ clean:
 #
 #  Build Rules
 #
-build/kerla.initramfs: $(wildcard initramfs/*) $(wildcard initramfs/*/*) Makefile
+build/kerla.initramfs: $(wildcard testing/*) $(wildcard testing/*/*) Makefile
 	$(PROGRESS) "BUILD" testing
 	cd testing && docker buildx build --platform $(docker_platform) -t kerla-testing .
 	$(PROGRESS) "EXPORT" testing
