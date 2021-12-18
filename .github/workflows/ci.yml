@@ -36,13 +36,9 @@ jobs:
         with:
           python-version: 3.9
 
-      - name: Install nightly Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          components: llvm-tools-preview, rust-src, clippy
-
       - name: Show toolchain versions
         run: |
+          rustup show
           rustup --version
           rustc --version
           cargo --version
