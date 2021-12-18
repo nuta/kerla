@@ -39,6 +39,12 @@ jobs:
       - name: Update latest rustup
         run: rustup self update
 
+      # A workaround for error: toolchain 'nightly-x86_64-unknown-linux-gnu' is not installed
+      - name: Install latest nightly Rust (workaround)
+        run: |
+          rustup install nightly
+          rustup component add llvm-tools-preview rust-src clippy
+
       - name: Show toolchain versions
         run: |
           rustup --version
