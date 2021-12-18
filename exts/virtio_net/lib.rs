@@ -14,16 +14,17 @@ use kerla_api::net::receive_ethernet_frame;
 use memoffset::offset_of;
 
 use virtio::device::{IsrStatus, Virtio, VirtqDescBuffer, VirtqUsedChain};
-use virtio::transports::virtio_pci::VirtioAttachError;
-use virtio::transports::{virtio_mmio::VirtioMmio, virtio_pci::VirtioPci, VirtioTransport};
+use virtio::transports::{
+    virtio_mmio::VirtioMmio, virtio_pci_legacy::VirtioLegacyPci,
+    virtio_pci_modern::VirtioModernPci, VirtioAttachError, VirtioTransport,
+};
 
 use kerla_api::address::VAddr;
 use kerla_api::arch::PAGE_SIZE;
 use kerla_api::driver::{
-    Driver,
     attach_irq,
     net::{register_ethernet_driver, EthernetDriver, MacAddress},
-    DeviceProber,
+    DeviceProber, Driver,
 };
 use kerla_api::driver::{pci::PciDevice, VirtioMmioDevice};
 use kerla_api::mm::{alloc_pages, AllocPageFlags};
@@ -46,7 +47,7 @@ struct VirtioNetHeader {
     gso_size: u16,
     checksum_start: u16,
     checksum_offset: u16,
-    num_buffer: u16,
+    // num_buffer: u16,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -142,7 +143,7 @@ impl VirtioNet {
                 "virtio-net: received {} octets (paddr={}, payload_len={})",
                 total_len,
                 addr,
-                total_len - size_of::<VirtioNetHeader>()
+                total_len - size_of::<VirtioNetHeader>(),
             );
 
             let buffer = unsafe {
@@ -184,20 +185,25 @@ impl VirtioNet {
         header.gso_size = 0;
         header.checksum_start = 0;
         header.checksum_offset = 0;
-        header.num_buffer = 1;
+        // header.num_buffer = 0;
 
         // Copy the payload into the our buffer.
+        let payload_addr = unsafe { addr.as_mut_ptr::<u8>().add(header_len) };
         unsafe {
-            addr.as_mut_ptr::<u8>()
-                .add(header_len)
-                .copy_from_nonoverlapping(frame.as_ptr(), frame.len());
+            payload_addr.copy_from_nonoverlapping(frame.as_ptr(), frame.len());
         }
 
         // Construct a descriptor chain.
-        let chain = &[VirtqDescBuffer::ReadOnlyFromDevice {
-            addr: addr.as_paddr(),
-            len: header_len + frame.len(),
-        }];
+        let chain = &[
+            VirtqDescBuffer::ReadOnlyFromDevice {
+                addr: addr.as_paddr(),
+                len: header_len,
+            },
+            VirtqDescBuffer::ReadOnlyFromDevice {
+                addr: addr.as_paddr().add(header_len),
+                len: frame.len(),
+            },
+        ];
 
         // Enqueue the transmission request and kick the device.
         let tx_virtq = self.virtio.virtq_mut(VIRTIO_NET_QUEUE_TX);
@@ -246,25 +252,47 @@ impl VirtioNetProber {
 impl DeviceProber for VirtioNetProber {
     fn probe_pci(&self, pci_device: &PciDevice) {
         // Check if the device is a network card ("4.1.2 PCI Device Discovery").
-        if pci_device.config().vendor_id() == 0x1af4
-            && pci_device.config().device_id() != 0x1040 + 1
-        {
+        if pci_device.config().vendor_id() != 0x1af4 {
+            return;
+        }
+
+        // Check if the it's a legacy or traditional device.
+        let device_id = pci_device.config().device_id();
+        if device_id != 0x1040 + 1 && device_id != 0x1000 {
             return;
         }
 
         trace!("virtio-net: found the device (over PCI)");
-        let device = match VirtioPci::probe_pci(pci_device, VirtioNet::new) {
-            Ok(device) => Arc::new(SpinLock::new(device)),
+        let transport = match VirtioModernPci::probe_pci(pci_device) {
+            Ok(transport) => transport,
             Err(VirtioAttachError::InvalidVendorId) => {
                 // Not a virtio-net device.
                 return;
             }
             Err(err) => {
-                warn!("failed to attach a virtio-net: {:?}", err);
+                trace!("failed to attach a virtio-net as a modern device: {:?}, falling back to the legacy driver", err);
+                match VirtioLegacyPci::probe_pci(pci_device) {
+                    Ok(transport) => transport,
+                    Err(err) => {
+                        warn!(
+                            "failed to attach a virtio-net as a legacy device: {:?}",
+                            err
+                        );
+                        return;
+                    }
+                }
+            }
+        };
+
+        let virtio = match VirtioNet::new(transport) {
+            Ok(virtio) => virtio,
+            Err(err) => {
+                warn!("failed to initialize virtio-net: {:?}", err);
                 return;
             }
         };
 
+        let device = Arc::new(SpinLock::new(virtio));
         register_ethernet_driver(Box::new(VirtioNetDriver::new(device.clone())));
         attach_irq(pci_device.config().interrupt_line(), move || {
             device.lock().handle_irq();

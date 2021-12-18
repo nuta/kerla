@@ -2,7 +2,6 @@
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use bitflags::bitflags;
-use core::cmp::min;
 use core::convert::TryInto;
 use core::mem::size_of;
 use core::sync::atomic::{self, Ordering};
@@ -11,15 +10,13 @@ use kerla_api::arch::PAGE_SIZE;
 use kerla_api::mm::{alloc_pages, AllocPageFlags};
 use kerla_utils::alignment::align_up;
 
-use crate::transports::virtio_pci::VirtioAttachError;
-
-use super::transports::VirtioTransport;
+use super::transports::{VirtioAttachError, VirtioTransport};
 
 const VIRTIO_STATUS_ACK: u8 = 1;
 const VIRTIO_STATUS_DRIVER: u8 = 2;
 const VIRTIO_STATUS_DRIVER_OK: u8 = 4;
 const VIRTIO_STATUS_FEAT_OK: u8 = 8;
-const VIRTIO_F_VERSION_1: u64 = 1 << 32;
+// const VIRTIO_F_VERSION_1: u64 = 1 << 32;
 
 const VIRTQ_DESC_F_NEXT: u16 = 1;
 const VIRTQ_DESC_F_WRITE: u16 = 2;
@@ -93,9 +90,7 @@ impl VirtQueue {
     pub fn new(index: u16, transport: Arc<dyn VirtioTransport>) -> VirtQueue {
         transport.select_queue(index);
 
-        let num_descs = min(transport.queue_max_size(), 512);
-        transport.set_queue_size(num_descs);
-
+        let num_descs = transport.queue_max_size();
         let avail_ring_off = size_of::<VirtqDesc>() * (num_descs as usize);
         let avail_ring_size: usize = size_of::<u16>() * (3 + (num_descs as usize));
         let used_ring_off = align_up(avail_ring_off + avail_ring_size, PAGE_SIZE);
@@ -166,7 +161,6 @@ impl VirtQueue {
                         {
                             debug_assert_eq!(desc.next, 0);
                         }
-
                         desc.next = prev_head;
                         break;
                     }
@@ -202,6 +196,7 @@ impl VirtQueue {
             if i == chain.len() - 1 {
                 let unused_next = desc.next;
                 desc.next = 0;
+                desc.flags &= !VIRTQ_DESC_F_NEXT;
                 self.free_head = unused_next;
                 self.num_free_descs -= chain.len() as u16;
             } else {
@@ -210,7 +205,7 @@ impl VirtQueue {
             }
         }
 
-        let avail_elem_index = self.avail().index;
+        let avail_elem_index = self.avail().index & (self.num_descs() - 1);
         *self.avail_elem_mut(avail_elem_index) = head_index;
         self.avail_mut().index = self.avail_mut().index.wrapping_add(1);
     }
@@ -337,18 +332,15 @@ impl Virtio {
     /// supported.
     pub fn initialize(
         &mut self,
-        mut features: u64,
+        features: u64,
         num_virtqueues: u16,
     ) -> Result<(), VirtioAttachError> {
-        features |= VIRTIO_F_VERSION_1;
-
         // "3.1.1 Driver Requirements: Device Initialization"
         self.transport.write_device_status(0); // Reset the device.
         self.transport
             .write_device_status(self.transport.read_device_status() | VIRTIO_STATUS_ACK);
         self.transport
             .write_device_status(self.transport.read_device_status() | VIRTIO_STATUS_DRIVER);
-
         let device_features = self.transport.read_device_features();
         if (device_features & features) != features {
             warn!(
