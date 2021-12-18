@@ -82,7 +82,7 @@ impl Process {
             .expect("failed to allocate kernel stack")
             .as_vaddr();
         // TODO: Check the size of XSAVE area.
-        let xsave_area = alloc_pages(1, AllocPageFlags::KERNEL)
+        let xsave_area = alloc_pages(1, AllocPageFlags::KERNEL | AllocPageFlags::ZEROED)
             .expect("failed to allocate xsave area")
             .as_vaddr();
 
@@ -137,7 +137,7 @@ impl Process {
 
     pub fn fork(&self, frame: &PtRegs) -> Result<Process> {
         // TODO: Check the size of XSAVE area.
-        let xsave_area = alloc_pages(1, AllocPageFlags::KERNEL)
+        let xsave_area = alloc_pages(1, AllocPageFlags::KERNEL | AllocPageFlags::ZEROED)
             .expect("failed to allocate xsave area")
             .as_vaddr();
 
