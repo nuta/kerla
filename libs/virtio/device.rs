@@ -162,7 +162,11 @@ impl VirtQueue {
                     num_freed += 1;
 
                     if (desc.flags & VIRTQ_DESC_F_NEXT) == 0 {
-                        debug_assert_eq!(desc.next, 0);
+                        #[allow(unaligned_references)]
+                        {
+                            debug_assert_eq!(desc.next, 0);
+                        }
+
                         desc.next = prev_head;
                         break;
                     }
@@ -265,15 +269,6 @@ impl VirtQueue {
     /// Returns the defined number of descriptors in the virtqueue.
     pub fn num_descs(&self) -> u16 {
         self.num_descs
-    }
-
-    fn desc(&mut self, index: u16) -> &VirtqDesc {
-        unsafe {
-            &*self
-                .descs
-                .as_ptr::<VirtqDesc>()
-                .offset((index % self.num_descs) as isize)
-        }
     }
 
     fn desc_mut(&mut self, index: u16) -> &mut VirtqDesc {
