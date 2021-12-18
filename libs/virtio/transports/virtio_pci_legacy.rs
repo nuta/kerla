@@ -49,6 +49,10 @@ impl VirtioLegacyPci {
 }
 
 impl VirtioTransport for VirtioLegacyPci {
+    fn is_modern(&self) -> bool {
+        false
+    }
+
     fn read_device_config8(&self, offset: u16) -> u8 {
         self.port_base.read8(REG_DEVICE_CONFIG_BASE + offset)
     }

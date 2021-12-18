@@ -40,14 +40,25 @@ const PACKET_LEN_MAX: usize = 2048;
 
 #[derive(Debug, Copy, Clone)]
 #[repr(C, packed)]
-struct VirtioNetHeader {
+struct VirtioNetLegacyHeader {
     flags: u8,
     gso_type: u8,
     hdr_len: u16,
     gso_size: u16,
     checksum_start: u16,
     checksum_offset: u16,
-    // num_buffer: u16,
+}
+
+#[derive(Debug, Copy, Clone)]
+#[repr(C, packed)]
+struct VirtioNetModernHeader {
+    flags: u8,
+    gso_type: u8,
+    hdr_len: u16,
+    gso_size: u16,
+    checksum_start: u16,
+    checksum_offset: u16,
+    num_buffer: u16,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -125,6 +136,7 @@ impl VirtioNet {
             return;
         }
 
+        let is_modern = self.virtio.is_modern();
         let rx_virtq = self.virtio.virtq_mut(VIRTIO_NET_QUEUE_RX);
 
         while let Some(VirtqUsedChain { descs, total_len }) = rx_virtq.pop_used() {
@@ -134,26 +146,47 @@ impl VirtioNet {
                 VirtqDescBuffer::ReadOnlyFromDevice { .. } => unreachable!(),
             };
 
-            if total_len < size_of::<VirtioNetHeader>() {
-                warn!("virtio-net: received a too short buffer, ignoring...");
-                continue;
-            }
+            let buffer = if is_modern {
+                if total_len < size_of::<VirtioNetModernHeader>() {
+                    warn!("virtio-net: received a too short buffer, ignoring...");
+                    continue;
+                }
 
-            trace!(
-                "virtio-net: received {} octets (paddr={}, payload_len={})",
-                total_len,
-                addr,
-                total_len - size_of::<VirtioNetHeader>(),
-            );
+                trace!(
+                    "virtio-net: received {} octets (paddr={}, payload_len={})",
+                    total_len,
+                    addr,
+                    total_len - size_of::<VirtioNetModernHeader>(),
+                );
 
-            let buffer = unsafe {
-                core::slice::from_raw_parts(
-                    addr.as_ptr::<u8>().add(size_of::<VirtioNetHeader>()),
-                    total_len - size_of::<VirtioNetHeader>(),
-                )
+                unsafe {
+                    core::slice::from_raw_parts(
+                        addr.as_ptr::<u8>().add(size_of::<VirtioNetModernHeader>()),
+                        total_len - size_of::<VirtioNetModernHeader>(),
+                    )
+                }
+            } else {
+                if total_len < size_of::<VirtioNetLegacyHeader>() {
+                    warn!("virtio-net: received a too short buffer, ignoring...");
+                    continue;
+                }
+
+                trace!(
+                    "virtio-net: received {} octets (paddr={}, payload_len={})",
+                    total_len,
+                    addr,
+                    total_len - size_of::<VirtioNetLegacyHeader>(),
+                );
+
+                unsafe {
+                    core::slice::from_raw_parts(
+                        addr.as_ptr::<u8>().add(size_of::<VirtioNetLegacyHeader>()),
+                        total_len - size_of::<VirtioNetLegacyHeader>(),
+                    )
+                }
             };
-            receive_ethernet_frame(buffer);
 
+            receive_ethernet_frame(buffer);
             rx_virtq.enqueue(&[VirtqDescBuffer::WritableFromDevice {
                 addr,
                 len: PACKET_LEN_MAX,
@@ -177,15 +210,28 @@ impl VirtioNet {
         );
 
         // Fill the virtio-net header.
-        let header_len = size_of::<VirtioNetHeader>();
-        assert!(frame.len() <= PACKET_LEN_MAX - header_len);
-        let header = unsafe { &mut *addr.as_mut_ptr::<VirtioNetHeader>() };
-        header.flags = 0;
-        header.gso_type = 0;
-        header.gso_size = 0;
-        header.checksum_start = 0;
-        header.checksum_offset = 0;
-        // header.num_buffer = 0;
+        let header_len = if self.virtio.is_modern() {
+            let header_len = size_of::<VirtioNetModernHeader>();
+            assert!(frame.len() <= PACKET_LEN_MAX - header_len);
+            let header = unsafe { &mut *addr.as_mut_ptr::<VirtioNetModernHeader>() };
+            header.flags = 0;
+            header.gso_type = 0;
+            header.gso_size = 0;
+            header.checksum_start = 0;
+            header.checksum_offset = 0;
+            header.num_buffer = 0;
+            header_len
+        } else {
+            let header_len = size_of::<VirtioNetLegacyHeader>();
+            assert!(frame.len() <= PACKET_LEN_MAX - header_len);
+            let header = unsafe { &mut *addr.as_mut_ptr::<VirtioNetLegacyHeader>() };
+            header.flags = 0;
+            header.gso_type = 0;
+            header.gso_size = 0;
+            header.checksum_start = 0;
+            header.checksum_offset = 0;
+            header_len
+        };
 
         // Copy the payload into the our buffer.
         let payload_addr = unsafe { addr.as_mut_ptr::<u8>().add(header_len) };

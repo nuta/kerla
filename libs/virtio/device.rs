@@ -373,6 +373,10 @@ impl Virtio {
         Ok(())
     }
 
+    pub fn is_modern(&self) -> bool {
+        self.transport.is_modern()
+    }
+
     pub fn read_device_config8(&self, offset: u16) -> u8 {
         self.transport.read_device_config8(offset)
     }

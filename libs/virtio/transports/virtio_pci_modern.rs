@@ -125,6 +125,10 @@ struct CommonCfg {
 }
 
 impl VirtioTransport for VirtioModernPci {
+    fn is_modern(&self) -> bool {
+        true
+    }
+
     fn read_device_config8(&self, offset: u16) -> u8 {
         unsafe { self.device_cfg.add(offset as usize).read_volatile::<u8>() }
     }
