@@ -296,6 +296,14 @@ impl<'a> From<UserBufferMut<'a>> for UserBufWriter<'a> {
     }
 }
 
+impl<'a> core::fmt::Write for UserBufWriter<'a> {
+    fn write_str(&mut self, s: &str) -> core::fmt::Result {
+        self.write_bytes(s.as_bytes())
+            .map_err(|_| core::fmt::Error)?;
+        Ok(())
+    }
+}
+
 /// A user-provided NULL-terminated string.
 ///
 /// It's a copy of the string (not a reference) since the user can modify the
