@@ -36,6 +36,9 @@ jobs:
         with:
           python-version: 3.9
 
+      - name: Install nightly Rust
+        run: rustup install nightly
+
       - name: Install cargo crates
         run: cargo install cargo-binutils rustfilt
 
