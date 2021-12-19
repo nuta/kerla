@@ -22,7 +22,7 @@ struct NopOps;
 impl KernelOps for NopOps {
     fn attach_irq(&self, _irq: u8, _f: Box<dyn FnMut() + Send + Sync + 'static>) {}
 
-    fn register_block_driver(&self, driver: Box<dyn BlockDriver>) {}
+    fn register_block_driver(&self, _driver: Box<dyn BlockDriver>) {}
     
     fn register_ethernet_driver(&self, _driver: Box<dyn EthernetDriver>) {}
     fn receive_etherframe_packet(&self, _pkt: &[u8]) {}
