@@ -48,21 +48,17 @@ RUN mkdir /empty_dir
 
 FROM scratch
 COPY --from=empty_dir /empty_dir /bin
-COPY --from=empty_dir /empty_dir /sbin
-COPY --from=empty_dir /empty_dir /etc
-COPY --from=empty_dir /empty_dir /dev
-COPY --from=empty_dir /empty_dir /tmp
-COPY --from=empty_dir /empty_dir /usr/bin
-COPY --from=empty_dir /empty_dir /usr/sbin
+COPY --from=busybox  /build/busybox_unstripped /bin/busybox
 COPY --from=dropbear /build/dropbear /build/dropbearkey /bin
 COPY --from=curl     /build/src/curl /bin
-COPY --from=busybox  /build/busybox_unstripped /bin/busybox
 
+RUN ["/bin/busybox", "--install", "-s"]
+RUN mkdir -p /bin /sbin /usr/bin /usr/sbin /etc /dev /tmp /var/www/html
 ADD etc/banner /etc
 ADD etc/group /etc
 ADD etc/passwd /etc
 ADD etc/profile /etc
 ADD integration_tests /integration_tests
+RUN echo "<html><body><h1>It works on Kerla!</h1></body></html>" > /var/www/html/index.html
 
-RUN ["/bin/busybox", "--install", "-s"]
 CMD ["/bin/sh"]

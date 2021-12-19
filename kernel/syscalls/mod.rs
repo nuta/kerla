@@ -28,6 +28,7 @@ pub(self) mod connect;
 pub(self) mod dup2;
 pub(self) mod execve;
 pub(self) mod exit;
+pub(self) mod exit_group;
 pub(self) mod fcntl;
 pub(self) mod fork;
 pub(self) mod fstat;
@@ -63,6 +64,7 @@ pub(self) mod select;
 pub(self) mod sendto;
 pub(self) mod set_tid_address;
 pub(self) mod setpgid;
+pub(self) mod shutdown;
 pub(self) mod socket;
 pub(self) mod stat;
 pub(self) mod syslog;
@@ -126,6 +128,7 @@ const SYS_CONNECT: usize = 42;
 const SYS_ACCEPT: usize = 43;
 const SYS_SENDTO: usize = 44;
 const SYS_RECVFROM: usize = 45;
+const SYS_SHUTDOWN: usize = 48;
 const SYS_BIND: usize = 49;
 const SYS_LISTEN: usize = 50;
 const SYS_GETSOCKNAME: usize = 51;
@@ -160,6 +163,7 @@ const SYS_GETTID: usize = 186;
 const SYS_GETDENTS64: usize = 217;
 const SYS_SET_TID_ADDRESS: usize = 218;
 const SYS_CLOCK_GETTIME: usize = 228;
+const SYS_EXIT_GROUP: usize = 231;
 const SYS_UTIMES: usize = 235;
 const SYS_LINKAT: usize = 265;
 const SYS_GETRANDOM: usize = 318;
@@ -316,8 +320,10 @@ impl<'a> SyscallHandler<'a> {
                 UserVAddr::new(a4),
             ),
             SYS_EXIT => self.sys_exit(a1 as i32),
+            SYS_EXIT_GROUP => self.sys_exit_group(a1 as i32),
             SYS_SOCKET => self.sys_socket(a1 as i32, a2 as i32, a3 as i32),
             SYS_BIND => self.sys_bind(Fd::new(a1 as i32), UserVAddr::new_nonnull(a2)?, a3 as usize),
+            SYS_SHUTDOWN => self.sys_shutdown(Fd::new(a1 as i32), a2 as i32),
             SYS_CONNECT => {
                 self.sys_connect(Fd::new(a1 as i32), UserVAddr::new_nonnull(a2)?, a3 as usize)
             }

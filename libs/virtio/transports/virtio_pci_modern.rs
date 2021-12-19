@@ -9,7 +9,9 @@ use kerla_api::{
 };
 use memoffset::offset_of;
 
-use super::VirtioTransport;
+use super::{VirtioAttachError, VirtioTransport};
+
+const VIRTIO_F_VERSION_1: u64 = 1 << 32;
 
 const VIRTIO_PCI_CAP_COMMON_CFG: u8 = 1;
 const VIRTIO_PCI_CAP_NOTIFY_CFG: u8 = 2;
@@ -47,14 +49,7 @@ fn get_bar_for_cfg_type(pci_device: &PciDevice, cfg_type: u8) -> Option<(&PciCap
     }
 }
 
-#[derive(Debug)]
-pub enum VirtioAttachError {
-    InvalidVendorId,
-    MissingFeatures,
-    FeatureNegotiationFailure,
-}
-
-pub struct VirtioPci {
+pub struct VirtioModernPci {
     common_cfg: VAddr,
     device_cfg: VAddr,
     notify: VAddr,
@@ -62,24 +57,23 @@ pub struct VirtioPci {
     isr: VAddr,
 }
 
-impl VirtioPci {
-    pub fn probe_pci<F, T>(pci_device: &PciDevice, ctor: F) -> Result<T, VirtioAttachError>
-    where
-        F: FnOnce(Arc<dyn VirtioTransport>) -> Result<T, VirtioAttachError>,
-    {
+impl VirtioModernPci {
+    pub fn probe_pci(
+        pci_device: &PciDevice,
+    ) -> Result<Arc<dyn VirtioTransport>, VirtioAttachError> {
         // TODO: Check device type
         if pci_device.config().vendor_id() != 0x1af4 {
             return Err(VirtioAttachError::InvalidVendorId);
         }
 
         let common_cfg = get_bar_for_cfg_type(pci_device, VIRTIO_PCI_CAP_COMMON_CFG)
-            .expect("failed to locate pci_cap for common_cfg")
+            .ok_or(VirtioAttachError::MissingPciCommonCfg)?
             .1;
         let device_cfg = get_bar_for_cfg_type(pci_device, VIRTIO_PCI_CAP_DEVICE_CFG)
-            .expect("failed to locate pci_cap for device_cfg")
+            .ok_or(VirtioAttachError::MissingPciDeviceCfg)?
             .1;
         let isr = get_bar_for_cfg_type(pci_device, VIRTIO_PCI_CAP_ISR_CFG)
-            .expect("failed to locate pci_cap for isr")
+            .ok_or(VirtioAttachError::MissingPciIsrCfg)?
             .1;
 
         let (notify, notify_off_multiplier) =
@@ -93,19 +87,17 @@ impl VirtioPci {
                         u32::from_le_bytes(cap.data[16..20].try_into().unwrap());
                     (mmio, notify_off_multiplier)
                 })
-                .expect("failed to locate pci_cap for notify");
+                .ok_or(VirtioAttachError::MissingPciNotifyCfg)?;
 
         pci_device.enable_bus_master();
 
-        let transport = Arc::new(VirtioPci {
+        Ok(Arc::new(VirtioModernPci {
             common_cfg,
             device_cfg,
             notify,
             notify_off_multiplier,
             isr,
-        });
-
-        ctor(transport)
+        }))
     }
 }
 
@@ -132,7 +124,11 @@ struct CommonCfg {
     queue_device_hi: u32,
 }
 
-impl VirtioTransport for VirtioPci {
+impl VirtioTransport for VirtioModernPci {
+    fn is_modern(&self) -> bool {
+        true
+    }
+
     fn read_device_config8(&self, offset: u16) -> u8 {
         unsafe { self.device_cfg.add(offset as usize).read_volatile::<u8>() }
     }
@@ -179,7 +175,9 @@ impl VirtioTransport for VirtioPci {
         }
     }
 
-    fn write_driver_features(&self, value: u64) {
+    fn write_driver_features(&self, mut value: u64) {
+        value |= VIRTIO_F_VERSION_1;
+
         unsafe {
             self.common_cfg
                 .add(offset_of!(CommonCfg, driver_feature_select))

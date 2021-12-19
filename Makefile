@@ -5,6 +5,7 @@ export RELEASE    ?=
 export ARCH       ?= x64
 export LOG        ?=
 export LOG_SERIAL ?=
+export CMDLINE    ?=
 export QEMU_ARGS  ?=
 
 # The default build target.
@@ -48,7 +49,7 @@ kernel_symbols := $(kernel_elf:.elf=.symbols)
 
 PROGRESS   := printf "  \\033[1;96m%8s\\033[0m  \\033[1;m%s\\033[0m\\n"
 PYTHON3    ?= python3
-CARGO      ?= cargo +nightly
+CARGO      ?= cargo
 BOCHS      ?= bochs
 NM         ?= rust-nm
 READELF    ?= readelf
@@ -116,6 +117,7 @@ run: build
 		$(if $(KVM),--kvm,)                                            \
 		$(if $(GDB),--gdb,)                                            \
 		$(if $(LOG),--append-cmdline "log=$(LOG)",)                    \
+		$(if $(CMDLINE),--append-cmdline "$(CMDLINE)",)                \
 		$(if $(LOG_SERIAL),--log-serial "$(LOG_SERIAL)",)              \
 		$(if $(QEMU),--qemu $(QEMU),)                                  \
 		$(kernel_elf) -- $(QEMU_ARGS)
@@ -186,7 +188,7 @@ clean:
 #
 #  Build Rules
 #
-build/kerla.initramfs: $(wildcard initramfs/*) $(wildcard initramfs/*/*) Makefile
+build/kerla.initramfs: $(wildcard testing/*) $(wildcard testing/*/*) Makefile
 	$(PROGRESS) "BUILD" testing
 	cd testing && docker buildx build --platform $(docker_platform) -t kerla-testing .
 	$(PROGRESS) "EXPORT" testing

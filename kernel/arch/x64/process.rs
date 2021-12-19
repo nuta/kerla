@@ -4,11 +4,12 @@ use crate::result::Result;
 use crate::{arch::KERNEL_STACK_SIZE, process::signal::Signal};
 use crossbeam::atomic::AtomicCell;
 use kerla_runtime::address::{UserVAddr, VAddr};
+use kerla_runtime::page_allocator::{alloc_pages_owned, OwnedPages};
 use kerla_runtime::{
     arch::x64_specific::{cpu_local_head, TSS, USER_CS64, USER_DS, USER_RPL},
     arch::PtRegs,
     arch::PAGE_SIZE,
-    page_allocator::{alloc_pages, AllocPageFlags},
+    page_allocator::AllocPageFlags,
 };
 use x86::current::segmentation::wrfsbase;
 
@@ -16,9 +17,11 @@ use x86::current::segmentation::wrfsbase;
 pub struct Process {
     rsp: UnsafeCell<u64>,
     pub(super) fsbase: AtomicCell<u64>,
-    pub(super) xsave_area: Option<VAddr>,
-    interrupt_stack: VAddr,
-    syscall_stack: VAddr,
+    pub(super) xsave_area: Option<OwnedPages>,
+    kernel_stack: OwnedPages,
+    // FIXME: Do we really need these stacks?
+    interrupt_stack: OwnedPages,
+    syscall_stack: OwnedPages,
 }
 
 unsafe impl Sync for Process {}
@@ -39,12 +42,21 @@ unsafe fn push_stack(mut rsp: *mut u64, value: u64) -> *mut u64 {
 impl Process {
     #[allow(unused)]
     pub fn new_kthread(ip: VAddr, sp: VAddr) -> Process {
-        let interrupt_stack = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
-            .expect("failed to allocate kernel stack")
-            .as_vaddr();
-        let syscall_stack = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
-            .expect("failed to allocate kernel stack")
-            .as_vaddr();
+        let interrupt_stack = alloc_pages_owned(
+            KERNEL_STACK_SIZE / PAGE_SIZE,
+            AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
+        )
+        .expect("failed to allocate kernel stack");
+        let syscall_stack = alloc_pages_owned(
+            KERNEL_STACK_SIZE / PAGE_SIZE,
+            AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
+        )
+        .expect("failed to allocate kernel stack");
+        let kernel_stack = alloc_pages_owned(
+            KERNEL_STACK_SIZE / PAGE_SIZE,
+            AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
+        )
+        .expect("failed to allocat kernel stack");
 
         let rsp = unsafe {
             let mut rsp: *mut u64 = sp.as_mut_ptr();
@@ -71,22 +83,31 @@ impl Process {
             xsave_area: None,
             interrupt_stack,
             syscall_stack,
+            kernel_stack,
         }
     }
 
-    pub fn new_user_thread(ip: UserVAddr, sp: UserVAddr, kernel_sp: VAddr) -> Process {
-        let interrupt_stack = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
-            .expect("failed to allocate kernel stack")
-            .as_vaddr();
-        let syscall_stack = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
-            .expect("failed to allocate kernel stack")
-            .as_vaddr();
-        // TODO: Check the size of XSAVE area.
-        let xsave_area = alloc_pages(1, AllocPageFlags::KERNEL)
-            .expect("failed to allocate xsave area")
-            .as_vaddr();
+    pub fn new_user_thread(ip: UserVAddr, sp: UserVAddr) -> Process {
+        let kernel_stack = alloc_pages_owned(
+            KERNEL_STACK_SIZE / PAGE_SIZE,
+            AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
+        )
+        .expect("failed to allocat kernel stack");
+        let interrupt_stack = alloc_pages_owned(
+            KERNEL_STACK_SIZE / PAGE_SIZE,
+            AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
+        )
+        .expect("failed to allocate kernel stack");
+        let syscall_stack = alloc_pages_owned(
+            KERNEL_STACK_SIZE / PAGE_SIZE,
+            AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
+        )
+        .expect("failed to allocate kernel stack");
+        let xsave_area =
+            alloc_pages_owned(1, AllocPageFlags::KERNEL).expect("failed to allocate xsave area");
 
         let rsp = unsafe {
+            let kernel_sp = kernel_stack.as_vaddr().add(KERNEL_STACK_SIZE);
             let mut rsp: *mut u64 = kernel_sp.as_mut_ptr();
 
             // Registers to be restored by IRET.
@@ -115,16 +136,26 @@ impl Process {
             xsave_area: Some(xsave_area),
             interrupt_stack,
             syscall_stack,
+            kernel_stack,
         }
     }
 
     pub fn new_idle_thread() -> Process {
-        let interrupt_stack = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
-            .expect("failed to allocate kernel stack")
-            .as_vaddr();
-        let syscall_stack = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
-            .expect("failed to allocate kernel stack")
-            .as_vaddr();
+        let interrupt_stack = alloc_pages_owned(
+            KERNEL_STACK_SIZE / PAGE_SIZE,
+            AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
+        )
+        .expect("failed to allocate kernel stack");
+        let syscall_stack = alloc_pages_owned(
+            KERNEL_STACK_SIZE / PAGE_SIZE,
+            AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
+        )
+        .expect("failed to allocate kernel stack");
+        let kernel_stack = alloc_pages_owned(
+            KERNEL_STACK_SIZE / PAGE_SIZE,
+            AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
+        )
+        .expect("failed to allocat kernel stack");
 
         Process {
             rsp: UnsafeCell::new(0),
@@ -132,18 +163,20 @@ impl Process {
             xsave_area: None,
             interrupt_stack,
             syscall_stack,
+            kernel_stack,
         }
     }
 
     pub fn fork(&self, frame: &PtRegs) -> Result<Process> {
-        // TODO: Check the size of XSAVE area.
-        let xsave_area = alloc_pages(1, AllocPageFlags::KERNEL)
-            .expect("failed to allocate xsave area")
-            .as_vaddr();
-
+        let xsave_area =
+            alloc_pages_owned(1, AllocPageFlags::KERNEL).expect("failed to allocate xsave area");
+        let kernel_stack = alloc_pages_owned(
+            KERNEL_STACK_SIZE / PAGE_SIZE,
+            AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
+        )
+        .expect("failed to allocat kernel stack");
         let rsp = unsafe {
-            let kernel_sp = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
-                .expect("failed allocate kernel stack");
+            let kernel_sp = kernel_stack.as_vaddr().add(KERNEL_STACK_SIZE);
             let mut rsp: *mut u64 = kernel_sp.as_mut_ptr();
 
             // Registers to be restored by IRET.
@@ -176,12 +209,16 @@ impl Process {
             rsp
         };
 
-        let interrupt_stack = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
-            .expect("failed allocate kernel stack")
-            .as_vaddr();
-        let syscall_stack = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
-            .expect("failed allocate kernel stack")
-            .as_vaddr();
+        let interrupt_stack = alloc_pages_owned(
+            KERNEL_STACK_SIZE / PAGE_SIZE,
+            AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
+        )
+        .expect("failed allocate kernel stack");
+        let syscall_stack = alloc_pages_owned(
+            KERNEL_STACK_SIZE / PAGE_SIZE,
+            AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
+        )
+        .expect("failed allocate kernel stack");
 
         Ok(Process {
             rsp: UnsafeCell::new(rsp as u64),
@@ -189,6 +226,7 @@ impl Process {
             xsave_area: Some(xsave_area),
             interrupt_stack,
             syscall_stack,
+            kernel_stack,
         })
     }
 
@@ -251,9 +289,9 @@ pub fn switch_thread(prev: &Process, next: &Process) {
     let head = cpu_local_head();
 
     // Switch the kernel stack.
-    head.rsp0 = (next.syscall_stack.value() + KERNEL_STACK_SIZE) as u64;
+    head.rsp0 = (next.syscall_stack.as_vaddr().value() + KERNEL_STACK_SIZE) as u64;
     TSS.as_mut()
-        .set_rsp0((next.interrupt_stack.value() + KERNEL_STACK_SIZE) as u64);
+        .set_rsp0((next.interrupt_stack.as_vaddr().value() + KERNEL_STACK_SIZE) as u64);
 
     // Save and restore the XSAVE area (i.e. XMM/YMM registrers).
     unsafe {

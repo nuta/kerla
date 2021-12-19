@@ -9,25 +9,31 @@ import sys
 
 
 COMMON_ARGS = [
-    "-serial", "mon:stdio", "-no-reboot",
+    "-serial",
+    "mon:stdio",
+    "-no-reboot",
 ]
 
 ARCHS = {
-    "x64":  {
-        "bin": "qemu-system-x86_64",
-        "args": COMMON_ARGS + [
-            "-m", "512",
-            "-cpu", "Icelake-Server",
-
-            "-device", "virtio-net,netdev=net0,disable-legacy=on,disable-modern=off",
-            "-netdev", "user,id=net0,hostfwd=tcp:127.0.0.1:20022-:22,hostfwd=tcp:127.0.0.1:20080-:80",
-            "-object", "filter-dump,id=fiter0,netdev=net0,file=virtio-net.pcap",
-            
-            "-device", "virtio-blk-pci,drive=drive0,id=virtblk0,disable-legacy=on,disable-modern=off",
-            "-drive", "file=vdisk,if=none,id=drive0",
-
-            "-device", "isa-debug-exit,iobase=0x501,iosize=2",
-            "-d", "guest_errors,unimp",
+    "x64": {
+        "bin":
+        "qemu-system-x86_64",
+        "args":
+        COMMON_ARGS + [
+            "-m",
+            "1024",
+            "-cpu",
+            "Icelake-Server",
+            "-device",
+            "virtio-net,netdev=net0,disable-legacy=on,disable-modern=off",
+            "-netdev",
+            "user,id=net0,hostfwd=tcp:127.0.0.1:20022-:22,hostfwd=tcp:127.0.0.1:20080-:80",
+            "-object",
+            "filter-dump,id=fiter0,netdev=net0,file=virtio-net.pcap",
+            "-device",
+            "isa-debug-exit,iobase=0x501,iosize=2",
+            "-d",
+            "guest_errors,unimp",
         ]
     }
 }
@@ -90,7 +96,8 @@ def main():
     p = subprocess.run(argv, preexec_fn=os.setsid)
     if p.returncode != 33:
         sys.exit(
-            f"\nrun-qemu.py: qemu exited with failure status (status={p.returncode})")
+            f"\nrun-qemu.py: qemu exited with failure status (status={p.returncode})"
+        )
 
 
 if __name__ == "__main__":

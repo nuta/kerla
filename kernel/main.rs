@@ -53,6 +53,7 @@ use crate::{
         initramfs::{self, INITRAM_FS},
         mount::RootFs,
         path::Path,
+        procfs::{self, PROC_FS},
     },
     process::{switch, Process},
     syscalls::SyscallHandler,
@@ -171,6 +172,8 @@ pub fn boot_kernel(#[cfg_attr(debug_assertions, allow(unused))] bootinfo: &BootI
     profiler.lap_time("pipe init");
     poll::init();
     profiler.lap_time("poll init");
+    procfs::init();
+    profiler.lap_time("procfs init");
     devfs::init();
     profiler.lap_time("devfs init");
     tmpfs::init();
@@ -190,21 +193,31 @@ pub fn boot_kernel(#[cfg_attr(debug_assertions, allow(unused))] bootinfo: &BootI
     profiler.lap_time("virtio_block init");
 
     // Initialize device drivers.
-    kerla_api::kernel_ops::init_drivers(bootinfo.pci_enabled, &bootinfo.virtio_mmio_devices);
+    kerla_api::kernel_ops::init_drivers(
+        bootinfo.pci_enabled,
+        &bootinfo.pci_allowlist,
+        &bootinfo.virtio_mmio_devices,
+    );
     profiler.lap_time("drivers init");
 
     // Connect to the network.
-    net::init_and_start_dhcp_discover();
+    net::init_and_start_dhcp_discover(bootinfo);
     profiler.lap_time("net init");
 
     // Prepare the root file system.
     let mut root_fs = RootFs::new(INITRAM_FS.clone()).unwrap();
+    let proc_dir = root_fs
+        .lookup_dir(Path::new("/proc"))
+        .expect("failed to locate /dev");
     let dev_dir = root_fs
         .lookup_dir(Path::new("/dev"))
         .expect("failed to locate /dev");
     let tmp_dir = root_fs
         .lookup_dir(Path::new("/tmp"))
         .expect("failed to locate /tmp");
+    root_fs
+        .mount(proc_dir, PROC_FS.clone())
+        .expect("failed to mount procfs");
     root_fs
         .mount(dev_dir, DEV_FS.clone())
         .expect("failed to mount devfs");
@@ -261,8 +274,13 @@ pub fn boot_kernel(#[cfg_attr(debug_assertions, allow(unused))] bootinfo: &BootI
     idle_thread();
 }
 
+pub fn interval_work() {
+    process::gc_exited_processes();
+}
+
 fn idle_thread() -> ! {
     loop {
+        interval_work();
         idle();
     }
 }

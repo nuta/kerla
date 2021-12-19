@@ -9,7 +9,12 @@ use crate::{
     user_buffer::{UserBufReader, UserBufWriter, UserBufferMut},
 };
 use alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
-use core::{cmp::min, convert::TryInto, fmt};
+use core::{
+    cmp::min,
+    convert::TryInto,
+    fmt,
+    sync::atomic::{AtomicUsize, Ordering},
+};
 use crossbeam::atomic::AtomicCell;
 use kerla_runtime::spinlock::{SpinLock, SpinLockGuard};
 use smoltcp::socket::{SocketRef, TcpSocketBuffer};
@@ -19,6 +24,24 @@ use super::{process_packets, SOCKETS, SOCKET_WAIT_QUEUE};
 
 const BACKLOG_MAX: usize = 8;
 static INUSE_ENDPOINTS: SpinLock<BTreeSet<u16>> = SpinLock::new(BTreeSet::new());
+static PASSIVE_OPENS_TOTAL: AtomicUsize = AtomicUsize::new(0);
+static WRITTEN_BYTES_TOTAL: AtomicUsize = AtomicUsize::new(0);
+static READ_BYTES_TOTAL: AtomicUsize = AtomicUsize::new(0);
+
+#[derive(Debug)]
+pub struct Stats {
+    pub passive_opens_total: usize,
+    pub written_bytes_total: usize,
+    pub read_bytes_total: usize,
+}
+
+pub fn read_tcp_stats() -> Stats {
+    Stats {
+        passive_opens_total: PASSIVE_OPENS_TOTAL.load(Ordering::SeqCst),
+        written_bytes_total: WRITTEN_BYTES_TOTAL.load(Ordering::SeqCst),
+        read_bytes_total: READ_BYTES_TOTAL.load(Ordering::SeqCst),
+    }
+}
 
 /// Looks for an accept'able socket in the backlog.
 fn get_ready_backlog_index(
@@ -101,6 +124,8 @@ impl FileLike for TcpSocket {
                     let smol_socket: SocketRef<'_, smoltcp::socket::TcpSocket> =
                         sockets_lock.get(socket.handle);
 
+                    PASSIVE_OPENS_TOTAL.fetch_add(1, Ordering::SeqCst);
+
                     Ok(Some((
                         socket as Arc<dyn FileLike>,
                         smol_socket.remote_endpoint().into(),
@@ -118,6 +143,16 @@ impl FileLike for TcpSocket {
         // TODO: Reject if the endpoint is already in use -- IIUC smoltcp
         //       does not check that.
         self.local_endpoint.store(Some(sockaddr.try_into()?));
+        Ok(())
+    }
+
+    fn shutdown(&self, _how: super::ShutdownHow) -> Result<()> {
+        SOCKETS
+            .lock()
+            .get::<smoltcp::socket::TcpSocket>(self.handle)
+            .close();
+
+        process_packets();
         Ok(())
     }
 
@@ -210,6 +245,7 @@ impl FileLike for TcpSocket {
             process_packets();
             match copied_len {
                 Ok(0) => {
+                    WRITTEN_BYTES_TOTAL.fetch_add(total_len, Ordering::SeqCst);
                     return Ok(total_len);
                 }
                 Ok(copied_len) => {
@@ -243,6 +279,7 @@ impl FileLike for TcpSocket {
                 }
                 Ok(copied_len) => {
                     // Continue reading.
+                    READ_BYTES_TOTAL.fetch_add(copied_len, Ordering::SeqCst);
                     Ok(Some(copied_len))
                 }
                 // TODO: Handle FIN
@@ -290,6 +327,12 @@ impl FileLike for TcpSocket {
         }
 
         Ok(status)
+    }
+}
+
+impl Drop for TcpSocket {
+    fn drop(&mut self) {
+        SOCKETS.lock().remove(self.handle);
     }
 }
 

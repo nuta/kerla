@@ -23,8 +23,9 @@ def main():
         sys.exit("embed-symbol-table.py: failed to locate the symbol table")
     if image.find(START_MAKER, offset + 1) >= 0:
         print(hex(offset), hex(image.find(START_MAKER, offset + 1)))
-        sys.exit("embed-symbol-table.py: found multiple empty symbol tables (perhaps because " +
-                 "START_MAKER is not sufficiently long to be unique?)")
+        sys.exit(
+            "embed-symbol-table.py: found multiple empty symbol tables (perhaps because "
+            + "START_MAKER is not sufficiently long to be unique?)")
 
     # Parse the nm output and extract symbol names and theier addresses.
     symbols = {}
@@ -55,7 +56,8 @@ def main():
     max_size = offset_end - offset
     if len(symbol_table) > max_size:
         sys.exit(
-            f"embed-symbol-table.py: Too many symbols; please expand the symbol table area (max_size={max_size / 1024}KiB, created={len(symbol_table) / 1024}KiB)")
+            f"embed-symbol-table.py: Too many symbols; please expand the symbol table area (max_size={max_size / 1024}KiB, created={len(symbol_table) / 1024}KiB)"
+        )
 
     # Embed the symbol table.
     image = image[:offset] + symbol_table + image[offset + len(symbol_table):]
