@@ -51,7 +51,7 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
         let mut log_buffer = KERNEL_LOG_BUF.lock();
         while let Some(slice) = log_buffer.pop_slice(KERNEL_DUMP_BUF.log.len().saturating_sub(off))
         {
-            KERNEL_DUMP_BUF.log[off..(off + slice.len())].copy_from_slice(&slice);
+            KERNEL_DUMP_BUF.log[off..(off + slice.len())].copy_from_slice(slice);
             off += slice.len();
         }
 
