@@ -39,12 +39,18 @@ unsafe fn push_stack(mut rsp: *mut u64, value: u64) -> *mut u64 {
 impl Process {
     #[allow(unused)]
     pub fn new_kthread(ip: VAddr, sp: VAddr) -> Process {
-        let interrupt_stack = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
-            .expect("failed to allocate kernel stack")
-            .as_vaddr();
-        let syscall_stack = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
-            .expect("failed to allocate kernel stack")
-            .as_vaddr();
+        let interrupt_stack = alloc_pages(
+            KERNEL_STACK_SIZE / PAGE_SIZE,
+            AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
+        )
+        .expect("failed to allocate kernel stack")
+        .as_vaddr();
+        let syscall_stack = alloc_pages(
+            KERNEL_STACK_SIZE / PAGE_SIZE,
+            AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
+        )
+        .expect("failed to allocate kernel stack")
+        .as_vaddr();
 
         let rsp = unsafe {
             let mut rsp: *mut u64 = sp.as_mut_ptr();
@@ -75,14 +81,20 @@ impl Process {
     }
 
     pub fn new_user_thread(ip: UserVAddr, sp: UserVAddr, kernel_sp: VAddr) -> Process {
-        let interrupt_stack = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
-            .expect("failed to allocate kernel stack")
-            .as_vaddr();
-        let syscall_stack = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
-            .expect("failed to allocate kernel stack")
-            .as_vaddr();
+        let interrupt_stack = alloc_pages(
+            KERNEL_STACK_SIZE / PAGE_SIZE,
+            AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
+        )
+        .expect("failed to allocate kernel stack")
+        .as_vaddr();
+        let syscall_stack = alloc_pages(
+            KERNEL_STACK_SIZE / PAGE_SIZE,
+            AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
+        )
+        .expect("failed to allocate kernel stack")
+        .as_vaddr();
         // TODO: Check the size of XSAVE area.
-        let xsave_area = alloc_pages(1, AllocPageFlags::KERNEL | AllocPageFlags::ZEROED)
+        let xsave_area = alloc_pages(1, AllocPageFlags::KERNEL)
             .expect("failed to allocate xsave area")
             .as_vaddr();
 
@@ -119,12 +131,18 @@ impl Process {
     }
 
     pub fn new_idle_thread() -> Process {
-        let interrupt_stack = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
-            .expect("failed to allocate kernel stack")
-            .as_vaddr();
-        let syscall_stack = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
-            .expect("failed to allocate kernel stack")
-            .as_vaddr();
+        let interrupt_stack = alloc_pages(
+            KERNEL_STACK_SIZE / PAGE_SIZE,
+            AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
+        )
+        .expect("failed to allocate kernel stack")
+        .as_vaddr();
+        let syscall_stack = alloc_pages(
+            KERNEL_STACK_SIZE / PAGE_SIZE,
+            AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
+        )
+        .expect("failed to allocate kernel stack")
+        .as_vaddr();
 
         Process {
             rsp: UnsafeCell::new(0),
@@ -137,7 +155,7 @@ impl Process {
 
     pub fn fork(&self, frame: &PtRegs) -> Result<Process> {
         // TODO: Check the size of XSAVE area.
-        let xsave_area = alloc_pages(1, AllocPageFlags::KERNEL | AllocPageFlags::ZEROED)
+        let xsave_area = alloc_pages(1, AllocPageFlags::KERNEL)
             .expect("failed to allocate xsave area")
             .as_vaddr();
 
@@ -176,12 +194,18 @@ impl Process {
             rsp
         };
 
-        let interrupt_stack = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
-            .expect("failed allocate kernel stack")
-            .as_vaddr();
-        let syscall_stack = alloc_pages(KERNEL_STACK_SIZE / PAGE_SIZE, AllocPageFlags::KERNEL)
-            .expect("failed allocate kernel stack")
-            .as_vaddr();
+        let interrupt_stack = alloc_pages(
+            KERNEL_STACK_SIZE / PAGE_SIZE,
+            AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
+        )
+        .expect("failed allocate kernel stack")
+        .as_vaddr();
+        let syscall_stack = alloc_pages(
+            KERNEL_STACK_SIZE / PAGE_SIZE,
+            AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
+        )
+        .expect("failed allocate kernel stack")
+        .as_vaddr();
 
         Ok(Process {
             rsp: UnsafeCell::new(rsp as u64),
