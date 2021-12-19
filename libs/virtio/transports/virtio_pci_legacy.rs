@@ -57,7 +57,7 @@ impl VirtioTransport for VirtioLegacyPci {
         self.port_base.read8(REG_DEVICE_CONFIG_BASE + offset)
     }
 
-    fn read_device_config64(&self, offset: u16) -> u64 {
+    fn read_device_config64(&self, _offset: u16) -> u64 {
         return 0;
     }
 
