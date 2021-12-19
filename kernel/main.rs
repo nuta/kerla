@@ -60,7 +60,7 @@ use crate::{
 };
 use alloc::{boxed::Box, sync::Arc};
 use interrupt::attach_irq;
-use kerla_api::{driver::block::register_block_driver, kernel_ops::KernelOps};
+use kerla_api::{kernel_ops::KernelOps};
 use kerla_runtime::{
     arch::{idle, PageFaultReason, PtRegs},
     bootinfo::BootInfo,
@@ -135,9 +135,9 @@ impl KernelOps for ApiOps {
     fn register_ethernet_driver(&self, driver: Box<dyn kerla_api::driver::net::EthernetDriver>) {
         register_ethernet_driver(driver)
     }
-
+    
     fn register_block_driver(&self, driver: Box<dyn kerla_api::driver::block::BlockDriver>) {
-        register_block_driver(driver)
+        // TODO: Fill once Block I/O subsystem is implemented
     }
 
     fn receive_etherframe_packet(&self, pkt: &[u8]) {
