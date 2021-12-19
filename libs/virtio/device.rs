@@ -100,7 +100,7 @@ impl VirtQueue {
 
         let virtqueue_paddr = alloc_pages(
             align_up(virtq_size, PAGE_SIZE) / PAGE_SIZE,
-            AllocPageFlags::KERNEL | AllocPageFlags::ZEROED,
+            AllocPageFlags::KERNEL,
         )
         .expect("failed to allocate virtuqeue");
 
