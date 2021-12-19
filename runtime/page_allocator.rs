@@ -53,8 +53,8 @@ bitflags! {
         const KERNEL = 0;
         /// Allocate pages for the user.
         const USER = 0;
-        /// Fill allocated pages with zeroes.
-        const ZEROED = 1 << 0;
+        /// If it's not set, allocated pages will be filled with zeroes.
+        const DIRTY_OK = 1 << 0;
     }
 }
 
@@ -92,7 +92,7 @@ pub fn alloc_pages(num_pages: usize, flags: AllocPageFlags) -> Result<PAddr, Pag
     let mut zones = ZONES.lock();
     for zone in zones.iter_mut() {
         if let Some(paddr) = zone.alloc_pages(order).map(PAddr::new) {
-            if flags.contains(AllocPageFlags::ZEROED) {
+            if !flags.contains(AllocPageFlags::DIRTY_OK) {
                 unsafe {
                     paddr
                         .as_mut_ptr::<u8>()
@@ -116,7 +116,7 @@ pub fn alloc_pages_owned(
     let mut zones = ZONES.lock();
     for zone in zones.iter_mut() {
         if let Some(paddr) = zone.alloc_pages(order).map(PAddr::new) {
-            if flags.contains(AllocPageFlags::ZEROED) {
+            if !flags.contains(AllocPageFlags::DIRTY_OK) {
                 unsafe {
                     paddr
                         .as_mut_ptr::<u8>()
