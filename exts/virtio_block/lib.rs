@@ -7,7 +7,7 @@ extern crate kerla_api;
 use core::mem::size_of;
 
 use alloc::boxed::Box;
-use kerla_api::address::VAddr;
+use kerla_api::address::{VAddr, PAddr};
 use kerla_api::driver::{DeviceProber, Driver, register_driver_prober};
 use kerla_api::driver::block::{BlockDriver, register_block_driver};
 use kerla_api::{info, warn};
@@ -21,12 +21,12 @@ use memoffset::offset_of;
 
 use alloc::sync::Arc;
 
-use virtio::device::{IsrStatus, VirtQueue, Virtio, VirtqDescBuffer, VirtqUsedChain};
+use virtio::device::{Virtio, VirtqDescBuffer};
 
-use virtio::transports::VirtioTransport;
-use virtio::transports::virtio_mmio::VirtioMmio;
-use virtio::transports::virtio_pci::{VirtioAttachError, VirtioPci};
-
+use virtio::transports::{
+    virtio_mmio::VirtioMmio, virtio_pci_legacy::VirtioLegacyPci,
+    virtio_pci_modern::VirtioModernPci, VirtioAttachError, VirtioTransport,
+};
 
 const VIRTIO_BLK_F_SIZE: u64 = 1 << 6;
 const VIRTIO_REQUEST_QUEUE: u16 = 0;
@@ -67,7 +67,7 @@ enum RequestType {
 
 pub struct VirtioBlock {
     virtio: Virtio,
-    buffer: VAddr,
+    request_buffer: VAddr,
 }
 
 impl VirtioBlock {
@@ -92,7 +92,7 @@ impl VirtioBlock {
 
         Ok(VirtioBlock {
             virtio: virtio,
-            buffer: buffer
+            request_buffer: buffer
         
         })
 
@@ -100,18 +100,31 @@ impl VirtioBlock {
     }
 
     fn request_to_device(&mut self, request_type: RequestType, sector: u64, frame: &[u8]) {
-        let addr = self.buffer.add(MAX_BLK_SIZE);
+        let request_addr = self.request_buffer.add(MAX_BLK_SIZE);
         let request_len = size_of::<VirtioBlockRequest>();
-        
+        let read_addr = unsafe {PAddr::new(*frame.as_ptr() as usize)}; 
+
+        let read_len = frame.len();
+
+        let status_buffer = [0];
+        let status_addr =unsafe { PAddr::new(*status_buffer.as_ptr() as usize)};
+        let status_len = status_buffer.len();
+
+
+
+
+
         // Fill block request 
-        let block_request = unsafe { &mut *addr.as_mut_ptr::<VirtioBlockRequest>()};
+        let block_request = unsafe { &mut *request_addr.as_mut_ptr::<VirtioBlockRequest>()};
         block_request.type_ = request_type as u32;
         block_request.sector = sector;
         block_request.reserved = 0;
+
+    
         
-        // Copy data into buffer 
+        // Copy data into buffers
         unsafe {
-            addr.as_mut_ptr::<u8>()
+            request_addr.as_mut_ptr::<u8>()
             .add(request_len)
             .copy_from_nonoverlapping(frame.as_ptr(), frame.len());
 
@@ -119,9 +132,18 @@ impl VirtioBlock {
 
         // Chain Descriptor 
         let chain = &[VirtqDescBuffer::ReadOnlyFromDevice {
-            addr: addr.as_paddr(),
+            addr: request_addr.as_paddr(),
             len: request_len + frame.len()
-        }];
+        },
+        VirtqDescBuffer::ReadOnlyFromDevice {
+            addr: read_addr,
+            len: read_len
+        },
+        VirtqDescBuffer::WritableFromDevice {
+            addr: status_addr,
+            len: status_len
+        }
+        ];
 
         // enqueue to data to send 
         let request_virtq = self.virtio.virtq_mut(VIRTIO_REQUEST_QUEUE);
@@ -172,25 +194,50 @@ impl VirtioBlockProber {
 
 impl DeviceProber for VirtioBlockProber {
     fn probe_pci(&self, pci_device: &kerla_api::driver::pci::PciDevice) {
-        // Check if device is a block device 
-        if pci_device.config().vendor_id() == 0x1af4 
-        && pci_device.config().device_id() != 0x1042 {
+         // Check if the device is a block device ("4.1.2 PCI Device Discovery").
+        if pci_device.config().vendor_id() != 0x1af4 {
             return;
         }
-        trace!("virtio-block: found the device (over PCI");
-        let device = match VirtioPci::probe_pci(pci_device, VirtioBlock::new) {
-            Ok(device) => Arc::new(SpinLock::new(device)),
+
+        // Check if the it's a legacy or traditional device.
+        let device_id = pci_device.config().device_id();
+        if device_id != 0x1040 + 2 && device_id != 0x1001 {
+            return;
+        }
+
+        trace!("virtio-blk-pci: found the device (over PCI)");
+        let transport = match VirtioModernPci::probe_pci(pci_device) {
+            Ok(transport) => transport,
             Err(VirtioAttachError::InvalidVendorId) => {
-                // not a virtio-block device 
+                // Not a virtio-net device.
                 return;
             }
             Err(err) => {
-                warn!("Failed to attach a virtio-block: {:?}", err);
+                trace!("failed to attach a virtio-blk-pci as a modern device: {:?}, falling back to the legacy driver", err);
+                match VirtioLegacyPci::probe_pci(pci_device) {
+                    Ok(transport) => transport,
+                    Err(err) => {
+                        warn!(
+                            "failed to attach a virtio-net as a legacy device: {:?}",
+                            err
+                        );
+                        return;
+                    }
+                }
+            }
+        };
+
+        let virtio = match VirtioBlock::new(transport) {
+            Ok(virtio) => virtio,
+            Err(err) => {
+                warn!("failed to initialize virtio-blk-pci: {:?}", err);
                 return;
             }
         };
 
-        register_block_driver(Box::new(VirtioBlockDriver::new(device.clone())))
+        let device = Arc::new(SpinLock::new(virtio));
+        register_block_driver(Box::new(VirtioBlockDriver::new(device.clone())));
+        
         
     }
 
