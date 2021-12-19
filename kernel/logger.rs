@@ -25,11 +25,18 @@ impl Printer for LoggedPrinter {
     fn print_bytes(&self, s: &[u8]) {
         self.inner.print_bytes(s);
 
-        // Don't write into the kernel log buffer as it may call a printk function
-        // due to an assertion.
-        if !PANICKED.load(Ordering::SeqCst) {
-            KERNEL_LOG_BUF.lock().push_slice(s);
+        if PANICKED.load(Ordering::SeqCst) {
+            // If kernel panics, it's uncertain whether KERNEL_LOG_BUF is in
+            // a dead lock.
+            //
+            // Since only single CPU can continue handling a panic, we can
+            // ensure it's safe to unlock it.
+            unsafe {
+                KERNEL_LOG_BUF.force_unlock();
+            }
         }
+
+        KERNEL_LOG_BUF.lock().push_slice(s);
     }
 }
 
