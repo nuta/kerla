@@ -75,9 +75,9 @@ impl VirtioBlock {
         let mut virtio = Virtio::new(transport);
         virtio.initialize(VIRTIO_BLK_F_SIZE, 1)?;
         // Read the block size
-        let block_size = offset_of!(VirtioBlockConfig, capacity);
-        // TODO: Make sure it returns the block size once qemu block device is enabled
-        info!("Block size is {}", block_size);
+        let block_size = virtio.read_device_config64(offset_of!(VirtioBlockConfig, capacity) as u16);
+        
+        info!("Block size is {} bytes", block_size);
 
         // Create buffer for virtqueue
         

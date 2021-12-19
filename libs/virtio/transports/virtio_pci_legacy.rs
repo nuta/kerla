@@ -57,6 +57,10 @@ impl VirtioTransport for VirtioLegacyPci {
         self.port_base.read8(REG_DEVICE_CONFIG_BASE + offset)
     }
 
+    fn read_device_config64(&self, offset: u16) -> u64 {
+        return 0;
+    }
+
     fn read_isr_status(&self) -> IsrStatus {
         IsrStatus::from_bits_truncate(self.port_base.read8(REG_ISR_STATUS))
     }

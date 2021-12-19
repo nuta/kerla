@@ -133,6 +133,10 @@ impl VirtioTransport for VirtioModernPci {
         unsafe { self.device_cfg.add(offset as usize).read_volatile::<u8>() }
     }
 
+    fn read_device_config64(&self, offset: u16) -> u64 {
+        unsafe {self.device_cfg.add(offset as usize).read_volatile::<u64>()}
+    }
+
     fn read_isr_status(&self) -> IsrStatus {
         IsrStatus::from_bits_truncate(unsafe { self.isr.add(0).read_volatile::<u8>() })
     }

@@ -29,6 +29,16 @@ impl VirtioTransport for VirtioMmio {
         }
     }
 
+    fn read_device_config64(&self, offset: u16) -> u64 {
+        unsafe {
+            self.mmio_base
+            .add(( 0x100 + offset) as usize)
+            .read_volatile::<u64>()
+        }
+    }
+
+    
+
     fn read_isr_status(&self) -> IsrStatus {
         IsrStatus::from_bits(unsafe { self.mmio_base.add(0x60).read_volatile::<u32>() as u8 })
             .unwrap()

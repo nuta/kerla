@@ -9,6 +9,7 @@ pub mod virtio_pci_modern;
 pub trait VirtioTransport: Send + Sync {
     fn is_modern(&self) -> bool;
     fn read_device_config8(&self, offset: u16) -> u8;
+    fn read_device_config64(&self, offset: u16) -> u64;
     fn read_isr_status(&self) -> IsrStatus;
     fn read_device_status(&self) -> u8;
     fn write_device_status(&self, value: u8);
