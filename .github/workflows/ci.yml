@@ -50,7 +50,7 @@ jobs:
         run: make check
 
       - name: Build Kerla
-        run: make ${{ matrix.build_options }}
+        run: ls build && make ${{ matrix.build_options }}
 
       - name: Lint
         run: make strict-lint
