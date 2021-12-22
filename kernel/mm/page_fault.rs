@@ -64,7 +64,9 @@ pub fn handle_page_fault(unaligned_vaddr: Option<UserVAddr>, ip: usize, _reason:
     };
 
     // Allocate and fill the page.
-    let paddr = alloc_pages(1, AllocPageFlags::USER).expect("failed to allocate an anonymous page");
+    let paddr = alloc_pages(1, AllocPageFlags::USER)
+        .expect("failed to allocate an anonymous page")
+        .leak();
     unsafe {
         paddr.as_mut_ptr::<u8>().write_bytes(0, PAGE_SIZE);
     }

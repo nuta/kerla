@@ -61,6 +61,9 @@ bitflags! {
 #[derive(Debug)]
 pub struct PageAllocError;
 
+/// Holds the ownership of allocated memory pages.
+///
+/// On drop, the pages will be freed.
 pub struct OwnedPages {
     paddr: PAddr,
     num_pages: usize,
@@ -69,6 +72,12 @@ pub struct OwnedPages {
 impl OwnedPages {
     fn new(paddr: PAddr, num_pages: usize) -> OwnedPages {
         OwnedPages { paddr, num_pages }
+    }
+
+    /// Returns the physical address of the first page. The caller must free
+    /// the pages by calling `free_pages` manually.
+    pub fn leak(self) -> PAddr {
+        self.paddr
     }
 }
 
@@ -86,32 +95,8 @@ impl Drop for OwnedPages {
     }
 }
 
-// TODO: Use alloc_page
-pub fn alloc_pages(num_pages: usize, flags: AllocPageFlags) -> Result<PAddr, PageAllocError> {
-    let order = num_pages_to_order(num_pages);
-    let mut zones = ZONES.lock();
-    for zone in zones.iter_mut() {
-        if let Some(paddr) = zone.alloc_pages(order).map(PAddr::new) {
-            if !flags.contains(AllocPageFlags::DIRTY_OK) {
-                unsafe {
-                    paddr
-                        .as_mut_ptr::<u8>()
-                        .write_bytes(0, num_pages * PAGE_SIZE);
-                }
-            }
-
-            NUM_FREE_PAGES.fetch_sub(num_pages, Ordering::SeqCst);
-            return Ok(paddr);
-        }
-    }
-
-    Err(PageAllocError)
-}
-
-pub fn alloc_pages_owned(
-    num_pages: usize,
-    flags: AllocPageFlags,
-) -> Result<OwnedPages, PageAllocError> {
+/// Allocates memory pages.
+pub fn alloc_pages(num_pages: usize, flags: AllocPageFlags) -> Result<OwnedPages, PageAllocError> {
     let order = num_pages_to_order(num_pages);
     let mut zones = ZONES.lock();
     for zone in zones.iter_mut() {
@@ -132,6 +117,8 @@ pub fn alloc_pages_owned(
     Err(PageAllocError)
 }
 
+/// Frees allocated pages manually.
+///
 /// The caller must ensure that the pages are not already freed. Keep holding
 /// `OwnedPages` to free the pages in RAII basis.
 pub fn free_pages(paddr: PAddr, num_pages: usize) {

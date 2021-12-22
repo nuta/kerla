@@ -4,7 +4,7 @@ use crate::result::Result;
 use crate::{arch::KERNEL_STACK_SIZE, process::signal::Signal};
 use crossbeam::atomic::AtomicCell;
 use kerla_runtime::address::{UserVAddr, VAddr};
-use kerla_runtime::page_allocator::{alloc_pages_owned, OwnedPages};
+use kerla_runtime::page_allocator::{alloc_pages, OwnedPages};
 use kerla_runtime::{
     arch::x64_specific::{cpu_local_head, TSS, USER_CS64, USER_DS, USER_RPL},
     arch::PtRegs,
@@ -42,17 +42,17 @@ unsafe fn push_stack(mut rsp: *mut u64, value: u64) -> *mut u64 {
 impl Process {
     #[allow(unused)]
     pub fn new_kthread(ip: VAddr, sp: VAddr) -> Process {
-        let interrupt_stack = alloc_pages_owned(
+        let interrupt_stack = alloc_pages(
             KERNEL_STACK_SIZE / PAGE_SIZE,
             AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
         )
         .expect("failed to allocate kernel stack");
-        let syscall_stack = alloc_pages_owned(
+        let syscall_stack = alloc_pages(
             KERNEL_STACK_SIZE / PAGE_SIZE,
             AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
         )
         .expect("failed to allocate kernel stack");
-        let kernel_stack = alloc_pages_owned(
+        let kernel_stack = alloc_pages(
             KERNEL_STACK_SIZE / PAGE_SIZE,
             AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
         )
@@ -88,23 +88,23 @@ impl Process {
     }
 
     pub fn new_user_thread(ip: UserVAddr, sp: UserVAddr) -> Process {
-        let kernel_stack = alloc_pages_owned(
+        let kernel_stack = alloc_pages(
             KERNEL_STACK_SIZE / PAGE_SIZE,
             AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
         )
         .expect("failed to allocat kernel stack");
-        let interrupt_stack = alloc_pages_owned(
+        let interrupt_stack = alloc_pages(
             KERNEL_STACK_SIZE / PAGE_SIZE,
             AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
         )
         .expect("failed to allocate kernel stack");
-        let syscall_stack = alloc_pages_owned(
+        let syscall_stack = alloc_pages(
             KERNEL_STACK_SIZE / PAGE_SIZE,
             AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
         )
         .expect("failed to allocate kernel stack");
         let xsave_area =
-            alloc_pages_owned(1, AllocPageFlags::KERNEL).expect("failed to allocate xsave area");
+            alloc_pages(1, AllocPageFlags::KERNEL).expect("failed to allocate xsave area");
 
         let rsp = unsafe {
             let kernel_sp = kernel_stack.as_vaddr().add(KERNEL_STACK_SIZE);
@@ -141,17 +141,17 @@ impl Process {
     }
 
     pub fn new_idle_thread() -> Process {
-        let interrupt_stack = alloc_pages_owned(
+        let interrupt_stack = alloc_pages(
             KERNEL_STACK_SIZE / PAGE_SIZE,
             AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
         )
         .expect("failed to allocate kernel stack");
-        let syscall_stack = alloc_pages_owned(
+        let syscall_stack = alloc_pages(
             KERNEL_STACK_SIZE / PAGE_SIZE,
             AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
         )
         .expect("failed to allocate kernel stack");
-        let kernel_stack = alloc_pages_owned(
+        let kernel_stack = alloc_pages(
             KERNEL_STACK_SIZE / PAGE_SIZE,
             AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
         )
@@ -169,8 +169,8 @@ impl Process {
 
     pub fn fork(&self, frame: &PtRegs) -> Result<Process> {
         let xsave_area =
-            alloc_pages_owned(1, AllocPageFlags::KERNEL).expect("failed to allocate xsave area");
-        let kernel_stack = alloc_pages_owned(
+            alloc_pages(1, AllocPageFlags::KERNEL).expect("failed to allocate xsave area");
+        let kernel_stack = alloc_pages(
             KERNEL_STACK_SIZE / PAGE_SIZE,
             AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
         )
@@ -209,12 +209,12 @@ impl Process {
             rsp
         };
 
-        let interrupt_stack = alloc_pages_owned(
+        let interrupt_stack = alloc_pages(
             KERNEL_STACK_SIZE / PAGE_SIZE,
             AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
         )
         .expect("failed allocate kernel stack");
-        let syscall_stack = alloc_pages_owned(
+        let syscall_stack = alloc_pages(
             KERNEL_STACK_SIZE / PAGE_SIZE,
             AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
         )

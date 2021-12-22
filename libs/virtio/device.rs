@@ -102,7 +102,8 @@ impl VirtQueue {
             align_up(virtq_size, PAGE_SIZE) / PAGE_SIZE,
             AllocPageFlags::KERNEL,
         )
-        .expect("failed to allocate virtuqeue");
+        .expect("failed to allocate virtuqeue")
+        .leak();
 
         let descs = virtqueue_paddr;
         let avail = virtqueue_paddr.add(avail_ring_off);
