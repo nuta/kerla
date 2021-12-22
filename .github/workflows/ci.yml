@@ -44,13 +44,13 @@ jobs:
           cargo --version
 
       - name: Install cargo crates
-        run: ls build && cargo install cargo-binutils rustfilt
+        run: ls build ; cargo install cargo-binutils rustfilt
 
       - name: make check
-        run: ls build && make check && ls build
+        run: ls build ; make check && ls build
 
       - name: Build Kerla
-        run: ls build && rm -rf build && make ${{ matrix.build_options }}
+        run: ls build ; rm -rf build && make ${{ matrix.build_options }}
 
       - name: Lint
         run: make strict-lint
