@@ -1,3 +1,4 @@
+use core::mem::ManuallyDrop;
 use core::ops::Deref;
 use core::sync::atomic::{AtomicUsize, Ordering};
 
@@ -77,7 +78,7 @@ impl OwnedPages {
     /// Returns the physical address of the first page. The caller must free
     /// the pages by calling `free_pages` manually.
     pub fn leak(self) -> PAddr {
-        self.paddr
+        ManuallyDrop::new(self).paddr
     }
 }
 
