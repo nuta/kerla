@@ -38,6 +38,7 @@ $ make
 $ make                # Build OS (debug build)
 $ make RELEASE=1      # Build OS (release build)
 $ make run            # Run on QEMU
+$ make run LOG=trace  # Run on QEMU w/ trace messages enabled
 $ make run GDB=1      # Run on QEMU with GDB connection enabled (listens on localhost:7789)
 ```
 
