@@ -44,7 +44,7 @@ jobs:
           cargo --version
 
       - name: Install cargo crates
-        run: ls build ; cargo install cargo-binutils rustfilt
+        run: cargo install cargo-binutils rustfilt
 
       - name: make check
         run: ls build ; make check && ls build
