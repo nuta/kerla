@@ -58,7 +58,7 @@ impl VirtioTransport for VirtioLegacyPci {
     }
 
     fn read_device_config64(&self, _offset: u16) -> u64 {
-        return 0;
+       todo!()
     }
 
     fn read_isr_status(&self) -> IsrStatus {
