@@ -32,7 +32,7 @@ impl VirtioTransport for VirtioMmio {
     fn read_device_config64(&self, offset: u16) -> u64 {
         unsafe {
             self.mmio_base
-                .add((0x100 + offset) as usize)
+                .add((0x101 + offset) as usize)
                 .read_volatile::<u64>()
         }
     }
