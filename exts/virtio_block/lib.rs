@@ -1,3 +1,4 @@
+// A virtio-block driver
 #![no_std]
 
 extern crate alloc;
@@ -103,7 +104,7 @@ impl VirtioBlock {
 
     fn request_to_device(&mut self, request_type: RequestType, sector: u64, frame: &[u8]) {
         let request_addr = self.request_buffer.add(MAX_BLK_SIZE);
-        let status_addr = self.status_buffer.add(MAX_BLK_SIZE+1);
+        let status_addr = self.status_buffer.add(MAX_BLK_SIZE + 1);
         let buffer_len = size_of::<VirtioBlockRequest>();
         let read_addr = unsafe { PAddr::new(*frame.as_ptr() as usize) };
 
@@ -119,8 +120,8 @@ impl VirtioBlock {
                 .as_mut_ptr::<u8>()
                 .add(buffer_len)
                 .copy_from_nonoverlapping(frame.as_ptr(), frame.len());
-                
-                status_addr
+
+            status_addr
                 .as_mut_ptr::<u8>()
                 .add(buffer_len)
                 .copy_from_nonoverlapping(frame.as_ptr(), frame.len());
