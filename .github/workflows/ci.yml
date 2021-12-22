@@ -47,7 +47,7 @@ jobs:
         run: cargo install cargo-binutils rustfilt
 
       - name: make check
-        run: ls build ; make check && ls build
+        run: make check && ls build
 
       - name: Build Kerla
         run: ls build ; rm -rf build && make ${{ matrix.build_options }}
