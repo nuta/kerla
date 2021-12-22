@@ -30,7 +30,7 @@ ARCHS = {
             "user,id=net0,hostfwd=tcp:127.0.0.1:20022-:22,hostfwd=tcp:127.0.0.1:20080-:80",
             "-object",
             "filter-dump,id=fiter0,netdev=net0,file=virtio-net.pcap",
-            "-drive", "file=vdisk,if=none,format=raw,id=hd",
+            "-drive", "file=vdisk.img,if=none,format=raw,id=hd",
             "-device", "virtio-blk-pci,drive=hd,disable-legacy=on,disable-modern=off",
             #"isa-debug-exit,iobase=0x501,iosize=2",
             "-d",
@@ -41,8 +41,8 @@ ARCHS = {
 
 
 def main():
-    if not os.path.exists("vdisk"):
-        os.system("qemu-img create vdisk 1G")
+    if not os.path.exists("vdisk.img"):
+        os.system("qemu-img create vdisk.img 1G")
     
     parser = argparse.ArgumentParser()
     parser.add_argument("--arch", choices=["x64"])

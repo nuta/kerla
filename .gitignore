@@ -9,7 +9,7 @@
 *.log
 *.map
 *.pcap
-vdisk
+*.img 
 # A temporary file created by the linker. Ignore them not to notify cargo-watch.
 *.map*
 *.elf*
