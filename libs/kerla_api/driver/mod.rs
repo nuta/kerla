@@ -3,10 +3,10 @@ use crate::kernel_ops::kernel_ops;
 
 use alloc::vec::Vec;
 
+pub mod block;
 pub mod ioport;
 pub mod net;
 pub mod pci;
-pub mod block;
 
 pub use kerla_runtime::bootinfo::VirtioMmioDevice;
 

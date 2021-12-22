@@ -3,8 +3,8 @@ use alloc::boxed::Box;
 use kerla_runtime::bootinfo::{AllowedPciDevice, VirtioMmioDevice};
 use kerla_utils::static_cell::StaticCell;
 
-use crate::driver::{self, net::EthernetDriver};
 use crate::driver::block::BlockDriver;
+use crate::driver::{self, net::EthernetDriver};
 
 pub trait KernelOps: Sync {
     fn receive_etherframe_packet(&self, pkt: &[u8]);
@@ -23,7 +23,7 @@ impl KernelOps for NopOps {
     fn attach_irq(&self, _irq: u8, _f: Box<dyn FnMut() + Send + Sync + 'static>) {}
 
     fn register_block_driver(&self, _driver: Box<dyn BlockDriver>) {}
-    
+
     fn register_ethernet_driver(&self, _driver: Box<dyn EthernetDriver>) {}
     fn receive_etherframe_packet(&self, _pkt: &[u8]) {}
 }

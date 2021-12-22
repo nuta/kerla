@@ -7,12 +7,12 @@ extern crate kerla_api;
 use core::mem::size_of;
 
 use alloc::boxed::Box;
-use kerla_api::address::{VAddr, PAddr};
-use kerla_api::driver::{DeviceProber, Driver, register_driver_prober, attach_irq};
-use kerla_api::driver::block::{BlockDriver, register_block_driver};
-use kerla_api::{info, warn};
-use kerla_api::mm::{alloc_pages, AllocPageFlags};
+use kerla_api::address::{PAddr, VAddr};
 use kerla_api::arch::PAGE_SIZE;
+use kerla_api::driver::block::{register_block_driver, BlockDriver};
+use kerla_api::driver::{attach_irq, register_driver_prober, DeviceProber, Driver};
+use kerla_api::mm::{alloc_pages, AllocPageFlags};
+use kerla_api::{info, warn};
 
 use kerla_api::sync::SpinLock;
 use kerla_utils::alignment::align_up;
@@ -21,7 +21,7 @@ use memoffset::offset_of;
 
 use alloc::sync::Arc;
 
-use virtio::device::{Virtio, VirtqDescBuffer, IsrStatus, VirtqUsedChain};
+use virtio::device::{IsrStatus, Virtio, VirtqDescBuffer, VirtqUsedChain};
 
 use virtio::transports::{
     virtio_mmio::VirtioMmio, virtio_pci_legacy::VirtioLegacyPci,
@@ -56,18 +56,16 @@ struct VirtioBlockRequest {
     sector: u64,
 }
 
-
-
 #[repr(u32)]
 enum RequestType {
     Read = 0,
-    Write = 1
+    Write = 1,
 }
-
 
 pub struct VirtioBlock {
     virtio: Virtio,
     request_buffer: VAddr,
+    status_buffer: VAddr,
 }
 
 impl VirtioBlock {
@@ -75,92 +73,97 @@ impl VirtioBlock {
         let mut virtio = Virtio::new(transport);
         virtio.initialize(VIRTIO_BLK_F_SIZE, 1)?;
         // Read the block size
-        let block_size = virtio.read_device_config64(offset_of!(VirtioBlockConfig, capacity) as u16);
-        
-        info!("Block size is {} bytes", block_size);
-        
-        let ring_len = virtio.virtq(VIRTIO_REQUEST_QUEUE).num_descs() as usize;
-        
-        let buffer = alloc_pages(
-            (align_up(MAX_BLK_SIZE * ring_len, PAGE_SIZE)) / PAGE_SIZE,
-            AllocPageFlags::KERNEL 
-        ).unwrap().as_vaddr();
+        let block_size =
+            virtio.read_device_config64(offset_of!(VirtioBlockConfig, capacity) as u16);
 
-        
+        info!("Block size is {} bytes", block_size);
+
+        let ring_len = virtio.virtq(VIRTIO_REQUEST_QUEUE).num_descs() as usize;
+
+        let request_buffer = alloc_pages(
+            (align_up(MAX_BLK_SIZE * ring_len, PAGE_SIZE)) / PAGE_SIZE,
+            AllocPageFlags::KERNEL,
+        )
+        .unwrap()
+        .as_vaddr();
+
+        let status_buffer = alloc_pages(
+            (align_up((MAX_BLK_SIZE * ring_len) + 1, PAGE_SIZE)) / PAGE_SIZE,
+            AllocPageFlags::KERNEL,
+        )
+        .unwrap()
+        .as_vaddr();
 
         Ok(VirtioBlock {
             virtio: virtio,
-            request_buffer: buffer
-        
+            request_buffer: request_buffer,
+            status_buffer: status_buffer,
         })
-
-
     }
 
     fn request_to_device(&mut self, request_type: RequestType, sector: u64, frame: &[u8]) {
         let request_addr = self.request_buffer.add(MAX_BLK_SIZE);
-        let request_len = size_of::<VirtioBlockRequest>();
-        let read_addr = unsafe {PAddr::new(*frame.as_ptr() as usize)}; 
+        let status_addr = self.status_buffer.add(MAX_BLK_SIZE+1);
+        let buffer_len = size_of::<VirtioBlockRequest>();
+        let read_addr = unsafe { PAddr::new(*frame.as_ptr() as usize) };
 
-        let read_len = frame.len();
-
-        let status_buffer = [0];
-        let status_addr =unsafe { PAddr::new(*status_buffer.as_ptr() as usize)};
-        let status_len = status_buffer.len();
-
-
-
-
-
-        // Fill block request 
-        let block_request = unsafe { &mut *request_addr.as_mut_ptr::<VirtioBlockRequest>()};
+        // Fill block request
+        let block_request = unsafe { &mut *request_addr.as_mut_ptr::<VirtioBlockRequest>() };
         block_request.type_ = request_type as u32;
         block_request.sector = sector;
         block_request.reserved = 0;
 
-    
-        
         // Copy data into buffers
         unsafe {
-            request_addr.as_mut_ptr::<u8>()
-            .add(request_len)
-            .copy_from_nonoverlapping(frame.as_ptr(), frame.len());
-
+            request_addr
+                .as_mut_ptr::<u8>()
+                .add(buffer_len)
+                .copy_from_nonoverlapping(frame.as_ptr(), frame.len());
+                
+                status_addr
+                .as_mut_ptr::<u8>()
+                .add(buffer_len)
+                .copy_from_nonoverlapping(frame.as_ptr(), frame.len());
         }
 
-        // Chain Descriptor 
-        let chain = &[VirtqDescBuffer::ReadOnlyFromDevice {
-            addr: request_addr.as_paddr(),
-            len: request_len + frame.len()
-        },
-        VirtqDescBuffer::ReadOnlyFromDevice {
-            addr: read_addr,
-            len: read_len
-        },
-        VirtqDescBuffer::WritableFromDevice {
-            addr: status_addr,
-            len: status_len
-        }
+        // Chain Descriptor
+        let chain = &[
+            VirtqDescBuffer::ReadOnlyFromDevice {
+                addr: request_addr.as_paddr(),
+                len: buffer_len + frame.len(),
+            },
+            VirtqDescBuffer::ReadOnlyFromDevice {
+                addr: read_addr,
+                len: buffer_len,
+            },
+            VirtqDescBuffer::WritableFromDevice {
+                addr: status_addr.as_paddr(),
+                len: buffer_len + frame.len(),
+            },
         ];
 
-        // enqueue to data to send 
+        // enqueue to data to send
         let request_virtq = self.virtio.virtq_mut(VIRTIO_REQUEST_QUEUE);
         request_virtq.enqueue(chain);
         request_virtq.notify();
-    
     }
 
     pub fn handle_irq(&mut self) {
-        if !self.virtio
-        .read_isr_status()
-        .contains(IsrStatus::QUEUE_INTR)
+        if !self
+            .virtio
+            .read_isr_status()
+            .contains(IsrStatus::QUEUE_INTR)
         {
             return;
         }
 
         let request_virtq = self.virtio.virtq_mut(VIRTIO_REQUEST_QUEUE);
 
-        while let Some(VirtqUsedChain { descs, total_len: _ }) = request_virtq.pop_used() {
+        while let Some(VirtqUsedChain {
+            descs,
+            total_len: _,
+        }) = request_virtq.pop_used()
+        {
             debug_assert!(descs.len() == 1);
             let addr = match descs[0] {
                 VirtqDescBuffer::WritableFromDevice { addr, .. } => addr,
@@ -171,21 +174,17 @@ impl VirtioBlock {
                 addr,
                 len: MAX_BLK_SIZE,
             }])
-
-
-
+        }
     }
 }
 
-}
-
 struct VirtioBlockDriver {
-    device: Arc<SpinLock<VirtioBlock>>
+    device: Arc<SpinLock<VirtioBlock>>,
 }
 
 impl VirtioBlockDriver {
     fn new(device: Arc<SpinLock<VirtioBlock>>) -> VirtioBlockDriver {
-        VirtioBlockDriver { device: device}
+        VirtioBlockDriver { device: device }
     }
 }
 
@@ -197,11 +196,15 @@ impl Driver for VirtioBlockDriver {
 
 impl BlockDriver for VirtioBlockDriver {
     fn read_block(&self, sector: u64, frame: &[u8]) {
-        self.device.lock().request_to_device(RequestType::Read, sector, frame)
+        self.device
+            .lock()
+            .request_to_device(RequestType::Read, sector, frame)
     }
 
     fn write_block(&self, sector: u64, frame: &[u8]) {
-        self.device.lock().request_to_device(RequestType::Write, sector, frame)
+        self.device
+            .lock()
+            .request_to_device(RequestType::Write, sector, frame)
     }
 }
 
@@ -215,7 +218,7 @@ impl VirtioBlockProber {
 
 impl DeviceProber for VirtioBlockProber {
     fn probe_pci(&self, pci_device: &kerla_api::driver::pci::PciDevice) {
-         // Check if the device is a block device ("4.1.2 PCI Device Discovery").
+        // Check if the device is a block device ("4.1.2 PCI Device Discovery").
         if pci_device.config().vendor_id() != 0x1af4 {
             return;
         }
@@ -261,8 +264,6 @@ impl DeviceProber for VirtioBlockProber {
         attach_irq(pci_device.config().interrupt_line(), move || {
             device.lock().handle_irq();
         });
-        
-        
     }
 
     fn probe_virtio_mmio(&self, mmio_device: &kerla_api::driver::VirtioMmioDevice) {
@@ -304,7 +305,6 @@ impl DeviceProber for VirtioBlockProber {
         attach_irq(mmio_device.irq, move || {
             device.lock().handle_irq();
         });
-
     }
 }
 
