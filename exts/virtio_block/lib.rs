@@ -21,7 +21,7 @@ use memoffset::offset_of;
 
 use alloc::sync::Arc;
 
-use virtio::device::{Virtio, VirtqDescBuffer};
+use virtio::device::{Virtio, VirtqDescBuffer, IsrStatus, VirtqUsedChain};
 
 use virtio::transports::{
     virtio_mmio::VirtioMmio, virtio_pci_legacy::VirtioLegacyPci,
@@ -78,8 +78,6 @@ impl VirtioBlock {
         let block_size = virtio.read_device_config64(offset_of!(VirtioBlockConfig, capacity) as u16);
         
         info!("Block size is {} bytes", block_size);
-
-        // Create buffer for virtqueue
         
         let ring_len = virtio.virtq(VIRTIO_REQUEST_QUEUE).num_descs() as usize;
         
@@ -153,8 +151,31 @@ impl VirtioBlock {
     }
 
     pub fn handle_irq(&mut self) {
+        if !self.virtio
+        .read_isr_status()
+        .contains(IsrStatus::QUEUE_INTR)
+        {
+            return;
+        }
+
+        let request_virtq = self.virtio.virtq_mut(VIRTIO_REQUEST_QUEUE);
+
+        while let Some(VirtqUsedChain { descs, total_len: _ }) = request_virtq.pop_used() {
+            debug_assert!(descs.len() == 1);
+            let addr = match descs[0] {
+                VirtqDescBuffer::WritableFromDevice { addr, .. } => addr,
+                VirtqDescBuffer::ReadOnlyFromDevice { .. } => unreachable!(),
+            };
+
+            request_virtq.enqueue(&[VirtqDescBuffer::WritableFromDevice {
+                addr,
+                len: MAX_BLK_SIZE,
+            }])
+
+
 
     }
+}
 
 }
 
