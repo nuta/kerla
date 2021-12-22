@@ -8,7 +8,7 @@ use core::mem::size_of;
 
 use alloc::boxed::Box;
 use kerla_api::address::{VAddr, PAddr};
-use kerla_api::driver::{DeviceProber, Driver, register_driver_prober};
+use kerla_api::driver::{DeviceProber, Driver, register_driver_prober, attach_irq};
 use kerla_api::driver::block::{BlockDriver, register_block_driver};
 use kerla_api::{info, warn};
 use kerla_api::mm::{alloc_pages, AllocPageFlags};
@@ -258,6 +258,9 @@ impl DeviceProber for VirtioBlockProber {
 
         let device = Arc::new(SpinLock::new(virtio));
         register_block_driver(Box::new(VirtioBlockDriver::new(device.clone())));
+        attach_irq(pci_device.config().interrupt_line(), move || {
+            device.lock().handle_irq();
+        });
         
         
     }
@@ -297,7 +300,10 @@ impl DeviceProber for VirtioBlockProber {
             }
         };
 
-        register_block_driver(Box::new(VirtioBlockDriver::new(device.clone())))
+        register_block_driver(Box::new(VirtioBlockDriver::new(device.clone())));
+        attach_irq(mmio_device.irq, move || {
+            device.lock().handle_irq();
+        });
 
     }
 }
