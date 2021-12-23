@@ -8,7 +8,7 @@ extern crate kerla_api;
 use core::mem::size_of;
 
 use alloc::boxed::Box;
-use kerla_api::address::{PAddr, VAddr};
+use kerla_api::address::VAddr;
 use kerla_api::arch::PAGE_SIZE;
 use kerla_api::driver::block::{register_block_driver, BlockDriver};
 use kerla_api::driver::{attach_irq, register_driver_prober, DeviceProber, Driver};
@@ -67,7 +67,10 @@ enum RequestType {
 pub struct VirtioBlock {
     virtio: Virtio,
     request_buffer: VAddr,
+    read_buffer: VAddr,
     status_buffer: VAddr,
+    request_buffer_index: usize,
+    ring_len: usize
 }
 
 impl VirtioBlock {
@@ -98,52 +101,51 @@ impl VirtioBlock {
         )
         .unwrap()
         .as_vaddr();
+        
+        let read_buffer = alloc_pages(
+            (align_up((MAX_BLK_SIZE * ring_len) + 2, PAGE_SIZE)) / PAGE_SIZE,
+            AllocPageFlags::KERNEL,
+        )
+        .unwrap()
+        .as_vaddr();
 
         Ok(VirtioBlock {
             virtio: virtio,
             request_buffer: request_buffer,
             status_buffer: status_buffer,
+            read_buffer: read_buffer,
+            request_buffer_index: 0,
+            ring_len: ring_len
         })
     }
 
-    fn request_to_device(&mut self, request_type: RequestType, sector: u64, frame: &[u8]) {
-        let request_addr = self.request_buffer.add(MAX_BLK_SIZE);
-        let status_addr = self.status_buffer.add(MAX_BLK_SIZE + 1);
-        let buffer_len = size_of::<VirtioBlockRequest>();
-        let read_addr = unsafe { PAddr::new(*frame.as_ptr() as usize) };
+    fn write_to_device(&mut self, sector: u64, buf: &[u8]) {
+        let i = self.request_buffer_index % self.ring_len;
+        let request_addr = self.request_buffer.add(MAX_BLK_SIZE * i);
+        let status_addr = self.status_buffer.add((MAX_BLK_SIZE * i) + 1);
+        let read_addr = self.read_buffer.add((MAX_BLK_SIZE * i) + 2);
+        let request_header_len = size_of::<VirtioBlockRequest>();
+       
 
         // Fill block request
         let block_request = unsafe { &mut *request_addr.as_mut_ptr::<VirtioBlockRequest>() };
-        block_request.type_ = request_type as u32;
+        block_request.type_ = 1;
         block_request.sector = sector;
         block_request.reserved = 0;
-
-        // Copy data into buffers
-        unsafe {
-            request_addr
-                .as_mut_ptr::<u8>()
-                .add(buffer_len)
-                .copy_from_nonoverlapping(frame.as_ptr(), frame.len());
-
-            status_addr
-                .as_mut_ptr::<u8>()
-                .add(buffer_len)
-                .copy_from_nonoverlapping(frame.as_ptr(), frame.len());
-        }
 
         // Chain Descriptor
         let chain = &[
             VirtqDescBuffer::ReadOnlyFromDevice {
                 addr: request_addr.as_paddr(),
-                len: buffer_len + frame.len(),
+                len: request_header_len,
             },
             VirtqDescBuffer::ReadOnlyFromDevice {
-                addr: read_addr,
-                len: buffer_len,
+                addr: read_addr.as_paddr(),
+                len: buf.len(),
             },
             VirtqDescBuffer::WritableFromDevice {
                 addr: status_addr.as_paddr(),
-                len: buffer_len + frame.len(),
+                len: 1,
             },
         ];
 
@@ -201,15 +203,11 @@ impl Driver for VirtioBlockDriver {
 
 impl BlockDriver for VirtioBlockDriver {
     fn read_block(&self, sector: u64, frame: &[u8]) {
-        self.device
-            .lock()
-            .request_to_device(RequestType::Read, sector, frame)
+       todo!()
     }
 
     fn write_block(&self, sector: u64, frame: &[u8]) {
-        self.device
-            .lock()
-            .request_to_device(RequestType::Write, sector, frame)
+       todo!()
     }
 }
 
