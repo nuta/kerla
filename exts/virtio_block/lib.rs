@@ -77,7 +77,7 @@ impl VirtioBlock {
         let block_size =
             virtio.read_device_config64(offset_of!(VirtioBlockConfig, capacity) as u16);
 
-        info!("Block size is {} bytes", block_size);
+        info!("The disk capacity is {}", ByteSize::new(block_size as usize * 512));
 
         let ring_len = virtio.virtq(VIRTIO_REQUEST_QUEUE).num_descs() as usize;
 
