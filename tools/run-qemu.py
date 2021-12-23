@@ -32,7 +32,7 @@ ARCHS = {
             "filter-dump,id=fiter0,netdev=net0,file=virtio-net.pcap",
             "-drive", "file=vdisk.img,if=none,format=raw,id=hd",
             "-device", "virtio-blk-pci,drive=hd,disable-legacy=on,disable-modern=off",
-            #"isa-debug-exit,iobase=0x501,iosize=2",
+            "isa-debug-exit,iobase=0x501,iosize=2",
             "-d",
             "guest_errors,unimp",
         ]
