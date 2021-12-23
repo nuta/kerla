@@ -17,6 +17,7 @@ use kerla_api::{info, warn};
 
 use kerla_api::sync::SpinLock;
 use kerla_utils::alignment::align_up;
+use kerla_utils::byte_size::ByteSize;
 
 use memoffset::offset_of;
 
