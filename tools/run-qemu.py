@@ -42,7 +42,7 @@ ARCHS = {
 
 def main():
     if not os.path.exists("vdisk.img"):
-        os.system("qemu-img create vdisk.img 1G")
+        os.system("qemu-img create vdisk.img 128M")
     
     parser = argparse.ArgumentParser()
     parser.add_argument("--arch", choices=["x64"])
