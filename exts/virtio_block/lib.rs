@@ -163,26 +163,8 @@ impl VirtioBlock {
         {
             return;
         }
-
-        let request_virtq = self.virtio.virtq_mut(VIRTIO_REQUEST_QUEUE);
-
-        while let Some(VirtqUsedChain {
-            descs,
-            total_len: _,
-        }) = request_virtq.pop_used()
-        {
-            debug_assert!(descs.len() == 1);
-            let addr = match descs[0] {
-                VirtqDescBuffer::WritableFromDevice { addr, .. } => addr,
-                VirtqDescBuffer::ReadOnlyFromDevice { .. } => unreachable!(),
-            };
-
-            request_virtq.enqueue(&[VirtqDescBuffer::WritableFromDevice {
-                addr,
-                len: MAX_BLK_SIZE,
-            }])
-        }
     }
+
 }
 
 struct VirtioBlockDriver {
