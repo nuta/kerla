@@ -7,7 +7,6 @@ import subprocess
 import shlex
 import sys
 
-
 COMMON_ARGS = [
     "-serial",
     "mon:stdio",
@@ -32,6 +31,7 @@ ARCHS = {
             "filter-dump,id=fiter0,netdev=net0,file=virtio-net.pcap",
             "-drive", "file=vdisk.img,if=none,format=raw,id=hd",
             "-device", "virtio-blk-pci,drive=hd,disable-legacy=on,disable-modern=off",
+            "-device",
             "isa-debug-exit,iobase=0x501,iosize=2",
             "-d",
             "guest_errors,unimp",
@@ -43,7 +43,6 @@ ARCHS = {
 def main():
     if not os.path.exists("vdisk.img"):
         os.system("qemu-img create vdisk.img 128M")
-    
     parser = argparse.ArgumentParser()
     parser.add_argument("--arch", choices=["x64"])
     parser.add_argument("--gui", action="store_true")
