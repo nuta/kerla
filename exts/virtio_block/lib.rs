@@ -70,7 +70,7 @@ pub struct VirtioBlock {
     read_buffer: VAddr,
     status_buffer: VAddr,
     request_buffer_index: usize,
-    ring_len: usize
+    ring_len: usize,
 }
 
 impl VirtioBlock {
@@ -101,7 +101,7 @@ impl VirtioBlock {
         )
         .unwrap()
         .as_vaddr();
-        
+
         let read_buffer = alloc_pages(
             (align_up((MAX_BLK_SIZE * ring_len) + 2, PAGE_SIZE)) / PAGE_SIZE,
             AllocPageFlags::KERNEL,
@@ -115,7 +115,7 @@ impl VirtioBlock {
             status_buffer: status_buffer,
             read_buffer: read_buffer,
             request_buffer_index: 0,
-            ring_len: ring_len
+            ring_len: ring_len,
         })
     }
 
@@ -125,7 +125,6 @@ impl VirtioBlock {
         let status_addr = self.status_buffer.add((MAX_BLK_SIZE * i) + 1);
         let read_addr = self.read_buffer.add((MAX_BLK_SIZE * i) + 2);
         let request_header_len = size_of::<VirtioBlockRequest>();
-       
 
         // Fill block request
         let block_request = unsafe { &mut *request_addr.as_mut_ptr::<VirtioBlockRequest>() };
@@ -164,7 +163,6 @@ impl VirtioBlock {
             return;
         }
     }
-
 }
 
 struct VirtioBlockDriver {
@@ -185,13 +183,11 @@ impl Driver for VirtioBlockDriver {
 
 impl BlockDriver for VirtioBlockDriver {
     fn read_block(&self, _sector: u64, _buf: &mut [u8]) {
-       todo!()
+        todo!()
     }
 
     fn write_block(&self, sector: u64, buf: &[u8]) {
-        self.device
-        .lock()
-        .write_to_disk(sector, buf)
+        self.device.lock().write_to_disk(sector, buf)
     }
 }
 
