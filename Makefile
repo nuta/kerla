@@ -23,13 +23,15 @@ endif
 
 # $(IMAGE): Use a Docker image for initramfs.
 ifeq ($(IMAGE),)
-INITRAMFS_PATH := build/kerla.initramfs
+INITRAMFS_PATH := build/testing.initramfs
 export INIT_SCRIPT := /bin/sh
 else
 IMAGE_FILENAME := $(subst /,.s,$(IMAGE))
 INITRAMFS_PATH := build/$(IMAGE_FILENAME).initramfs
 export INIT_SCRIPT := $(shell tools/inspect-init-in-docker-image.py $(IMAGE))
 endif
+
+DUMMY_INITRAMFS_PATH := build/dummy-for-lint.initramfs
 
 # Set the platform name for docker image cross compiling.
 ifeq ($(ARCH),x64)
@@ -137,9 +139,8 @@ testw:
 
 .PHONY: check
 check:
-	mkdir -p $(dir $(INITRAMFS_PATH))
-	touch $(INITRAMFS_PATH)
-	$(CARGO) check $(CARGOFLAGS)
+	$(MAKE) $(DUMMY_INITRAMFS_PATH)
+	INITRAMFS_PATH=$(DUMMY_INITRAMFS_PATH) $(CARGO) check $(CARGOFLAGS)
 
 .PHONY: checkw
 checkw:
@@ -166,15 +167,18 @@ src-docs:
 
 .PHONY: lint
 lint:
-	RUSTFLAGS="-C panic=abort -Z panic_abort_tests" $(CARGO) clippy
+	$(MAKE) $(DUMMY_INITRAMFS_PATH)
+	INITRAMFS_PATH=$(DUMMY_INITRAMFS_PATH) RUSTFLAGS="-C panic=abort -Z panic_abort_tests" $(CARGO) clippy
 
 .PHONY: strict-lint
 strict-lint:
-	RUSTFLAGS="-C panic=abort -Z panic_abort_tests" $(CARGO) clippy -- -D warnings
+	$(MAKE) $(DUMMY_INITRAMFS_PATH)
+	INITRAMFS_PATH=$(DUMMY_INITRAMFS_PATH) RUSTFLAGS="-C panic=abort -Z panic_abort_tests" $(CARGO) clippy -- -D warnings
 
 .PHONY: lint-and-fix
 lint-and-fix:
-	RUSTFLAGS="-C panic=abort -Z panic_abort_tests" $(CARGO) clippy --fix -Z unstable-options
+	$(MAKE) $(DUMMY_INITRAMFS_PATH)
+	INITRAMFS_PATH=$(DUMMY_INITRAMFS_PATH) RUSTFLAGS="-C panic=abort -Z panic_abort_tests" $(CARGO) clippy --fix -Z unstable-options
 
 .PHONY: print-stack-sizes
 print-stack-sizes: build
@@ -188,7 +192,7 @@ clean:
 #
 #  Build Rules
 #
-build/kerla.initramfs: $(wildcard testing/*) $(wildcard testing/*/*) Makefile
+build/testing.initramfs: $(wildcard testing/*) $(wildcard testing/*/*) Makefile
 	$(PROGRESS) "BUILD" testing
 	cd testing && docker buildx build --platform $(docker_platform) -t kerla-testing .
 	$(PROGRESS) "EXPORT" testing
@@ -199,6 +203,9 @@ build/$(IMAGE_FILENAME).initramfs: tools/docker2initramfs.py Makefile
 	$(PROGRESS) "EXPORT" $(IMAGE)
 	mkdir -p build
 	$(PYTHON3) tools/docker2initramfs.py $@ $(IMAGE)
+
+$(DUMMY_INITRAMFS_PATH):
+	touch $@
 
 %.svg: %.drawio
 	$(PROGRESS) "DRAWIO" $@

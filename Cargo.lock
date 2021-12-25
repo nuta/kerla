@@ -169,7 +169,7 @@ dependencies = [
 
 [[package]]
 name = "kerla_api"
-version = "0.0.1"
+version = "0.1.0"
 dependencies = [
  "arrayvec 0.7.2",
  "kerla_runtime",
@@ -181,7 +181,7 @@ dependencies = [
 
 [[package]]
 name = "kerla_kernel"
-version = "0.0.4"
+version = "0.1.0"
 dependencies = [
  "arrayvec 0.7.2",
  "atomic_refcell",
@@ -203,7 +203,7 @@ dependencies = [
 
 [[package]]
 name = "kerla_runtime"
-version = "0.0.4"
+version = "0.1.0"
 dependencies = [
  "arrayvec 0.7.2",
  "atomic_refcell",
@@ -220,7 +220,7 @@ dependencies = [
 
 [[package]]
 name = "kerla_utils"
-version = "0.0.1"
+version = "0.1.0"
 dependencies = [
  "bitvec",
  "crossbeam",
@@ -254,7 +254,7 @@ dependencies = [
 
 [[package]]
 name = "log_filter"
-version = "0.0.1"
+version = "0.1.0"
 dependencies = [
  "log",
 ]
@@ -383,7 +383,7 @@ checksum = "5fecdca9a5291cc2b8dcf7dc02453fee791a280f3743cb0905f8822ae463b3fe"
 
 [[package]]
 name = "virtio"
-version = "0.0.1"
+version = "0.1.0"
 dependencies = [
  "bitflags",
  "kerla_api",
@@ -404,7 +404,7 @@ dependencies = [
 
 [[package]]
 name = "virtio_net"
-version = "0.0.1"
+version = "0.1.0"
 dependencies = [
  "bitflags",
  "kerla_api",

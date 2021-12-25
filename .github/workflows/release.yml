@@ -18,10 +18,12 @@ jobs:
         with:
           python-version: 3.9
 
-      - name: Set up Rust
+      - name: Show toolchain versions
         run: |
-          rustup override set nightly
-          rustup component add llvm-tools-preview rust-src clippy
+          rustup show
+          rustup --version
+          rustc --version
+          cargo --version
 
       - name: Install apt packages
         run: sudo apt install -y grub-pc xorriso mtools
