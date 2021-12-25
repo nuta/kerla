@@ -23,7 +23,7 @@ use memoffset::offset_of;
 
 use alloc::sync::Arc;
 
-use virtio::device::{IsrStatus, Virtio, VirtqDescBuffer, VirtqUsedChain};
+use virtio::device::{IsrStatus, Virtio, VirtqDescBuffer};
 
 use virtio::transports::{
     virtio_mmio::VirtioMmio, virtio_pci_legacy::VirtioLegacyPci,
@@ -129,7 +129,7 @@ impl VirtioBlock {
 
         // Fill block request
         let block_request = unsafe { &mut *request_addr.as_mut_ptr::<VirtioBlockRequest>() };
-        block_request.type_ = 1;
+        block_request.type_ = RequestType::Write as u32;
         block_request.sector = sector;
         block_request.reserved = 0;
 
@@ -184,7 +184,7 @@ impl Driver for VirtioBlockDriver {
 }
 
 impl BlockDriver for VirtioBlockDriver {
-    fn read_block(&self, sector: u64, buf: &mut [u8]) {
+    fn read_block(&self, _sector: u64, _buf: &mut [u8]) {
        todo!()
     }
 
