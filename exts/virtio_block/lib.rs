@@ -119,7 +119,7 @@ impl VirtioBlock {
         })
     }
 
-    fn write_to_device(&mut self, sector: u64, buf: &[u8]) {
+    fn write_to_disk(&mut self, sector: u64, buf: &[u8]) {
         let i = self.request_buffer_index % self.ring_len;
         let request_addr = self.request_buffer.add(MAX_BLK_SIZE * i);
         let status_addr = self.status_buffer.add((MAX_BLK_SIZE * i) + 1);
@@ -184,12 +184,14 @@ impl Driver for VirtioBlockDriver {
 }
 
 impl BlockDriver for VirtioBlockDriver {
-    fn read_block(&self, sector: u64, frame: &[u8]) {
+    fn read_block(&self, sector: u64, buf: &mut [u8]) {
        todo!()
     }
 
-    fn write_block(&self, sector: u64, frame: &[u8]) {
-       todo!()
+    fn write_block(&self, sector: u64, buf: &[u8]) {
+        self.device
+        .lock()
+        .write_to_disk(sector, buf)
     }
 }
 
