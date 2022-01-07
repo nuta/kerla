@@ -14,7 +14,7 @@ memoffset = "0.6.5"
 arrayvec = { version = "0.7.2", default-features = false }
 
 # Arch-specific dependencies.
-x86 = "0.43.0"
+x86 = "0.44.0"
 
 # Local dependencies.
 kerla_runtime = { path = "../../runtime" }
