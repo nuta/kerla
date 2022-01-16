@@ -96,14 +96,14 @@ impl VirtioBlock {
         .as_vaddr();
 
         let status_buffer = alloc_pages(
-            (align_up((MAX_BLK_SIZE * ring_len) + 1, PAGE_SIZE)) / PAGE_SIZE,
+            (align_up(MAX_BLK_SIZE * ring_len, PAGE_SIZE)) / PAGE_SIZE,
             AllocPageFlags::KERNEL,
         )
         .unwrap()
         .as_vaddr();
 
         let read_buffer = alloc_pages(
-            (align_up((MAX_BLK_SIZE * ring_len) + 2, PAGE_SIZE)) / PAGE_SIZE,
+            (align_up(MAX_BLK_SIZE * ring_len, PAGE_SIZE)) / PAGE_SIZE,
             AllocPageFlags::KERNEL,
         )
         .unwrap()
