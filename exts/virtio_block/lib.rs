@@ -124,7 +124,7 @@ impl VirtioBlock {
         let request_header_len = size_of::<VirtioBlockRequest>();
         let status_len = 1;
         let read_len = buf.len();
-        let request_addr = self.request_buffer.add(MAX_BLK_SIZE * i);
+        let request_addr = self.request_buffer.add(request_header_len * i);
         let status_addr = self.status_buffer.add(status_len * i);
         let read_addr = self.read_buffer.add(read_len * i);
 
