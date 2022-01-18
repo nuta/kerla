@@ -121,10 +121,12 @@ impl VirtioBlock {
 
     fn write_to_disk(&mut self, sector: u64, buf: &[u8]) {
         let i = self.request_buffer_index % self.ring_len;
-        let request_addr = self.request_buffer.add(MAX_BLK_SIZE * i);
-        let status_addr = self.status_buffer.add((MAX_BLK_SIZE * i) + 1);
-        let read_addr = self.read_buffer.add((MAX_BLK_SIZE * i) + 2);
         let request_header_len = size_of::<VirtioBlockRequest>();
+        let status_len = 1;
+        let read_len = buf.len();
+        let request_addr = self.request_buffer.add(MAX_BLK_SIZE * i);
+        let status_addr = self.status_buffer.add(status_len * i);
+        let read_addr = self.read_buffer.add(read_len * i);
 
         // Fill block request
         let block_request = unsafe { &mut *request_addr.as_mut_ptr::<VirtioBlockRequest>() };
@@ -140,11 +142,11 @@ impl VirtioBlock {
             },
             VirtqDescBuffer::ReadOnlyFromDevice {
                 addr: read_addr.as_paddr(),
-                len: buf.len(),
+                len: read_len,
             },
             VirtqDescBuffer::WritableFromDevice {
                 addr: status_addr.as_paddr(),
-                len: 1,
+                len: status_len,
             },
         ];
 
@@ -152,6 +154,7 @@ impl VirtioBlock {
         let request_virtq = self.virtio.virtq_mut(VIRTIO_REQUEST_QUEUE);
         request_virtq.enqueue(chain);
         request_virtq.notify();
+        self.request_buffer_index += 1
     }
 
     pub fn handle_irq(&mut self) {
