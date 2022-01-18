@@ -219,7 +219,7 @@ impl DeviceProber for VirtioBlockProber {
         let transport = match VirtioModernPci::probe_pci(pci_device) {
             Ok(transport) => transport,
             Err(VirtioAttachError::InvalidVendorId) => {
-                // Not a virtio-net device.
+                // Not a virtio-block device.
                 return;
             }
             Err(err) => {
@@ -228,7 +228,7 @@ impl DeviceProber for VirtioBlockProber {
                     Ok(transport) => transport,
                     Err(err) => {
                         warn!(
-                            "failed to attach a virtio-net as a legacy device: {:?}",
+                            "failed to attach a virtio-blk-pci as a legacy device: {:?}",
                             err
                         );
                         return;
@@ -240,7 +240,7 @@ impl DeviceProber for VirtioBlockProber {
         let virtio = match VirtioBlock::new(transport) {
             Ok(virtio) => virtio,
             Err(err) => {
-                warn!("failed to initialize virtio-blk-pci: {:?}", err);
+                warn!("failed to initialize virtio-block: {:?}", err);
                 return;
             }
         };
