@@ -3,6 +3,7 @@
 #![no_std]
 #![feature(asm)]
 #![feature(global_asm)]
+#![feature(in_band_lifetimes)]
 
 extern crate alloc;
 

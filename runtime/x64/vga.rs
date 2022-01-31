@@ -35,7 +35,7 @@ const BANNER: &str =
     " Kerla       /dev/console is connected to the serial port (no keyboard support) ";
 
 struct Console {
-    base: VAddr,
+    base: VAddr<'static>,
     x: usize,
     y: usize,
     fg: VgaColor,

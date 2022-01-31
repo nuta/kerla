@@ -29,7 +29,7 @@ bitflags! {
     }
 }
 
-fn entry_paddr(entry: PageTableEntry) -> PAddr {
+fn entry_paddr(entry: PageTableEntry) -> PAddr<'static> {
     PAddr::new((entry & 0x7ffffffffffff000) as usize)
 }
 
@@ -127,7 +127,7 @@ fn duplicate_table(original_table_paddr: PAddr, level: usize) -> Result<PAddr, P
     Ok(new_table_paddr)
 }
 
-fn allocate_pml4() -> Result<PAddr, PageAllocError> {
+fn allocate_pml4() -> Result<PAddr<'static>, PageAllocError> {
     extern "C" {
         static __kernel_pml4: u8;
     }
@@ -154,7 +154,7 @@ fn allocate_pml4() -> Result<PAddr, PageAllocError> {
 }
 
 pub struct PageTable {
-    pml4: PAddr,
+    pml4: PAddr<'static>,
 }
 
 impl PageTable {

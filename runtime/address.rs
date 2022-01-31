@@ -6,53 +6,56 @@ use crate::handler;
 use core::{
     fmt,
     mem::{size_of, MaybeUninit},
-    ptr, slice,
+    ptr, slice, marker::PhantomData,
 };
 use kerla_utils::alignment::align_down;
 
 /// Represents a physical memory address.
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 #[repr(transparent)]
-pub struct PAddr(usize);
+pub struct PAddr<'memory> {
+    address: usize,
+    _lifetime: PhantomData<&'memory ()>,
+}
 
-impl PAddr {
-    pub const fn new(addr: usize) -> PAddr {
-        PAddr(addr)
+impl<'memory> PAddr<'memory> {
+    pub const fn new(address: usize) -> Self {
+        PAddr { address, _lifetime: PhantomData::default() }
     }
 
     #[inline(always)]
     pub const fn is_null(self) -> bool {
-        self.0 == 0
+        self.address == 0
     }
 
-    pub const fn as_vaddr(self) -> VAddr {
-        debug_assert!(self.0 < KERNEL_STRAIGHT_MAP_PADDR_END);
-        VAddr::new(self.0 + KERNEL_BASE_ADDR)
+    pub const fn as_vaddr(self) -> VAddr<'memory> { // TODO: Shouldn't it be impl Into for VAddr trait?
+        debug_assert!(self.address < KERNEL_STRAIGHT_MAP_PADDR_END);
+        VAddr::new(self.address + KERNEL_BASE_ADDR)
     }
 
     pub const fn as_ptr<T>(self) -> *const T {
-        debug_assert!(self.0 < KERNEL_STRAIGHT_MAP_PADDR_END);
-        (self.0 + KERNEL_BASE_ADDR) as *const _
+        debug_assert!(self.address < KERNEL_STRAIGHT_MAP_PADDR_END);
+        (self.address + KERNEL_BASE_ADDR) as *const _
     }
 
     pub const fn as_mut_ptr<T>(self) -> *mut T {
-        debug_assert!(self.0 < KERNEL_STRAIGHT_MAP_PADDR_END);
-        (self.0 + KERNEL_BASE_ADDR) as *mut _
+        debug_assert!(self.address < KERNEL_STRAIGHT_MAP_PADDR_END);
+        (self.address + KERNEL_BASE_ADDR) as *mut _
     }
 
     #[inline(always)]
     #[must_use]
-    pub const fn add(self, offset: usize) -> PAddr {
-        PAddr(self.0 + offset)
+    pub const fn add(self, offset: usize) -> Self {
+        PAddr { address: self.address + offset, _lifetime: PhantomData::default() }
     }
 
     #[inline(always)]
     pub const fn value(self) -> usize {
-        self.0
+        self.address
     }
 }
 
-impl fmt::Display for PAddr {
+impl fmt::Display for PAddr<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:016x}", self.value())
     }
@@ -61,17 +64,21 @@ impl fmt::Display for PAddr {
 /// Represents a *kernel* virtual memory address.
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 #[repr(transparent)]
-pub struct VAddr(usize);
+pub struct VAddr<'memory> {
+    address: usize,
+    _lifetime: PhantomData<&'memory ()>,
+}
 
-impl VAddr {
-    pub const fn new(addr: usize) -> VAddr {
-        debug_assert!(addr >= KERNEL_BASE_ADDR);
-        VAddr(addr)
+impl<'memory> VAddr<'memory> {
+    pub const fn new(address: usize) -> Self {
+        debug_assert!(address >= KERNEL_BASE_ADDR);
+        VAddr { address, _lifetime: PhantomData::default() }
     }
 
-    pub const fn as_paddr(self) -> PAddr {
-        debug_assert!(self.0 >= KERNEL_BASE_ADDR);
-        PAddr::new(self.0 - KERNEL_BASE_ADDR)
+    pub const fn as_paddr(self) -> PAddr<'memory> {
+        debug_assert!(self.address >= KERNEL_BASE_ADDR);
+        //PAddr::new(self.address - KERNEL_BASE_ADDR)
+        PAddr { address: self.address, _lifetime: self._lifetime }
     }
 
     pub const fn is_accessible_from_kernel(addr: usize) -> bool {
@@ -79,13 +86,13 @@ impl VAddr {
     }
 
     pub const fn as_ptr<T>(self) -> *const T {
-        debug_assert!(self.0 >= KERNEL_BASE_ADDR);
-        self.0 as *const _
+        debug_assert!(self.address >= KERNEL_BASE_ADDR);
+        self.address as *const _
     }
 
     pub const fn as_mut_ptr<T>(self) -> *mut T {
-        debug_assert!(self.0 >= KERNEL_BASE_ADDR);
-        self.0 as *mut _
+        debug_assert!(self.address >= KERNEL_BASE_ADDR);
+        self.address as *mut _
     }
 
     /// # Safety
@@ -109,29 +116,29 @@ impl VAddr {
 
     #[inline(always)]
     #[must_use]
-    pub const fn add(self, offset: usize) -> VAddr {
-        VAddr::new(self.0 + offset)
+    pub const fn add(self, offset: usize) -> VAddr<'memory> {
+        VAddr::new(self.address + offset)
     }
 
     #[inline(always)]
     #[must_use]
-    pub const fn sub(self, offset: usize) -> VAddr {
-        VAddr::new(self.0 - offset)
+    pub const fn sub(self, offset: usize) -> VAddr<'memory> {
+        VAddr::new(self.address - offset)
     }
 
     #[inline(always)]
     #[must_use]
-    pub const fn align_down(self, alignment: usize) -> VAddr {
-        VAddr::new(align_down(self.0, alignment))
+    pub const fn align_down(self, alignment: usize) -> VAddr<'memory> {
+        VAddr::new(align_down(self.address, alignment))
     }
 
     #[inline(always)]
     pub const fn value(self) -> usize {
-        self.0
+        self.address
     }
 }
 
-impl fmt::Display for VAddr {
+impl fmt::Display for VAddr<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:016x}", self.value())
     }
@@ -157,21 +164,23 @@ pub struct NullUserPointerError;
 
 /// Represents a user virtual memory address.
 ///
-/// It is guaranteed that `UserVaddr` contains a valid address, in other words,
+/// It is guaranteed that `UserVAddr` contains a valid address, in other words,
 /// it does not point to a kernel address.
 ///
 /// Futhermore, like `NonNull<T>`, it is always non-null. Use `Option<UserVaddr>`
 /// represent a nullable user pointer.
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 #[repr(transparent)]
-pub struct UserVAddr(usize);
+pub struct UserVAddr {
+    address: usize
+}
 
 impl UserVAddr {
-    pub const fn new(addr: usize) -> Option<UserVAddr> {
-        if addr == 0 {
+    pub const fn new(address: usize) -> Option<UserVAddr> {
+        if address == 0 {
             None
         } else {
-            Some(UserVAddr(addr))
+            Some(UserVAddr { address })
         }
     }
 
@@ -183,32 +192,32 @@ impl UserVAddr {
     }
 
     /// # Safety
-    /// Make sure `addr` doesn't point to the kernel memory address or it can
+    /// Make sure `address` doesn't point to the kernel memory address or it can
     /// lead to a serious vulnerability!
-    pub const unsafe fn new_unchecked(addr: usize) -> UserVAddr {
-        UserVAddr(addr)
+    pub const unsafe fn new_unchecked(address: usize) -> UserVAddr {
+        UserVAddr { address }
     }
 
     #[inline(always)]
     pub const fn as_isize(self) -> isize {
         // This cast is always safe thanks to the KERNEL_BASE_ADDR check in
         // `UserVAddr::new`.
-        self.0 as isize
+        self.address as isize
     }
 
     #[inline(always)]
     pub const fn add(self, offset: usize) -> UserVAddr {
-        unsafe { UserVAddr::new_unchecked(self.0 + offset) }
+        unsafe { UserVAddr::new_unchecked(self.address + offset) }
     }
 
     #[inline(always)]
     pub const fn sub(self, offset: usize) -> UserVAddr {
-        unsafe { UserVAddr::new_unchecked(self.0 - offset) }
+        unsafe { UserVAddr::new_unchecked(self.address - offset) }
     }
 
     #[inline(always)]
     pub const fn value(self) -> usize {
-        self.0
+        self.address
     }
 
     pub fn access_ok(self, len: usize) -> Result<(), AccessError> {

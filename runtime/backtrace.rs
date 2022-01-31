@@ -37,7 +37,7 @@ global_asm!(
 
 struct Symbol {
     name: &'static str,
-    addr: VAddr,
+    addr: VAddr<'static>,
 }
 
 fn resolve_symbol(vaddr: VAddr) -> Option<Symbol> {
@@ -96,23 +96,23 @@ pub fn backtrace() {
     });
 }
 
-pub struct CapturedBacktraceFrame {
-    pub vaddr: VAddr,
+pub struct CapturedBacktraceFrame<'memory> {
+    pub vaddr: VAddr<'memory>,
     pub offset: usize,
     pub symbol_name: &'static str,
 }
 
-pub struct CapturedBacktrace {
-    pub trace: Box<ArrayVec<CapturedBacktraceFrame, 8>>,
+pub struct CapturedBacktrace<'memory> {
+    pub trace: Box<ArrayVec<CapturedBacktraceFrame<'memory>, 8>>,
 }
 
-impl CapturedBacktrace {
+impl CapturedBacktrace<'_> {
     /// Returns a saved backtrace.
-    pub fn capture() -> CapturedBacktrace {
+    pub fn capture() -> CapturedBacktrace<'memory> {
         let mut trace = Box::new(ArrayVec::new());
-        Backtrace::current_frame().traverse(|_, vaddr| {
+        Backtrace::current_frame().traverse( |_, vaddr: VAddr<'memory>| {
             if let Some(symbol) = resolve_symbol(vaddr) {
-                let _ = trace.try_push(CapturedBacktraceFrame {
+                let _ = trace.try_push(CapturedBacktraceFrame::<'memory> {
                     vaddr,
                     symbol_name: symbol.name,
                     offset: vaddr.value() - symbol.addr.value(),
@@ -123,7 +123,7 @@ impl CapturedBacktrace {
     }
 }
 
-impl fmt::Debug for CapturedBacktrace {
+impl fmt::Debug for CapturedBacktrace<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for (i, frame) in self.trace.iter().enumerate() {
             let _ = writeln!(
