@@ -205,6 +205,7 @@ build/$(IMAGE_FILENAME).initramfs: tools/docker2initramfs.py Makefile
 	$(PYTHON3) tools/docker2initramfs.py $@ $(IMAGE)
 
 $(DUMMY_INITRAMFS_PATH):
+	mkdir -p $(@D)
 	touch $@
 
 %.svg: %.drawio

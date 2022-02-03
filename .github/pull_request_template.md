@@ -1,20 +1,15 @@
-<!--
+## Description
 
-Contributor Guidelines
+Please describe the PR here.
 
-First of all, thank you for submitting a pull request! To improve the quality please
-follow the following instructions.
+## Pre-Submission Checklist
 
-a) The PR title will be the commit message. Describe your changes briefly and
-   use the present tense, without a trailing full stop:
+When you submit a PR, please make sure your PR satisfies the following checklist:
 
-   BAD:  "Fixed a bug."
-   GOOD: "virtio-net: Fix an off-by-one error"
-
-b) Prefer using `#123` over `ISSUE-123` to mention an issue or a PR.
-c) Address compiler warnings (or add `#[allow(...)]`) before submitting the PR.
-d) Add "Closes #123" or "Fixes #123" in the PR description to automatically close the corresponding issue.
-
-Please feel free to remove this comment.
-
--->
+- [ ] I assert this contribution was authored by me.
+- [ ] I license this contribution under the license of this project.
+- [ ] The PR title describes your changes briefly and uses the present tense, without a trailing full stop.
+- [ ] The PR description describes the reason why we need the change.
+- [ ] This is an isolated change. No multiple changes and no unrelated changes are included.
+- [ ] Fixed all `cargo clippy` warnings.
+- [ ] Applied `rustfmt`.

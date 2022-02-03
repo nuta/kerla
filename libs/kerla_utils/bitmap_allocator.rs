@@ -1,11 +1,11 @@
-use bitvec::prelude::*;
+use bitvec::{prelude::*, index::BitMask};
 
 use crate::alignment::align_up;
 
 const PAGE_SIZE: usize = 4096;
 
 pub struct BitMapAllocator {
-    bitmap: spin::Mutex<&'static mut BitSlice<Lsb0, u8>>,
+    bitmap: spin::Mutex<&'static mut BitSlice<u8, LocalBits>>,
     base: usize,
     end: usize,
 }
@@ -20,11 +20,10 @@ impl BitMapAllocator {
         let bitmap_reserved_len = align_up(num_pages / 8, PAGE_SIZE);
         let bitmap_actual_len = (num_pages / 8) - (bitmap_reserved_len / PAGE_SIZE);
         let bitmap =
-            BitSlice::from_slice_mut(core::slice::from_raw_parts_mut(base, bitmap_actual_len))
-                .expect("you have too much memory");
+            BitSlice::from_slice_mut(core::slice::from_raw_parts_mut(base, bitmap_actual_len));
 
         debug_assert!(bitmap_reserved_len >= bitmap_actual_len);
-        bitmap.set_all(false);
+        bitmap.fill(false);
 
         BitMapAllocator {
             bitmap: spin::Mutex::new(bitmap),
@@ -53,7 +52,7 @@ impl BitMapAllocator {
             }
 
             if bitmap[start..end].not_any() {
-                bitmap[start..end].set_all(true);
+                bitmap[start..end].fill(true);
                 return Some(self.base + start * PAGE_SIZE);
             }
 
@@ -70,6 +69,6 @@ impl BitMapAllocator {
         let mut bitmap = self.bitmap.lock();
 
         debug_assert!(bitmap[off..(off + num_pages)].all(), "double free");
-        bitmap[off..(off + num_pages)].set_all(false);
+        bitmap[off..(off + num_pages)].fill(false);
     }
 }
