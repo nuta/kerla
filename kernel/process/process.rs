@@ -408,8 +408,8 @@ impl Process {
             let new_set = new.read::<[u8; 128]>()?;
             let new_set = SigSet::new(new_set);
             match how {
-                SignalMask::Block => *sigset = *sigset | new_set,
-                SignalMask::Unblock => *sigset = *sigset & !new_set,
+                SignalMask::Block => *sigset |= new_set,
+                SignalMask::Unblock => *sigset &= !new_set,
                 SignalMask::Set => *sigset = new_set,
             }
         }
@@ -517,7 +517,7 @@ impl Process {
             arch,
             signals: SpinLock::new(SignalDelivery::new()),
             signaled_frame: AtomicCell::new(None),
-            sigset: SpinLock::new(sig_set.clone()),
+            sigset: SpinLock::new(*sig_set),
         });
 
         process_group.lock().add(Arc::downgrade(&child));
