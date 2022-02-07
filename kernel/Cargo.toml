@@ -21,6 +21,7 @@ arrayvec = { version = "0.7.2", default-features = false }
 hashbrown = { version = "0.12.0", features = ["nightly"] }
 crossbeam = { version = "0.8.1", default-features = false, features = ["alloc"] }
 atomic_refcell = "0.1.6"
+bitvec = { version = "1.0.0", default-features = false, features = ["atomic", "alloc"] }
 
 # Arch-specific dependencies.
 x86 = "0.44.0"

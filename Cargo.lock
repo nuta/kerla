@@ -186,6 +186,7 @@ dependencies = [
  "arrayvec 0.7.2",
  "atomic_refcell",
  "bitflags",
+ "bitvec",
  "boot2dump",
  "crossbeam",
  "goblin",

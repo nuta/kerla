@@ -36,7 +36,7 @@ use kerla_runtime::{
     page_allocator::{alloc_pages, AllocPageFlags},
     spinlock::{SpinLock, SpinLockGuard},
 };
-use kerla_utils::{alignment::align_up, bitmap::BitMap};
+use kerla_utils::{alignment::align_up};
 
 type ProcessTable = BTreeMap<PId, Arc<Process>>;
 
@@ -143,7 +143,7 @@ impl Process {
             opened_files: SpinLock::new(OpenedFileTable::new()),
             signals: SpinLock::new(SignalDelivery::new()),
             signaled_frame: AtomicCell::new(None),
-            sigset: SpinLock::new(BitMap::zeroed()),
+            sigset: SpinLock::new(SigSet::ZERO),
         });
 
         process_group.lock().add(Arc::downgrade(&proc));
@@ -204,7 +204,7 @@ impl Process {
             root_fs,
             signals: SpinLock::new(SignalDelivery::new()),
             signaled_frame: AtomicCell::new(None),
-            sigset: SpinLock::new(BitMap::zeroed()),
+            sigset: SpinLock::new(SigSet::ZERO),
         });
 
         process_group.lock().add(Arc::downgrade(&process));
@@ -401,15 +401,16 @@ impl Process {
         let mut sigset = self.sigset.lock();
 
         if let Some(old) = oldset {
-            old.write_bytes(sigset.as_slice())?;
+            old.write_bytes(sigset.as_raw_slice())?;
         }
 
         if let Some(new) = set {
             let new_set = new.read::<[u8; 128]>()?;
+            let new_set = SigSet::new(new_set);
             match how {
-                SignalMask::Block => sigset.assign_or(new_set),
-                SignalMask::Unblock => sigset.assign_and_not(new_set),
-                SignalMask::Set => sigset.assign(new_set),
+                SignalMask::Block => *sigset = *sigset | new_set,
+                SignalMask::Unblock => *sigset = *sigset & !new_set,
+                SignalMask::Set => *sigset = new_set,
             }
         }
 
@@ -424,7 +425,7 @@ impl Process {
         let current = current_process();
         if let Some((signal, sigaction)) = current.signals.lock().pop_pending() {
             let sigset = current.sigset.lock();
-            if !sigset.get(signal as usize).unwrap_or(true) {
+            if !sigset.get(signal as usize).as_deref().unwrap_or(&true) {
                 match sigaction {
                     SigAction::Ignore => {}
                     SigAction::Terminate => {

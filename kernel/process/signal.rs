@@ -1,6 +1,6 @@
 use crate::{ctypes::c_int, prelude::*};
 use kerla_runtime::address::UserVAddr;
-use kerla_utils::bitmap::BitMap;
+use bitvec::prelude::*;
 
 pub type Signal = c_int;
 #[allow(unused)]
@@ -159,7 +159,8 @@ impl SignalDelivery {
     }
 }
 
-pub type SigSet = BitMap<128 /* 1024 / 8 */>;
+//pub type SigSet = BitMap<128 /* 1024 / 8 */>;
+pub type SigSet = BitArray<[u8; 1024 / 8 /* quark no_std? */], LocalBits>;
 pub enum SignalMask {
     Block,
     Unblock,
