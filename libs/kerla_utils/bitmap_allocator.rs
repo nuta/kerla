@@ -1,4 +1,4 @@
-use bitvec::{prelude::*, index::BitMask};
+use bitvec::{index::BitMask, prelude::*};
 
 use crate::alignment::align_up;
 

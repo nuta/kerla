@@ -82,7 +82,7 @@ Not supported.
 | 59  | execve                 | Partially             | `v0.0.1`     |                                            |
 | 60  | exit                   | Partially             | `v0.0.1`     |                                            |
 | 61  | wait4                  | Partially             | `v0.0.1`     |                                            |
-| 62  | kill                   | Unimplemented         |              |                                            |
+| 62  | kill                   | Partially             | next release              |                                            |
 | 63  | uname                  | Partially             | `v0.0.1`     |                                            |
 | 64  | semget                 | Unimplemented         |              |                                            |
 | 65  | semop                  | Unimplemented         |              |                                            |
