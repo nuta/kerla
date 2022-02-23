@@ -24,7 +24,7 @@ atomic_refcell = "0.1.6"
 bitvec = { version = "1.0.0", default-features = false, features = ["atomic", "alloc"] }
 
 # Arch-specific dependencies.
-x86 = "0.44.0"
+x86 = "0.45.0"
 
 # Local dependencies.
 kerla_runtime = { path = "../runtime" }
