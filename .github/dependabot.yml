@@ -4,5 +4,12 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
-    # Try to remove the PR limit
-    open-pull-requests-limit: 999
+
+    # Report only security updates:
+    #
+    #     This option has no impact on security updates,
+    #     which have a separate, internal limit of ten open
+    #     pull requests.
+    #
+    #     https://docs.github.com/en/code-security/supply-chain-security/keeping-your-dependencies-updated-automatically/configuration-options-for-dependency-updates#open-pull-requests-limit
+    open-pull-requests-limit: 0
