@@ -44,6 +44,7 @@ pub(self) mod getsockname;
 pub(self) mod getsockopt;
 pub(self) mod gettid;
 pub(self) mod ioctl;
+pub(self) mod kill;
 pub(self) mod link;
 pub(self) mod linkat;
 pub(self) mod listen;
@@ -138,6 +139,7 @@ const SYS_FORK: usize = 57;
 const SYS_EXECVE: usize = 59;
 const SYS_EXIT: usize = 60;
 const SYS_WAIT4: usize = 61;
+const SYS_KILL: usize = 62;
 const SYS_UNAME: usize = 63;
 const SYS_FCNTL: usize = 72;
 const SYS_FSYNC: usize = 74;
@@ -319,6 +321,7 @@ impl<'a> SyscallHandler<'a> {
                 bitflags_from_user!(WaitOptions, a3 as c_int)?,
                 UserVAddr::new(a4),
             ),
+            SYS_KILL => self.sys_kill(PId::new(a1 as i32), a2 as c_int),
             SYS_EXIT => self.sys_exit(a1 as i32),
             SYS_EXIT_GROUP => self.sys_exit_group(a1 as i32),
             SYS_SOCKET => self.sys_socket(a1 as i32, a2 as i32, a3 as i32),
