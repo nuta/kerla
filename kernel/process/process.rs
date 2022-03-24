@@ -117,7 +117,7 @@ pub struct Process {
     vm: AtomicRefCell<Option<Arc<SpinLock<Vm>>>>,
     opened_files: SpinLock<OpenedFileTable>,
     root_fs: Arc<SpinLock<RootFs>>,
-    signals: SpinLock<SignalDelivery>,
+    signals: Arc<SpinLock<SignalDelivery>>,
     signaled_frame: AtomicCell<Option<PtRegs>>,
     sigset: SpinLock<SigSet>,
 }
@@ -141,7 +141,7 @@ impl Process {
             pid: PId::new(0),
             root_fs: INITIAL_ROOT_FS.clone(),
             opened_files: SpinLock::new(OpenedFileTable::new()),
-            signals: SpinLock::new(SignalDelivery::new()),
+            signals: Arc::new(SpinLock::new(SignalDelivery::new())),
             signaled_frame: AtomicCell::new(None),
             sigset: SpinLock::new(SigSet::ZERO),
         });
@@ -202,7 +202,7 @@ impl Process {
             vm: AtomicRefCell::new(Some(Arc::new(SpinLock::new(entry.vm)))),
             opened_files: SpinLock::new(opened_files),
             root_fs,
-            signals: SpinLock::new(SignalDelivery::new()),
+            signals: Arc::new(SpinLock::new(SignalDelivery::new())),
             signaled_frame: AtomicCell::new(None),
             sigset: SpinLock::new(SigSet::ZERO),
         });
@@ -515,7 +515,7 @@ impl Process {
             opened_files: SpinLock::new(opened_files),
             root_fs: parent.root_fs().clone(),
             arch,
-            signals: SpinLock::new(SignalDelivery::new()),
+            signals: Arc::new(SpinLock::new(SignalDelivery::new())), // TODO: #88 has to address this
             signaled_frame: AtomicCell::new(None),
             sigset: SpinLock::new(*sig_set),
         });
