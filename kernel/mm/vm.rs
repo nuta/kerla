@@ -167,7 +167,7 @@ impl Vm {
         })
     }
 
-    pub fn is_free_vaddr_range(&mut self, start: UserVAddr, len: usize) -> bool {
+    pub fn is_free_vaddr_range(&self, start: UserVAddr, len: usize) -> bool {
         self.vm_areas.iter().all(|area| !area.overlaps(start, len))
     }
 
