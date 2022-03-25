@@ -16,11 +16,11 @@ enum LocalApicReg {
     SpuriousInterrupt = 0xf0,
 }
 
-struct LocalApic {
-    base: PAddr,
+struct LocalApic<'memory> {
+    base: PAddr<'memory>,
 }
 
-impl LocalApic {
+impl LocalApic<'_> {
     pub const fn new(base: PAddr) -> LocalApic {
         LocalApic { base }
     }

@@ -3,12 +3,12 @@ use arrayvec::{ArrayString, ArrayVec};
 use crate::address::PAddr;
 
 pub struct RamArea {
-    pub base: PAddr,
+    pub base: PAddr<'static>,
     pub len: usize,
 }
 
 pub struct VirtioMmioDevice {
-    pub mmio_base: PAddr,
+    pub mmio_base: PAddr<'static>,
     pub irq: u8,
 }
 

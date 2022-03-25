@@ -12,14 +12,14 @@ use crate::global_allocator::is_kernel_heap_enabled;
 #[cfg(debug_assertions)]
 use atomic_refcell::AtomicRefCell;
 
-pub struct SpinLock<T: ?Sized> {
+pub struct SpinLock<'memory, T: ?Sized> {
     #[cfg(debug_assertions)]
-    locked_by: AtomicRefCell<Option<CapturedBacktrace>>,
+    locked_by: AtomicRefCell<Option<CapturedBacktrace<'memory>>>,
     inner: spin::mutex::SpinMutex<T>,
 }
 
-impl<T> SpinLock<T> {
-    pub const fn new(value: T) -> SpinLock<T> {
+impl<T> SpinLock<'_, T> {
+    pub const fn new(value: T) -> SpinLock<'memory, T> {
         SpinLock {
             inner: spin::mutex::SpinMutex::new(value),
             #[cfg(debug_assertions)]
@@ -28,8 +28,8 @@ impl<T> SpinLock<T> {
     }
 }
 
-impl<T: ?Sized> SpinLock<T> {
-    pub fn lock(&self) -> SpinLockGuard<'_, T> {
+impl<T: ?Sized> SpinLock<'memory, T> {
+    pub fn lock(&'memory self) -> SpinLockGuard<'memory, T> {
         if self.inner.is_locked() {
             // Since we don't yet support multiprocessors and interrupts are
             // disabled until all locks are released, `lock()` will never fail
@@ -81,13 +81,13 @@ impl<T: ?Sized> SpinLock<T> {
     }
 }
 
-unsafe impl<T: ?Sized + Send> Sync for SpinLock<T> {}
-unsafe impl<T: ?Sized + Send> Send for SpinLock<T> {}
+unsafe impl<T: ?Sized + Send> Sync for SpinLock<'_, T> {}
+unsafe impl<T: ?Sized + Send> Send for SpinLock<'_, T> {}
 
 pub struct SpinLockGuard<'a, T: ?Sized> {
     inner: ManuallyDrop<spin::mutex::SpinMutexGuard<'a, T>>,
     #[cfg(debug_assertions)]
-    locked_by: &'a AtomicRefCell<Option<CapturedBacktrace>>,
+    locked_by: &'a AtomicRefCell<Option<CapturedBacktrace<'a>>>,
     saved_intr_status: ManuallyDrop<SavedInterruptStatus>,
 }
 

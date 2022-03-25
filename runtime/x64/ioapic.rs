@@ -14,11 +14,11 @@ enum IoApicReg {
     RedirectTableBase = 0x10,
 }
 
-struct IoApic {
-    base: PAddr,
+struct IoApic<'memory> {
+    base: PAddr<'memory>,
 }
 
-impl IoApic {
+impl IoApic<'_> {
     pub const fn new(base: PAddr) -> IoApic {
         IoApic { base }
     }

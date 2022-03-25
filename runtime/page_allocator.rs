@@ -61,33 +61,33 @@ bitflags! {
 #[derive(Debug)]
 pub struct PageAllocError;
 
-pub struct OwnedPages {
-    paddr: PAddr,
+pub struct OwnedPages<'memory> {
+    paddr: PAddr<'memory>,
     num_pages: usize,
 }
 
-impl OwnedPages {
+impl OwnedPages<'_> {
     fn new(paddr: PAddr, num_pages: usize) -> OwnedPages {
         OwnedPages { paddr, num_pages }
     }
 }
 
-impl Deref for OwnedPages {
-    type Target = PAddr;
+impl Deref for OwnedPages<'memory> {
+    type Target = PAddr<'memory>;
 
     fn deref(&self) -> &Self::Target {
         &self.paddr
     }
 }
 
-impl Drop for OwnedPages {
+impl Drop for OwnedPages<'_> {
     fn drop(&mut self) {
         free_pages(self.paddr, self.num_pages);
     }
 }
 
 // TODO: Use alloc_page
-pub fn alloc_pages(num_pages: usize, flags: AllocPageFlags) -> Result<PAddr, PageAllocError> {
+pub fn alloc_pages(num_pages: usize, flags: AllocPageFlags) -> Result<PAddr<'static>, PageAllocError> {
     let order = num_pages_to_order(num_pages);
     let mut zones = ZONES.lock();
     for zone in zones.iter_mut() {
@@ -111,7 +111,7 @@ pub fn alloc_pages(num_pages: usize, flags: AllocPageFlags) -> Result<PAddr, Pag
 pub fn alloc_pages_owned(
     num_pages: usize,
     flags: AllocPageFlags,
-) -> Result<OwnedPages, PageAllocError> {
+) -> Result<OwnedPages<'static>, PageAllocError> {
     let order = num_pages_to_order(num_pages);
     let mut zones = ZONES.lock();
     for zone in zones.iter_mut() {
