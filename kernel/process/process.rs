@@ -115,7 +115,7 @@ pub struct Process {
     cmdline: AtomicRefCell<Cmdline>,
     children: SpinLock<Vec<Arc<Process>>>,
     vm: AtomicRefCell<Option<Arc<SpinLock<Vm>>>>,
-    opened_files: SpinLock<OpenedFileTable>,
+    opened_files: Arc<SpinLock<OpenedFileTable>>,
     root_fs: Arc<SpinLock<RootFs>>,
     signals: Arc<SpinLock<SignalDelivery>>,
     signaled_frame: AtomicCell<Option<PtRegs>>,
@@ -140,7 +140,7 @@ impl Process {
             vm: AtomicRefCell::new(None),
             pid: PId::new(0),
             root_fs: INITIAL_ROOT_FS.clone(),
-            opened_files: SpinLock::new(OpenedFileTable::new()),
+            opened_files: Arc::new(SpinLock::new(OpenedFileTable::new())),
             signals: Arc::new(SpinLock::new(SignalDelivery::new())),
             signaled_frame: AtomicCell::new(None),
             sigset: SpinLock::new(SigSet::ZERO),
@@ -200,7 +200,7 @@ impl Process {
             cmdline: AtomicRefCell::new(Cmdline::from_argv(argv)),
             arch: arch::Process::new_user_thread(entry.ip, entry.user_sp),
             vm: AtomicRefCell::new(Some(Arc::new(SpinLock::new(entry.vm)))),
-            opened_files: SpinLock::new(opened_files),
+            opened_files: Arc::new(SpinLock::new(opened_files)),
             root_fs,
             signals: Arc::new(SpinLock::new(SignalDelivery::new())),
             signaled_frame: AtomicCell::new(None),
@@ -271,7 +271,7 @@ impl Process {
     }
 
     /// The ppened files table.
-    pub fn opened_files(&self) -> &SpinLock<OpenedFileTable> {
+    pub fn opened_files(&self) -> &Arc<SpinLock<OpenedFileTable>> {
         &self.opened_files
     }
 
@@ -499,7 +499,7 @@ impl Process {
         let pid = alloc_pid(&mut process_table)?;
         let arch = parent.arch.fork(parent_frame)?;
         let vm = parent.vm().as_ref().unwrap().lock().fork()?;
-        let opened_files = parent.opened_files().lock().fork();
+        let opened_files = parent.opened_files().lock().clone(); // TODO: #88 has to address this
         let process_group = parent.process_group();
         let sig_set = parent.sigset.lock();
 
@@ -512,7 +512,7 @@ impl Process {
             cmdline: AtomicRefCell::new(parent.cmdline().clone()),
             children: SpinLock::new(Vec::new()),
             vm: AtomicRefCell::new(Some(Arc::new(SpinLock::new(vm)))),
-            opened_files: SpinLock::new(opened_files),
+            opened_files: Arc::new(SpinLock::new(opened_files)),
             root_fs: parent.root_fs().clone(),
             arch,
             signals: Arc::new(SpinLock::new(SignalDelivery::new())), // TODO: #88 has to address this

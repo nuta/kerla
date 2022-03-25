@@ -427,11 +427,6 @@ impl OpenedFileTable {
         Ok(())
     }
 
-    /// Clones the table.
-    pub fn fork(&self) -> OpenedFileTable {
-        self.clone()
-    }
-
     /// Closes all opened files.
     pub fn close_all(&mut self) {
         self.files.clear();
