@@ -1,3 +1,5 @@
+use core::arch::asm;
+
 use super::semihosting::{semihosting_halt, SemihostingExitStatus};
 
 pub fn idle() {
