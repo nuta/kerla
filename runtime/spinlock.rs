@@ -1,4 +1,5 @@
 use cfg_if::cfg_if;
+use core::arch::asm;
 use core::mem::ManuallyDrop;
 use core::ops::{Deref, DerefMut};
 

@@ -1,7 +1,6 @@
 #![cfg_attr(feature = "no_std", no_std)]
 #![feature(slice_internals)]
 #![feature(const_maybe_uninit_assume_init)]
-#![feature(const_fn_trait_bound)]
 #![allow(unused)]
 
 #[cfg(not(feature = "no_std"))]

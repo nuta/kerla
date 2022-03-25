@@ -1,8 +1,6 @@
 //! An OS-agnostic bootstrap and runtime support library for operating system
 //! kernels.
 #![no_std]
-#![feature(asm)]
-#![feature(global_asm)]
 
 extern crate alloc;
 
@@ -24,6 +22,7 @@ pub mod spinlock;
 mod x64;
 
 pub mod arch {
+    #[cfg(target_arch = "x86_64")]
     pub use super::x64::{
         enable_irq, halt, idle, read_clock_counter, semihosting_halt, x64_specific, Backtrace,
         PageFaultReason, PageTable, PtRegs, SavedInterruptStatus, SemihostingExitStatus,
@@ -88,7 +87,7 @@ impl Handler for NopHandler {
         _a5: usize,
         _a6: usize,
         _n: usize,
-        _frame: *mut x64::PtRegs,
+        _frame: *mut arch::PtRegs,
     ) -> isize {
         0
     }

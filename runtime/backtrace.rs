@@ -1,4 +1,4 @@
-use core::{fmt, mem::size_of, slice, str};
+use core::{arch::global_asm, fmt, mem::size_of, slice, str};
 
 use alloc::boxed::Box;
 use arrayvec::ArrayVec;
