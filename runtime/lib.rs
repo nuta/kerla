@@ -1,8 +1,6 @@
 //! An OS-agnostic bootstrap and runtime support library for operating system
 //! kernels.
 #![no_std]
-#![feature(asm)]
-#![feature(global_asm)]
 
 extern crate alloc;
 
