@@ -1,0 +1,17 @@
+[Unit]
+Description=SSH Demo
+After=network-online.target
+
+[Service]
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Type=simple
+User=root
+ExecStart=/home/app/repo/demo
+WorkingDirectory=/home/app/repo
+Restart=always
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=demo
+
+[Install]
+WantedBy=multi-user.target

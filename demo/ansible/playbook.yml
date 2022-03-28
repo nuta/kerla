@@ -1,0 +1,152 @@
+---
+- hosts: all
+  remote_user: seiya
+  tasks:
+
+  - name: Add nodesource keys
+    become: yes
+    apt_key:
+      url: https://deb.nodesource.com/gpgkey/nodesource.gpg.key
+      state: present
+
+  - name: Add nodesource apt sources
+    become: yes
+    apt_repository:
+      repo: '{{ item }}'
+      state: present
+    with_items:
+    - 'deb https://deb.nodesource.com/node_16.x focal main'
+    - 'deb-src https://deb.nodesource.com/node_16.x focal main'
+
+  - name: Add Docker GPG apt Key
+    become: yes
+    apt_key:
+      url: https://download.docker.com/linux/ubuntu/gpg
+      state: present
+
+  - name: Add Docker Repository
+    become: yes
+    apt_repository:
+      repo: deb https://download.docker.com/linux/ubuntu bionic stable
+      state: present
+
+  - name: apt upgrade
+    become: yes
+    apt:
+      name: "*"
+      state: latest
+      update_cache: yes
+
+  - name: apt install
+    become: yes
+    apt:
+      pkg:
+      - libvirt0
+      - libvirt-clients
+      - libvirt-daemon
+      - libvirt-daemon-system
+      - nodejs
+      - make
+      - python2
+      - python3
+      - build-essential
+      - iptables-persistent
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - rsync
+      - htop
+
+  - name: npm install --global yarn
+    become: yes
+    shell: npm install --global yarn
+
+  - name: Install Firecracker
+    become: yes
+    ansible.builtin.copy:
+      src: firecracker
+      dest: /usr/bin/firecracker
+      mode: '755'
+
+  - name: Add the user 'app'
+    become: yes
+    ansible.builtin.user:
+      name: app
+      create_home: yes
+      append: yes
+      groups:
+      - docker
+
+  - name: Sync the Git repo
+    become: yes
+    become_user: app
+    ansible.posix.synchronize:
+      src: ../../
+      dest: /home/app/repo
+      delete: yes
+      recursive: yes
+      rsync_opts:
+        - "--exclude=.git"
+        - "--exclude=dist"
+        - "--exclude=kerla/build"
+        - "--exclude=kerla/target"
+        - "--exclude=node_modules"
+
+  - name: yarn install
+    become: yes
+    shell:
+      cmd: yarn install --frozen-lockfile
+      chdir: /home/app/repo
+
+  - name: yarn build
+    become: yes
+    shell:
+      cmd: yarn build
+      chdir: /home/app/repo
+
+  - name: Upload demo.elf
+    become: yes
+    ansible.builtin.copy:
+      src: demo.elf
+      dest: /home/app/demo.elf
+      owner: app
+      group: app
+      mode: '0644'
+
+  - name: Upload demo.service
+    become: yes
+    ansible.builtin.copy:
+      src: demo.service
+      dest: /etc/systemd/system/demo.service
+      owner: app
+      group: app
+      mode: '0644'
+
+  - name: Allow packets from VMs to localhost
+    become: yes
+    shell:
+      cmd: iptables -I FORWARD 1 -i virbr0 -d 192.168.122.1 -j ACCEPT
+
+  - name: Deny packets from VMs to the others
+    become: yes
+    shell:
+      cmd: iptables -I FORWARD 2 -i virbr0 -j DROP
+
+  - name: netfilter-persistent save
+    become: yes
+    shell:
+      cmd: netfilter-persistent save
+
+  - name: Enable netfilter-persistent.service
+    become: yes
+    ansible.builtin.systemd:
+      name: netfilter-persistent
+      state: started
+      enabled: yes
+
+  - name: Enable demo.service
+    become: yes
+    ansible.builtin.systemd:
+      name: demo
+      state: restarted
+      enabled: yes

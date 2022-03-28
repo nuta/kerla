@@ -1,0 +1,31 @@
+{
+  "name": "firecracker-demo",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "author": "Seiya Nuta <nuta@seiya.me>",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "node dist/main.js",
+    "build": "tsc",
+    "dev": "nodemon --watch 'src/**/*.ts' --exec ts-node-transpile-only src/main.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^17.0.2",
+    "@types/superagent": "^4.1.10",
+    "@typescript-eslint/eslint-plugin": "^4.22.0",
+    "@typescript-eslint/parser": "^4.22.0",
+    "eslint": ">=5.16.0",
+    "nodemon": "^2.0.7",
+    "prettier": "^2.2.1",
+    "ts-node": "^9.1.1",
+    "typescript": "^4.2.3"
+  },
+  "dependencies": {
+    "@google-cloud/logging-winston": "^4.0.4",
+    "execa": "^5.0.0",
+    "superagent": "^6.1.0",
+    "tempy": "^1.0.1",
+    "winston": "^3.3.3"
+  }
+}

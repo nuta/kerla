@@ -1,0 +1,10 @@
+#!/bin/sh
+export APP_HOST=0.0.0.0
+export APP_PORT=22
+export MEMORY_PER_VM=1024
+export NUM_RUNNING_VMS_MAX=16
+export KERNEL_IMAGE_PATH=/home/app/demo.elf
+export HEALTH_CHECK_INTERVAL_MS=120000
+export NUM_RUNNING_VMS_MAX=10
+export FIRECRACKER_TIMEOUT_MS=180000
+exec sudo -E yarn start 2>&1 | tee /dev/null
