@@ -1,0 +1,21 @@
+---
+Checks: >-
+  *,
+  -cppcoreguidelines-init-variables,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -readability-magic-numbers,
+  -readability-isolate-declaration,
+  -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
+  -clang-analyzer-security.insecureAPI.bzero,
+  -hicpp-multiway-paths-covered,
+  -hicpp-signed-bitwise,
+  -hicpp-no-assembler,
+  -llvm-include-order,
+  -clang-analyzer-valist.Uninitialized,
+  -clang-analyzer-unix.Malloc,
+  -misc-unused-parameters,
+  -google-readability-todo
+CheckOptions:
+# We need LLVM 10 to use this option...
+#  - key: hicpp-signed-bitwise.IgnorePositiveIntegerLiterals
+#    value: true

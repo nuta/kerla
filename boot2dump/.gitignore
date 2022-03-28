@@ -1,0 +1,8 @@
+/.vscode
+/.gdb_history
+/build
+/rust/boot2dump.bin
+/rust/target
+*.log
+*.tmp
+*.pyc

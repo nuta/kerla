@@ -1,0 +1,14 @@
+[package]
+name = "boot2dump"
+authors = ["Seiya Nuta <nuta@seiya.me>"]
+categories = ["no-std"]
+description = "A library to save a crash log happened in your homebrew OS."
+documentation = "https://docs.rs/boot2dump"
+homepage = "https://github.com/nuta/boot2dump"
+repository = "https://github.com/nuta/boot2dump"
+version = "0.0.1"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+include = ["src", "boot2dump.bin"]
+
+[dependencies]

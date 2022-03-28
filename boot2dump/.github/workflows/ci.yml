@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: "*"
+
+jobs:
+  ci:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Release builds.
+          - os: ubuntu-20.04
+            build_options: RELEASE=1
+
+          # Debug builds.
+          - os: ubuntu-20.04
+            build_options:
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+
+      - name: Install latest clang and lld
+        run: sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
+
+      - name: Build boot2dump
+        run: make build/boot2dump.bin LLVM_SUFFIX=-13
+
+      - name: Build a binding library for Rust
+        run: make rust-build

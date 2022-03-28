@@ -1,0 +1,51 @@
+BasedOnStyle: Google
+Language: Cpp
+IndentWidth: 4
+ColumnLimit: 80
+UseTab: Never
+
+AlignConsecutiveMacros: true
+AlignEscapedNewlines: Right
+AlignOperands: true
+AlignTrailingComments: true
+AllowAllArgumentsOnNextLine: true
+AllowAllParametersOfDeclarationOnNextLine: true
+AllowShortBlocksOnASingleLine: Empty
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AlwaysBreakBeforeMultilineStrings: true
+BinPackArguments: true
+BinPackParameters: true
+
+BreakBeforeBinaryOperators: NonAssignment
+BreakBeforeBraces: Attach
+BreakStringLiterals: false
+
+IncludeBlocks: Merge
+IncludeCategories:
+  - Regex: '.*'
+    Priority: 1
+  - Regex: '<.+>'
+    Priority: 2
+
+SortIncludes: true
+IndentCaseLabels: true
+IndentGotoLabels: false
+IndentPPDirectives: AfterHash
+ReflowComments: true
+
+SpaceAfterCStyleCast: true
+SpaceAfterLogicalNot: false
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeParens: ControlStatements
+SpaceInEmptyBlock: false
+SpaceInEmptyParentheses: false
+SpacesInCStyleCastParentheses: false
+SpacesInContainerLiterals: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+ForEachMacros:
+  - LIST_FOR_EACH
+  - LIST_FOR_EACH_REV
