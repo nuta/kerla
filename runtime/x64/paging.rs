@@ -59,8 +59,9 @@ fn traverse(
                 return None;
             }
 
-            let new_table =
-                alloc_pages(1, AllocPageFlags::KERNEL).expect("failed to allocate page table");
+            let new_table = alloc_pages(1, AllocPageFlags::KERNEL)
+                .expect("failed to allocate page table")
+                .leak();
             unsafe {
                 new_table.as_mut_ptr::<u8>().write_bytes(0, PAGE_SIZE);
                 *entry = new_table.value() as u64 | attrs.bits()
@@ -86,7 +87,7 @@ fn traverse(
 /// fork(2) uses this funciton to duplicate the memory space.
 fn duplicate_table(original_table_paddr: PAddr, level: usize) -> Result<PAddr, PageAllocError> {
     let orig_table = original_table_paddr.as_ptr::<PageTableEntry>();
-    let new_table_paddr = alloc_pages(1, AllocPageFlags::KERNEL)?;
+    let new_table_paddr = alloc_pages(1, AllocPageFlags::KERNEL)?.leak();
     let new_table = new_table_paddr.as_mut_ptr::<PageTableEntry>();
 
     debug_assert!(level > 0);
@@ -102,7 +103,7 @@ fn duplicate_table(original_table_paddr: PAddr, level: usize) -> Result<PAddr, P
         // Create a deep copy of the page table entry.
         let new_paddr = if level == 1 {
             // Copy a physical page referenced from the last-level page table.
-            let new_paddr = alloc_pages(1, AllocPageFlags::KERNEL)?;
+            let new_paddr = alloc_pages(1, AllocPageFlags::KERNEL)?.leak();
             unsafe {
                 ptr::copy_nonoverlapping::<u8>(paddr.as_ptr(), new_paddr.as_mut_ptr(), PAGE_SIZE);
             }
@@ -132,7 +133,7 @@ fn allocate_pml4() -> Result<PAddr, PageAllocError> {
         static __kernel_pml4: u8;
     }
 
-    let pml4 = alloc_pages(1, AllocPageFlags::KERNEL)?;
+    let pml4 = alloc_pages(1, AllocPageFlags::KERNEL)?.leak();
 
     // Map kernel pages.
     unsafe {
