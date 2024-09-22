@@ -6,8 +6,6 @@
 #![feature(array_methods)]
 #![test_runner(crate::test_runner::run_tests)]
 #![reexport_test_harness_main = "test_main"]
-// FIXME:
-#![allow(unaligned_references)]
 #![feature(trait_alias)]
 
 #[macro_use]

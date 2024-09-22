@@ -96,7 +96,8 @@ impl RootFs {
 
     fn lookup_mount_point(&self, dir: &Arc<dyn Directory>) -> Result<Option<&MountPoint>> {
         let stat = dir.stat()?;
-        Ok(self.mount_points.get(&stat.inode_no))
+        let inode_no = stat.inode_no; // Move out of unaligned
+        Ok(self.mount_points.get(&inode_no))
     }
 
     /// Resolves a path into `PathComponent`. If `follow_symlink` is `true`,
