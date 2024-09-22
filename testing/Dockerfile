@@ -65,6 +65,6 @@ ADD etc/group /etc
 ADD etc/passwd /etc
 ADD etc/profile /etc
 ADD integration_tests /integration_tests
-RUN echo "<html><body><h1>It works on Kerla!</h1></body></html>" > /var/www/html/index.html
+ADD var/www/html/index.html /var/www/html/index.html
 
 CMD ["/bin/sh"]
