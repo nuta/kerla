@@ -1,0 +1,22 @@
+#!/bin/sh
+
+if [ -z "$TESTS_DIR" ]; then
+    TESTS_DIR="."
+fi
+
+result=`${TESTS_DIR}/echo_args.sh 1 2 "3 4"`
+
+expected=$(cat <<EOF
+1
+2
+3 4
+EOF
+)
+
+if [ "$result" != "$expected" ]; then
+    echo "Failure:"
+    echo $result
+    exit 1
+fi
+
+echo Pass

@@ -563,11 +563,12 @@ fn setup_userspace(
 
 fn do_script_binfmt(
     executable_path: &Arc<PathComponent>,
-    _argv: &[&[u8]], // TODO: Ignoring this seems wrong
+    script_argv: &[&[u8]],
     envp: &[&[u8]],
     root_fs: &Arc<SpinLock<RootFs>>,
     buf: &[u8],
 ) -> Result<UserspaceEntry> {
+    // Set up argv[] with the interpreter and its arguments from the shebang line.
     let mut argv: Vec<&[u8]> = buf[2..buf.iter().position(|&ch| ch == b'\n').unwrap()]
         .split(|&ch| ch == b' ')
         .collect();
@@ -575,8 +576,17 @@ fn do_script_binfmt(
         return Err(Errno::EINVAL.into());
     }
 
+    // Push the path to the script file as the first argument to the
+    // interpreter.
     let executable_pathbuf = executable_path.resolve_absolute_path();
     argv.push(executable_pathbuf.as_str().as_bytes());
+
+    // Push the original arguments to the script on after the new script
+    // invocation (leaving out argv[0] of the previous path of invoking the
+    // script.)
+    for arg in script_argv.iter().skip(1) {
+        argv.push(arg);
+    }
 
     let shebang_path = root_fs.lock().lookup_path(
         Path::new(core::str::from_utf8(argv[0]).map_err(|_| Error::new(Errno::EINVAL))?),
