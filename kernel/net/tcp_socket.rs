@@ -112,7 +112,7 @@ impl FileLike for TcpSocket {
         SOCKET_WAIT_QUEUE.sleep_signalable_until(|| {
             let mut sockets = SOCKETS.lock();
             let mut backlogs = self.backlogs.lock();
-            match get_ready_backlog_index(&mut *sockets, &*backlogs) {
+            match get_ready_backlog_index(&mut sockets, &backlogs) {
                 Some(index) => {
                     // Pop the client socket and add a new socket into the backlog.
                     let socket = backlogs.remove(index);
@@ -313,7 +313,7 @@ impl FileLike for TcpSocket {
     fn poll(&self) -> Result<PollStatus> {
         let mut status = PollStatus::empty();
         let mut sockets = SOCKETS.lock();
-        if get_ready_backlog_index(&mut *sockets, &*self.backlogs.lock()).is_some() {
+        if get_ready_backlog_index(&mut sockets, &self.backlogs.lock()).is_some() {
             status |= PollStatus::POLLIN;
         }
 
