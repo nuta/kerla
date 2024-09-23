@@ -45,17 +45,17 @@ impl Process {
             KERNEL_STACK_SIZE / PAGE_SIZE,
             AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
         )
-        .expect("failed to allocate kernel stack");
+        .expect("failed to allocate interrupt stack");
         let syscall_stack = alloc_pages_owned(
             KERNEL_STACK_SIZE / PAGE_SIZE,
             AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
         )
-        .expect("failed to allocate kernel stack");
+        .expect("failed to allocate syscall stack");
         let kernel_stack = alloc_pages_owned(
             KERNEL_STACK_SIZE / PAGE_SIZE,
             AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
         )
-        .expect("failed to allocat kernel stack");
+        .expect("failed to allocate kernel stack");
 
         let rsp = unsafe {
             let mut rsp: *mut u64 = sp.as_mut_ptr();
@@ -91,7 +91,7 @@ impl Process {
             KERNEL_STACK_SIZE / PAGE_SIZE,
             AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
         )
-        .expect("failed to allocat kernel stack");
+        .expect("failed to allocate kernel stack");
         let interrupt_stack = alloc_pages_owned(
             KERNEL_STACK_SIZE / PAGE_SIZE,
             AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
@@ -173,7 +173,7 @@ impl Process {
             KERNEL_STACK_SIZE / PAGE_SIZE,
             AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
         )
-        .expect("failed to allocat kernel stack");
+        .expect("failed to allocate kernel stack");
         let rsp = unsafe {
             let kernel_sp = kernel_stack.as_vaddr().add(KERNEL_STACK_SIZE);
             let mut rsp: *mut u64 = kernel_sp.as_mut_ptr();
@@ -212,12 +212,12 @@ impl Process {
             KERNEL_STACK_SIZE / PAGE_SIZE,
             AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
         )
-        .expect("failed allocate kernel stack");
+        .expect("failed allocate interrupt stack");
         let syscall_stack = alloc_pages_owned(
             KERNEL_STACK_SIZE / PAGE_SIZE,
             AllocPageFlags::KERNEL | AllocPageFlags::DIRTY_OK,
         )
-        .expect("failed allocate kernel stack");
+        .expect("failed allocate syscall stack");
 
         Ok(Process {
             rsp: UnsafeCell::new(rsp as u64),
