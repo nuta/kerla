@@ -1,5 +1,5 @@
-use core::mem::size_of;
 use bitvec::prelude::*;
+use core::mem::size_of;
 
 pub struct IdTable<const BIT_LENGTH: usize>(BitArray<[usize; BIT_LENGTH], LocalBits>); // const expr arithmetic unstable
 
