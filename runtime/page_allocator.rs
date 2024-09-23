@@ -50,11 +50,11 @@ bitflags! {
         // TODO: Currently both of them are unused in the allocator.
 
         /// Allocate pages for the kernel purpose.
-        const KERNEL = 0;
+        const KERNEL = 1 << 0;
         /// Allocate pages for the user.
-        const USER = 0;
+        const USER = 1 << 1;
         /// If it's not set, allocated pages will be filled with zeroes.
-        const DIRTY_OK = 1 << 0;
+        const DIRTY_OK = 1 << 2;
     }
 }
 
