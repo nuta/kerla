@@ -17,6 +17,9 @@ pub struct Process {
     rsp: UnsafeCell<u64>,
     pub(super) fsbase: AtomicCell<u64>,
     pub(super) xsave_area: Option<OwnedPages>,
+    // This appears dead, but really we're keeping the pages referenced from the
+    // rsp from being dropped until the Process is dropped.
+    #[allow(dead_code)]
     kernel_stack: OwnedPages,
     // FIXME: Do we really need these stacks?
     interrupt_stack: OwnedPages,
