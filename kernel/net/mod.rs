@@ -58,11 +58,11 @@ impl From<MonotonicClock> for Instant {
     }
 }
 
-pub(self) static SOCKETS: Once<SpinLock<SocketSet>> = Once::new();
+static SOCKETS: Once<SpinLock<SocketSet>> = Once::new();
 static INTERFACE: Once<SpinLock<EthernetInterface<OurDevice>>> = Once::new();
 static DHCP_CLIENT: Once<SpinLock<Dhcpv4Client>> = Once::new();
 static DHCP_ENABLED: Once<bool> = Once::new();
-pub(self) static SOCKET_WAIT_QUEUE: Once<WaitQueue> = Once::new();
+static SOCKET_WAIT_QUEUE: Once<WaitQueue> = Once::new();
 
 pub fn process_packets() {
     let mut sockets = SOCKETS.lock();

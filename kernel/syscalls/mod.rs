@@ -16,64 +16,64 @@ use crate::{
 use bitflags::bitflags;
 use kerla_runtime::{address::UserVAddr, arch::PtRegs};
 
-pub(self) mod accept;
-pub(self) mod arch_prctl;
-pub(self) mod bind;
-pub(self) mod brk;
-pub(self) mod chdir;
-pub(self) mod chmod;
-pub(self) mod clock_gettime;
-pub(self) mod close;
-pub(self) mod connect;
-pub(self) mod dup2;
-pub(self) mod execve;
-pub(self) mod exit;
-pub(self) mod exit_group;
-pub(self) mod fcntl;
-pub(self) mod fork;
-pub(self) mod fstat;
-pub(self) mod fsync;
-pub(self) mod getcwd;
-pub(self) mod getdents64;
-pub(self) mod getpeername;
-pub(self) mod getpgid;
-pub(self) mod getpid;
-pub(self) mod getppid;
-pub(self) mod getrandom;
-pub(self) mod getsockname;
-pub(self) mod getsockopt;
-pub(self) mod gettid;
-pub(self) mod ioctl;
-pub(self) mod kill;
-pub(self) mod link;
-pub(self) mod linkat;
-pub(self) mod listen;
-pub(self) mod lstat;
-pub(self) mod mkdir;
-pub(self) mod mmap;
-pub(self) mod open;
-pub(self) mod pipe;
-pub(self) mod poll;
-pub(self) mod read;
-pub(self) mod readlink;
-pub(self) mod reboot;
-pub(self) mod recvfrom;
-pub(self) mod rt_sigaction;
-pub(self) mod rt_sigprocmask;
-pub(self) mod rt_sigreturn;
-pub(self) mod select;
-pub(self) mod sendto;
-pub(self) mod set_tid_address;
-pub(self) mod setpgid;
-pub(self) mod shutdown;
-pub(self) mod socket;
-pub(self) mod stat;
-pub(self) mod syslog;
-pub(self) mod uname;
-pub(self) mod utimes;
-pub(self) mod wait4;
-pub(self) mod write;
-pub(self) mod writev;
+mod accept;
+mod arch_prctl;
+mod bind;
+mod brk;
+mod chdir;
+mod chmod;
+mod clock_gettime;
+mod close;
+mod connect;
+mod dup2;
+mod execve;
+mod exit;
+mod exit_group;
+mod fcntl;
+mod fork;
+mod fstat;
+mod fsync;
+mod getcwd;
+mod getdents64;
+mod getpeername;
+mod getpgid;
+mod getpid;
+mod getppid;
+mod getrandom;
+mod getsockname;
+mod getsockopt;
+mod gettid;
+mod ioctl;
+mod kill;
+mod link;
+mod linkat;
+mod listen;
+mod lstat;
+mod mkdir;
+mod mmap;
+mod open;
+mod pipe;
+mod poll;
+mod read;
+mod readlink;
+mod reboot;
+mod recvfrom;
+mod rt_sigaction;
+mod rt_sigprocmask;
+mod rt_sigreturn;
+mod select;
+mod sendto;
+mod set_tid_address;
+mod setpgid;
+mod shutdown;
+mod socket;
+mod stat;
+mod syslog;
+mod uname;
+mod utimes;
+mod wait4;
+mod write;
+mod writev;
 
 pub enum CwdOrFd {
     /// `AT_FDCWD`
@@ -96,11 +96,11 @@ bitflags! {
     }
 }
 
-pub(self) const MAX_READ_WRITE_LEN: usize = core::isize::MAX as usize;
-pub(self) const IOV_MAX: usize = 1024;
+const MAX_READ_WRITE_LEN: usize = core::isize::MAX as usize;
+const IOV_MAX: usize = 1024;
 
 #[repr(C)]
-pub(self) struct IoVec {
+struct IoVec {
     base: UserVAddr,
     len: usize,
 }
