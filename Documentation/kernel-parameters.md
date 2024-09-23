@@ -27,7 +27,7 @@ make run CMDLINE="dhcp=off"
 
 ### GRUB2
 
-In GRUB2, use append kernel parameters after the kernel image path:
+In GRUB2, append kernel parameters after the kernel image path:
 
 ```
 menuentry "Kerla" {

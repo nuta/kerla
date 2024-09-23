@@ -6,7 +6,7 @@ The following figure shows some important kernel objects and their relationships
 ![Architecture](architecture.svg)
 
 ## Process
-A `Process` object represents both of kernel/user threads and user processes.
+A `Process` object represents both kernel/user threads and user processes.
 In addition to the execution context (`arch::Thread`) which holds such as the CPU registers,
 `Process` holds some references to shared resources like opened files, memory address space,
 signal-related information, etc.
