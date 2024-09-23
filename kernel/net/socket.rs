@@ -8,14 +8,13 @@ use smoltcp::wire::{IpAddress, IpEndpoint, Ipv4Address};
 bitflags! {
     pub struct RecvFromFlags: i32 {
         // TODO:
-        const _NOT_IMPLEMENTED = 0;
+        const _NOT_IMPLEMENTED = 0x1;
     }
 }
 
 bitflags! {
     pub struct SendToFlags: i32 {
-        // TODO:
-        const _NOT_IMPLEMENTED = 0;
+        // TODO: remaining flags
         const MSG_NOSIGNAL = 0x4000;
     }
 }
