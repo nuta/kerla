@@ -180,7 +180,7 @@ unsafe extern "C" fn x64_handle_interrupt(vec: u8, frame: *const InterruptFrame)
             }
 
             // Abort if the virtual address points to out of the user's address space.
-            let unaligned_vaddr = UserVAddr::new(cr2() as usize);
+            let unaligned_vaddr = UserVAddr::new(cr2());
             handler().handle_page_fault(unaligned_vaddr, frame.rip as usize, reason);
         }
         X87_FPU_VECTOR => {

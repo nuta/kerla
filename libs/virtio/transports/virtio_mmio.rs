@@ -25,7 +25,7 @@ impl VirtioTransport for VirtioMmio {
         unsafe {
             self.mmio_base
                 .add((0x100 + offset) as usize)
-                .read_volatile::<u8>() as u8
+                .read_volatile::<u8>()
         }
     }
 

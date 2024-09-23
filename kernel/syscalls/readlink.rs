@@ -29,7 +29,7 @@ impl<'a> SyscallHandler<'a> {
                 .readlink()?
         };
 
-        if (buf_size as usize) < resolved_path.as_str().as_bytes().len() {
+        if buf_size < resolved_path.as_str().as_bytes().len() {
             return Err(Errno::ERANGE.into());
         }
 

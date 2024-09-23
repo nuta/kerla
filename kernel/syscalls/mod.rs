@@ -269,9 +269,7 @@ impl<'a> SyscallHandler<'a> {
                 &resolve_path(a4)?,
                 bitflags_from_user!(AtFlags, a5 as c_int)?,
             ),
-            SYS_READLINK => {
-                self.sys_readlink(&resolve_path(a1)?, UserVAddr::new_nonnull(a2)?, a3 as usize)
-            }
+            SYS_READLINK => self.sys_readlink(&resolve_path(a1)?, UserVAddr::new_nonnull(a2)?, a3),
             SYS_CHMOD => self.sys_chmod(&resolve_path(a1)?, FileMode::new(a2 as u32)),
             SYS_CHOWN => Ok(0), // TODO:
             SYS_FSYNC => self.sys_fsync(Fd::new(a1 as i32)),
@@ -325,11 +323,9 @@ impl<'a> SyscallHandler<'a> {
             SYS_EXIT => self.sys_exit(a1 as i32),
             SYS_EXIT_GROUP => self.sys_exit_group(a1 as i32),
             SYS_SOCKET => self.sys_socket(a1 as i32, a2 as i32, a3 as i32),
-            SYS_BIND => self.sys_bind(Fd::new(a1 as i32), UserVAddr::new_nonnull(a2)?, a3 as usize),
+            SYS_BIND => self.sys_bind(Fd::new(a1 as i32), UserVAddr::new_nonnull(a2)?, a3),
             SYS_SHUTDOWN => self.sys_shutdown(Fd::new(a1 as i32), a2 as i32),
-            SYS_CONNECT => {
-                self.sys_connect(Fd::new(a1 as i32), UserVAddr::new_nonnull(a2)?, a3 as usize)
-            }
+            SYS_CONNECT => self.sys_connect(Fd::new(a1 as i32), UserVAddr::new_nonnull(a2)?, a3),
             SYS_LISTEN => self.sys_listen(Fd::new(a1 as i32), a2 as c_int),
             SYS_GETSOCKNAME => self.sys_getsockname(
                 Fd::new(a1 as i32),
@@ -354,7 +350,7 @@ impl<'a> SyscallHandler<'a> {
             SYS_SENDTO => self.sys_sendto(
                 Fd::new(a1 as i32),
                 UserVAddr::new_nonnull(a2)?,
-                a3 as usize,
+                a3,
                 bitflags_from_user!(SendToFlags, a4 as i32)?,
                 UserVAddr::new(a5),
                 a6,
@@ -362,7 +358,7 @@ impl<'a> SyscallHandler<'a> {
             SYS_RECVFROM => self.sys_recvfrom(
                 Fd::new(a1 as i32),
                 UserVAddr::new_nonnull(a2)?,
-                a3 as usize,
+                a3,
                 bitflags_from_user!(RecvFromFlags, a4 as i32)?,
                 UserVAddr::new(a5),
                 UserVAddr::new(a6),
