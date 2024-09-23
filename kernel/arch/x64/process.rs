@@ -13,7 +13,6 @@ use kerla_runtime::{
 };
 use x86::current::segmentation::wrfsbase;
 
-#[repr(C, packed)]
 pub struct Process {
     rsp: UnsafeCell<u64>,
     pub(super) fsbase: AtomicCell<u64>,
