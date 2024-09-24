@@ -2,7 +2,6 @@
 #![no_main]
 #![feature(custom_test_frameworks)]
 #![feature(alloc_error_handler)]
-#![feature(const_btree_new)]
 #![feature(array_methods)]
 #![test_runner(crate::test_runner::run_tests)]
 #![reexport_test_harness_main = "test_main"]

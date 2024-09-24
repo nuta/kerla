@@ -184,13 +184,10 @@ impl Cmdline {
                         }
                     }
                     (Some("virtio_mmio.device"), Some(value)) => {
-                        let mut size_and_rest = value.splitn(2, "@0x");
-                        let _size = size_and_rest.next().unwrap();
-                        let rest = size_and_rest.next().unwrap();
-
-                        let mut addr_and_irq = rest.splitn(2, ':');
-                        let addr = usize::from_str_radix(addr_and_irq.next().unwrap(), 16).unwrap();
-                        let irq = addr_and_irq.next().unwrap().parse().unwrap();
+                        let (_size, rest) = value.split_once("@0x").unwrap();
+                        let (addr, irq) = rest.split_once(':').unwrap();
+                        let addr = usize::from_str_radix(addr, 16).unwrap();
+                        let irq = irq.parse().unwrap();
 
                         info!(
                             "bootinfo: virtio MMIO device: base={:016x}, irq={}",
