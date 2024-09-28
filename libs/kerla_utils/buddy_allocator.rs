@@ -206,9 +206,8 @@ impl BuddyAllocator {
 
     fn refill_order(&mut self, order: usize) {
         // Look for the lowest order containing at least one free entry.
-        let available_order = ((order + 1)..BUDDY_ORDER_MAX)
-            .into_iter()
-            .find(|order| !self.free_lists[*order].is_empty());
+        let available_order =
+            ((order + 1)..BUDDY_ORDER_MAX).find(|order| !self.free_lists[*order].is_empty());
 
         if let Some(available_order) = available_order {
             for order in ((order + 1)..=available_order).rev() {

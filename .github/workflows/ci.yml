@@ -43,7 +43,7 @@ jobs:
           cargo --version
 
       - name: Install cargo crates
-        run: cargo install cargo-binutils rustfilt
+        run: cargo install cargo-binutils@0.3.6 rustfilt@0.2.1
 
       - name: make check
         run: make check

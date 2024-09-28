@@ -36,7 +36,7 @@ use kerla_runtime::{
     page_allocator::{alloc_pages, AllocPageFlags},
     spinlock::{SpinLock, SpinLockGuard},
 };
-use kerla_utils::{alignment::align_up};
+use kerla_utils::alignment::align_up;
 
 type ProcessTable = BTreeMap<PId, Arc<Process>>;
 

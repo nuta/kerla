@@ -37,12 +37,15 @@ struct InterruptFrame {
 }
 
 impl fmt::Debug for InterruptFrame {
-    #[allow(unaligned_references)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let rip = self.rip;
+        let rsp = self.rsp;
+        let cs = self.cs;
+        let error = self.error;
         write!(
             f,
             "RIP={:x}, RSP={:x}, CS={:x}, ERR={:x}",
-            self.rip, self.rsp, self.cs, self.error
+            rip, rsp, cs, error
         )
     }
 }
@@ -54,7 +57,6 @@ extern "C" {
 }
 
 #[no_mangle]
-#[allow(unaligned_references)]
 unsafe extern "C" fn x64_handle_interrupt(vec: u8, frame: *const InterruptFrame) {
     let frame = &*frame;
 
@@ -66,12 +68,15 @@ unsafe extern "C" fn x64_handle_interrupt(vec: u8, frame: *const InterruptFrame)
         && vec != 14
         && vec != 36
     {
+        let rip = frame.rip;
+        let rsp = frame.rsp;
+        let error = frame.error;
         trace!(
             "interrupt({}): rip={:x}, rsp={:x}, err={:x}, cr2={:x}",
             vec,
-            frame.rip,
-            frame.rsp,
-            frame.error,
+            rip,
+            rsp,
+            error,
             x86::controlregs::cr2()
         );
     }
@@ -164,16 +169,18 @@ unsafe extern "C" fn x64_handle_interrupt(vec: u8, frame: *const InterruptFrame)
                 || frame.rip == usercopy2 as *const u8 as u64
                 || frame.rip == usercopy3 as *const u8 as u64;
             if !occurred_in_user {
+                let rip = frame.rip; // Move out of unaligned
+                let rsp = frame.rsp; // Move out of unaligned
                 panic!(
                     "page fault occurred in the kernel: rip={:x}, rsp={:x}, vaddr={:x}",
-                    frame.rip,
-                    frame.rsp,
+                    rip,
+                    rsp,
                     cr2()
                 );
             }
 
             // Abort if the virtual address points to out of the user's address space.
-            let unaligned_vaddr = UserVAddr::new(cr2() as usize);
+            let unaligned_vaddr = UserVAddr::new(cr2());
             handler().handle_page_fault(unaligned_vaddr, frame.rip as usize, reason);
         }
         X87_FPU_VECTOR => {

@@ -91,7 +91,7 @@ fn duplicate_table(original_table_paddr: PAddr, level: usize) -> Result<PAddr, P
 
     debug_assert!(level > 0);
     for i in 0..ENTRIES_PER_TABLE {
-        let entry = unsafe { *orig_table.offset(i as isize) };
+        let entry = unsafe { *orig_table.offset(i) };
         let paddr = entry_paddr(entry);
 
         // Check if we need to copy the entry.

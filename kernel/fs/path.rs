@@ -175,7 +175,7 @@ impl AsRef<Path> for PathBuf {
     }
 }
 
-impl<'a> From<&Path> for PathBuf {
+impl From<&Path> for PathBuf {
     fn from(path: &Path) -> PathBuf {
         PathBuf {
             path: path.path.to_owned(),
