@@ -1,6 +1,6 @@
 # Logging
 
-By default, the kernel don't print `trace!` and `debug!`  log messages.
+By default, the kernel doesn't print `trace!` or `debug!` log messages.
 
 Similar to `$RUST_LOG`, Kerla supports controlling logging through `LOG=` argument in a `make` command:
 
