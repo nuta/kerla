@@ -3,6 +3,7 @@ use crate::{
     ctypes::*,
     fs::{
         devfs::SERIAL_TTY,
+        inode::FileLike,
         mount::RootFs,
         opened_file::{Fd, OpenFlags, OpenOptions, OpenedFile, OpenedFileTable, PathComponent},
         path::Path,
@@ -560,44 +561,49 @@ fn setup_userspace(
     do_setup_userspace(executable_path, argv, envp, root_fs, true)
 }
 
-/// Creates a new virtual memory space, parses and maps an executable file,
-/// and set up the user stack.
-fn do_setup_userspace(
-    executable_path: Arc<PathComponent>,
-    argv: &[&[u8]],
+fn do_script_binfmt(
+    executable_path: &Arc<PathComponent>,
+    script_argv: &[&[u8]],
     envp: &[&[u8]],
     root_fs: &Arc<SpinLock<RootFs>>,
-    handle_shebang: bool,
+    buf: &[u8],
 ) -> Result<UserspaceEntry> {
-    // Read the ELF header in the executable file.
-    let file_header_len = PAGE_SIZE;
-    let file_header_top = USER_STACK_TOP;
-    let file_header_pages = alloc_pages(file_header_len / PAGE_SIZE, AllocPageFlags::KERNEL)?;
-    let buf =
-        unsafe { core::slice::from_raw_parts_mut(file_header_pages.as_mut_ptr(), file_header_len) };
-
-    let executable = executable_path.inode.as_file()?;
-    executable.read(0, buf.into(), &OpenOptions::readwrite())?;
-
-    if handle_shebang && buf.starts_with(b"#!") && buf.contains(&b'\n') {
-        let mut argv: Vec<&[u8]> = buf[2..buf.iter().position(|&ch| ch == b'\n').unwrap()]
-            .split(|&ch| ch == b' ')
-            .collect();
-        if argv.is_empty() {
-            return Err(Errno::EINVAL.into());
-        }
-
-        let executable_pathbuf = executable_path.resolve_absolute_path();
-        argv.push(executable_pathbuf.as_str().as_bytes());
-
-        let shebang_path = root_fs.lock().lookup_path(
-            Path::new(core::str::from_utf8(argv[0]).map_err(|_| Error::new(Errno::EINVAL))?),
-            true,
-        )?;
-
-        return do_setup_userspace(shebang_path, &argv, envp, root_fs, false);
+    // Set up argv[] with the interpreter and its arguments from the shebang line.
+    let mut argv: Vec<&[u8]> = buf[2..buf.iter().position(|&ch| ch == b'\n').unwrap()]
+        .split(|&ch| ch == b' ')
+        .collect();
+    if argv.is_empty() {
+        return Err(Errno::EINVAL.into());
     }
 
+    // Push the path to the script file as the first argument to the
+    // interpreter.
+    let executable_pathbuf = executable_path.resolve_absolute_path();
+    argv.push(executable_pathbuf.as_str().as_bytes());
+
+    // Push the original arguments to the script on after the new script
+    // invocation (leaving out argv[0] of the previous path of invoking the
+    // script.)
+    for arg in script_argv.iter().skip(1) {
+        argv.push(arg);
+    }
+
+    let shebang_path = root_fs.lock().lookup_path(
+        Path::new(core::str::from_utf8(argv[0]).map_err(|_| Error::new(Errno::EINVAL))?),
+        true,
+    )?;
+
+    do_setup_userspace(shebang_path, &argv, envp, root_fs, false)
+}
+
+fn do_elf_binfmt(
+    executable: &Arc<dyn FileLike>,
+    argv: &[&[u8]],
+    envp: &[&[u8]],
+    file_header_pages: kerla_api::address::PAddr,
+    buf: &[u8],
+) -> Result<UserspaceEntry> {
+    let file_header_top = USER_STACK_TOP;
     let elf = Elf::parse(buf)?;
     let ip = elf.entry()?;
 
@@ -615,7 +621,7 @@ fn do_setup_userspace(
     let auxv = &[
         Auxv::Phdr(
             file_header_top
-                .sub(file_header_len)
+                .sub(buf.len())
                 .add(elf.header().e_phoff as usize),
         ),
         Auxv::Phnum(elf.program_headers().len()),
@@ -624,7 +630,7 @@ fn do_setup_userspace(
         Auxv::Random(random_bytes),
     ];
     const USER_STACK_LEN: usize = 128 * 1024; // TODO: Implement rlimit
-    let init_stack_top = file_header_top.sub(file_header_len);
+    let init_stack_top = file_header_top.sub(buf.len());
     let user_stack_bottom = init_stack_top.sub(USER_STACK_LEN).value();
     let user_heap_bottom = align_up(end_of_image, PAGE_SIZE);
     let init_stack_len = align_up(estimate_user_init_stack_size(argv, envp, auxv), PAGE_SIZE);
@@ -646,9 +652,9 @@ fn do_setup_userspace(
         UserVAddr::new(user_stack_bottom).unwrap(),
         UserVAddr::new(user_heap_bottom).unwrap(),
     )?;
-    for i in 0..(file_header_len / PAGE_SIZE) {
+    for i in 0..(buf.len() / PAGE_SIZE) {
         vm.page_table_mut().map_user_page(
-            file_header_top.sub(((file_header_len / PAGE_SIZE) - i) * PAGE_SIZE),
+            file_header_top.sub(((buf.len() / PAGE_SIZE) - i) * PAGE_SIZE),
             file_header_pages.add(i * PAGE_SIZE),
         );
     }
@@ -684,6 +690,31 @@ fn do_setup_userspace(
     }
 
     Ok(UserspaceEntry { vm, ip, user_sp })
+}
+
+/// Creates a new virtual memory space, parses and maps an executable file,
+/// and set up the user stack.
+fn do_setup_userspace(
+    executable_path: Arc<PathComponent>,
+    argv: &[&[u8]],
+    envp: &[&[u8]],
+    root_fs: &Arc<SpinLock<RootFs>>,
+    handle_shebang: bool,
+) -> Result<UserspaceEntry> {
+    // Read the ELF header in the executable file.
+    let file_header_len = PAGE_SIZE;
+    let file_header_pages = alloc_pages(file_header_len / PAGE_SIZE, AllocPageFlags::KERNEL)?;
+    let buf =
+        unsafe { core::slice::from_raw_parts_mut(file_header_pages.as_mut_ptr(), file_header_len) };
+
+    let executable = executable_path.inode.as_file()?;
+    executable.read(0, buf.into(), &OpenOptions::readwrite())?;
+
+    if handle_shebang && buf.starts_with(b"#!") && buf.contains(&b'\n') {
+        return do_script_binfmt(&executable_path, argv, envp, root_fs, buf);
+    }
+
+    do_elf_binfmt(executable, argv, envp, file_header_pages, buf)
 }
 
 pub fn gc_exited_processes() {
