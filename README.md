@@ -1,6 +1,4 @@
 # Kerla
-[![CI](https://github.com/nuta/kerla/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/nuta/kerla/actions/workflows/ci.yml)
-[![Discord Chat](https://img.shields.io/discord/904705655095582752?logo=discord&style=social)](https://discord.gg/6Pu4ujpp6h)
 
 ![screenshot](screenshot.png)
 
@@ -18,6 +16,10 @@ compatible with the Linux ABI, that is, it runs Linux binaries without any modif
 - Docker-based initramfs build system.
 
 ***Check out [my blog post](https://seiya.me/writing-linux-clone-in-rust) for motivation and my thoughts on writing an OS kernel in Rust.***
+
+> [!IMPORTANT]
+> 
+> This software is no longer maintained. If you are interested in a modern OS written in Rust, check out my new project **[Starina](https://starina.dev)**.
 
 ## Demo: SSH into Kerla!
 
