@@ -10,7 +10,7 @@ pub fn idle() {
 
 #[cfg_attr(test, allow(unused))]
 pub fn halt() -> ! {
-    semihosting_halt(SemihostingExitStatus::Success);
+    unsafe { semihosting_halt(SemihostingExitStatus::Success) };
 
     loop {
         unsafe {
