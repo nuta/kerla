@@ -19,7 +19,7 @@ compatible with the Linux ABI, that is, it runs Linux binaries without any modif
 
 > [!IMPORTANT]
 > 
-> This software is no longer maintained. If you are interested in a modern OS written in Rust, check out my new project **[Starina](https://starina.dev)**.
+> This software is no longer maintained. If you are interested in a modern OS written in Rust, check out my new project **[FTL](https://github.com/nuta/ftl)**.
 
 ## Demo: SSH into Kerla!
 
